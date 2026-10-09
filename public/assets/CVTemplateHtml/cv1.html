@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>CV - Khaled mofed</title>
+
+        <!-- FONTS -->
+        <link
+            href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600"
+            rel="stylesheet"
+            type="text/css"
+        />
+        <link
+            href="https://fonts.googleapis.com/css?family=Raleway:100"
+            rel="stylesheet"
+            type="text/css"
+        />
+        <link
+            href="https://fonts.googleapis.com/css?family=Montserrat"
+            rel="stylesheet"
+            type="text/css"
+        />
+
+        <style>
+            * {
+                box-sizing: border-box;
+                transition: 0.35s ease;
+            }
+            .rela-block {
+                display: block;
+                position: relative;
+                margin: auto;
+            }
+            .rela-inline {
+                display: inline-block;
+                position: relative;
+                margin: auto;
+            }
+            .floated {
+                display: inline-block;
+                float: left;
+            }
+            .abs-center {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, 0%);
+                text-align: left;
+                width: 88%;
+            }
+            body {
+                font-family: "Open Sans";
+                font-size: 18px;
+                font-weight: 400;
+                line-height: 28px;
+                background: url("http://kingofwallpapers.com/leaves/leaves-016.jpg")
+                    right no-repeat;
+                background-size: cover;
+                margin: 0;
+            }
+            .caps {
+                text-transform: uppercase;
+            }
+            .justified {
+                text-align: justify;
+            }
+            p.light {
+                color: #777;
+            }
+            h2 {
+                font-family: "Open Sans";
+                font-size: 30px;
+                letter-spacing: 5px;
+                font-weight: 600;
+                color: #000;
+            }
+            h3 {
+                font-family: "Open Sans";
+                font-size: 21px;
+                font-weight: 600;
+                color: #000;
+            }
+            .page {
+                width: 90%;
+                max-width: 1200px;
+                margin: 0px auto;
+                background-color: #fff;
+                box-shadow: 6px 10px 28px 0px rgba(0, 0, 0, 0.4);
+            }
+            .top-bar {
+                height: 220px;
+                background-color: #848484;
+                color: #fff;
+            }
+            .name {
+                position: absolute;
+                left: calc(350px + 8%);
+                height: 220px;
+                text-align: center;
+                font-family: "Raleway";
+                font-size: 30px;
+                letter-spacing: 8px;
+                width: 52%;
+                font-weight: bold;
+            }
+            .name div {
+                width: 94%;
+            }
+            .side-bar {
+                position: absolute;
+                top: 60px;
+                left: 5%;
+                width: 350px;
+                background-color: #f7e0c1;
+                padding: 320px 30px 50px;
+                height: 96.1%;
+            }
+            .mugshot {
+                position: absolute;
+                top: 50px;
+                left: 70px;
+                height: 210px;
+                width: 210px;
+            }
+            .mugshot .logo {
+                margin: -23px;
+            }
+            .logo {
+                position: absolute;
+                height: 250px;
+                width: 250px;
+            }
+            .logo .logo-svg {
+                height: 100%;
+                width: 100%;
+                stroke: #000;
+            }
+            .logo .logo-text {
+                position: absolute;
+                top: 58%;
+                right: 16%;
+                font-family: "Montserrat";
+                font-size: 55px;
+            }
+            .social {
+                padding-left: 40px;
+                margin-bottom: 20px;
+            }
+            .social:before {
+                content: "";
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                height: 26px;
+                width: 26px;
+                background-size: cover !important;
+            }
+            .social.twitter:before {
+                background: url("img/tweter.webp") center no-repeat;
+            }
+            .social.pinterest:before {
+                background: url("img/p.webp") center no-repeat;
+            }
+            .social.linked-in:before {
+                background: url("img/linkedIn.webp") center no-repeat;
+            }
+            .side-header {
+                font-family: "Open Sans";
+                font-size: 18px;
+                letter-spacing: 4px;
+                font-weight: 600;
+                margin: 60px auto 10px;
+                padding-bottom: 5px;
+                border-bottom: 1px solid #888;
+            }
+            .list-thing {
+                padding-left: 25px;
+                margin-bottom: 10px;
+            }
+            .content-container {
+                margin-left: calc(350px + 10%);
+                padding: 50px;
+            }
+            .separator {
+                height: 2px;
+                width: 100%;
+                background-color: #999;
+                margin: 20px 0;
+            }
+            .long-margin {
+                margin-bottom: 40px;
+            }
+            img.avatar {
+                width: 100%;
+                border-radius: 8px;
+            }
+            .section-wrapper .skill-percentage {
+                margin-bottom: 10px;
+                position: relative;
+            }
+            .section-wrapper .skill-percentage::after {
+                content: "";
+                width: 100%;
+                height: 6px;
+                background: #4a4e51;
+                display: block;
+                margin-top: 3px;
+            }
+            .section-wrapper .skill-percentage::before {
+                content: "";
+                height: 6px;
+                background: #ff9608;
+                position: absolute;
+                margin-top: 3px;
+                bottom: 0;
+            }
+            .section-wrapper .skill-percentage:nth-child(1)::before {
+                width: 80%;
+                -webkit-animation: skill_1 0.6s ease;
+                animation: skill_1 0.6s ease;
+            }
+            .section-wrapper .skill-percentage:nth-child(2)::before {
+                width: 90%;
+                -webkit-animation: skill_2 0.6s ease;
+                animation: skill_2 0.6s ease;
+            }
+            .section-wrapper .skill-percentage:nth-child(3)::before {
+                width: 50%;
+                -webkit-animation: skill_3 0.6s ease;
+                animation: skill_3 0.6s ease;
+            }
+            .section-wrapper .skill-percentage:nth-child(4)::before {
+                width: 60%;
+                -webkit-animation: skill_4 0.6s ease;
+                animation: skill_4 0.6s ease;
+            }
+            .section-wrapper .skill-percentage:nth-child(5)::before {
+                width: 70%;
+                -webkit-animation: skill_5 0.6s ease;
+                animation: skill_5 0.6s ease;
+            }
+            .section-wrapper .skill-percentage:nth-child(6)::before {
+                width: 70%;
+                -webkit-animation: skill_6 0.6s ease;
+                animation: skill_6 0.6s ease;
+            }
+            .section-wrapper .skill-percentage:nth-child(7)::before {
+                width: 70%;
+                -webkit-animation: skill_6 0.6s ease;
+                animation: skill_6 0.6s ease;
+            }
+            .section-wrapper ul {
+                list-style: none;
+                padding-left: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="rela-block page">
+            <div class="rela-block top-bar">
+                <div class="caps name">
+                    <div class="abs-center">Khaled Mofeed</div>
+                </div>
+            </div>
+            <div class="side-bar">
+                <div class="mugshot">
+                    <div class="logo">
+                        <img src="img/khaled.jpg" class="avatar" alt="avatar" />
+                    </div>
+                </div>
+                <p>123 My Place Drive</p>
+                <p>Astoria, New York 11105</p>
+                <p>1-800-CALLPLZ</p>
+                <p>emailsareforsquares@gmail.com</p>
+                <br />
+                <p class="rela-block social twitter">Twitter stuff</p>
+                <p class="rela-block social pinterest">Pinterest things</p>
+                <p class="rela-block social linked-in">Linked-in man</p>
+                <p class="rela-block caps side-header">Expertise</p>
+                <p class="rela-block list-thing">HTML</p>
+                <p class="rela-block list-thing">CSS (Stylus)</p>
+                <p class="rela-block list-thing">JavaScript & jQuery</p>
+                <p class="rela-block list-thing">Killer Taste</p>
+                <p class="rela-block caps side-header">Education</p>
+                <p class="rela-block list-thing">Advanced potion making</p>
+                <p class="rela-block list-thing">
+                    Degree in popping and locking
+                </p>
+                <p class="rela-block list-thing">Knitting game on point</p>
+                <p class="rela-block list-thing">Culinary af</p>
+            </div>
+            <div class="rela-block content-container">
+                <h2 class="rela-block caps title">Jr Front-End Developer</h2>
+                <div class="rela-block separator"></div>
+                <div class="rela-block caps greyed">Profile</div>
+                <p class="long-margin">
+                    Retro DIY quinoa, mixtape williamsburg master cleanse
+                    bushwick tumblr chillwave dreamcatcher hella wolf paleo.
+                    Knausgaard semiotics truffaut cornhole hoodie, YOLO meggings
+                    gochujang tofu. Locavore ugh kale chips iPhone biodiesel
+                    typewriter freegan, kinfolk brooklyn kitsch man bun. Austin
+                    neutra etsy, lumbersexual paleo cornhole sriracha kinfolk
+                    meggings kickstarter.
+                </p>
+
+                <div class="section-wrapper clearfix">
+                    <p class="rela-block caps side-header">Skills</p>
+                    <ul>
+                        <li class="skill-percentage">HTML / HTML5</li>
+                        <li class="skill-percentage">
+                            CSS / CSS3 / SASS / LESS
+                        </li>
+                        <li class="skill-percentage">Javascript</li>
+                        <li class="skill-percentage">Jquery</li>
+                        <li class="skill-percentage">Wordpress</li>
+                        <li class="skill-percentage">Photoshop</li>
+                    </ul>
+                </div>
+
+                <p class="rela-block caps side-header">Experience</p>
+
+                <h3>Job #1</h3>
+                <p class="light">First job description</p>
+                <p class="justified">
+                    Plaid gentrify put a bird on it, pickled XOXO farm-to-table
+                    irony raw denim messenger bag leggings. Hoodie PBR&B photo
+                    booth, vegan chillwave meh paleo freegan ramps. Letterpress
+                    shabby chic fixie semiotics. Meditation sriracha banjo
+                    pour-over. Gochujang pickled hashtag mixtape cred chambray.
+                    Freegan microdosing VHS, 90's bicycle rights aesthetic hella
+                    PBR&B.
+                </p>
+
+                <h3>Job #2</h3>
+                <p class="light">Second Job Description</p>
+                <p class="justified">
+                    Beard before they sold out photo booth distillery health
+                    goth. Hammock franzen green juice meggings, ethical sriracha
+                    tattooed schlitz mixtape man bun stumptown swag whatever
+                    distillery blog. Affogato iPhone normcore, meggings actually
+                    direct trade lomo plaid franzen shoreditch. Photo booth pug
+                    paleo austin, pour-over banh mi scenester vice food truck
+                    slow-carb. Street art kogi normcore, vice everyday carry
+                    crucifix thundercats man bun raw denim echo park pork belly
+                    helvetica vinyl.
+                </p>
+
+                <h3>Job #3</h3>
+                <p class="light">Third Job Description</p>
+                <p class="justified">
+                    Next level roof party lo-fi fingerstache skateboard, kogi
+                    tumblr. Shabby chic put a bird on it chambray, 3 wolf moon
+                    swag beard brooklyn post-ironic taxidermy art party
+                    microdosing keffiyeh marfa. Put a bird on it 3 wolf moon
+                    cliche helvetica knausgaard. Mumblecore fingerstache lomo,
+                    artisan freegan keffiyeh paleo kinfolk kale chips street art
+                    blog flannel.
+                </p>
+            </div>
+        </div>
+    </body>
+</html>

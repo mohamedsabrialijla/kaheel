@@ -1,0 +1,44 @@
+# قيم Firebase للمشروع الجديد
+# انسخ هذه القيم إلى ملف .env
+
+# ============================================
+# Frontend (Vite) - للشات
+# ============================================
+VITE_FIREBASE_API_KEY=AIzaSyAb1sUcV73XaUtr6Mx_OtnU9TZXzSutI24
+VITE_FIREBASE_AUTH_DOMAIN=brandy-bb646.firebaseapp.com
+VITE_FIREBASE_DATABASE_URL=https://brandy-bb646-default-rtdb.firebaseio.com
+VITE_FIREBASE_PROJECT_ID=brandy-bb646
+VITE_FIREBASE_STORAGE_BUCKET=brandy-bb646.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=122215339644
+VITE_FIREBASE_APP_ID=1:122215339644:web:eba73821848baa759e9bf9
+
+# ============================================
+# Backend (Laravel) - للإشعارات
+# ============================================
+FIREBASE_PROJECT_ID=brandy-bb646
+FIREBASE_DATABASE_URL=https://brandy-bb646-default-rtdb.firebaseio.com
+FIREBASE_STORAGE_BUCKET=brandy-bb646.firebasestorage.app
+FIREBASE_API_KEY=AIzaSyAb1sUcV73XaUtr6Mx_OtnU9TZXzSutI24
+FIREBASE_AUTH_DOMAIN=brandy-bb646.firebaseapp.com
+FIREBASE_MESSAGING_SENDER_ID=122215339644
+FIREBASE_APP_ID=1:122215339644:web:eba73821848baa759e9bf9
+FIREBASE_SERVER_KEY=YOUR_SERVER_KEY_HERE
+FIREBASE_CREDENTIALS=storage/app/firebase/firebase-credentials.json
+
+# ============================================
+# ملاحظات:
+# ============================================
+# 1. FIREBASE_SERVER_KEY: 
+#    - اذهب إلى Firebase Console > Project Settings > Cloud Messaging
+#    - في قسم "Cloud Messaging API (Legacy)" ستجد "Server key"
+#    - انسخ المفتاح (يبدأ بـ AAAA...)
+#    - إذا لم تجد Cloud Messaging، اذهب إلى Build > Cloud Messaging > Get started
+#
+# 2. FIREBASE_CREDENTIALS: 
+#    - ضع ملف Service Account JSON في: storage/app/firebase/firebase-credentials.json
+#    - حمّله من: Project Settings > Service Accounts > Generate new private key
+#
+# 3. بعد تحديث .env، أعد تشغيل:
+#    - npm run dev
+#    - php artisan config:clear
+

@@ -1,0 +1,1200 @@
+:root {
+    --background: oklch(98.5% 0.006 75);
+    --foreground: oklch(22% 0.008 70);
+    --card: oklch(100% 0 0);
+    --primary: #005573;
+    --primary-foreground: oklch(99% 0.002 85);
+    --ring: #005573;
+    --secondary: oklch(95.5% 0.008 80);
+    --secondary-foreground: oklch(25% 0.008 70);
+    --muted: oklch(96% 0.006 80);
+    --muted-foreground: oklch(50% 0.012 70);
+    --accent: oklch(94% 0.018 68);
+    --accent-foreground: oklch(27% 0.012 65);
+    --border: oklch(89% 0.008 78);
+    --input: oklch(89% 0.008 78);
+    --radius: 6px;
+    --font-sans: "Work Sans", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Instrument Serif", "IBM Plex Sans Arabic", serif;
+    --header-h: 4.5rem;
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button,
+a {
+    font-family: inherit;
+}
+
+img {
+    display: block;
+    max-width: 100%;
+}
+
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    height: var(--header-h);
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+    background: color-mix(in oklab, var(--background) 90%, transparent);
+    backdrop-filter: blur(24px);
+}
+
+.header-inner,
+.wrap,
+.wrap-wide,
+.footer-inner {
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+}
+
+.header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    max-width: 80rem;
+    height: 100%;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    line-height: 1;
+}
+
+.brand-mark {
+    display: flex;
+    flex-direction: column;
+    padding-inline-end: 0.75rem;
+    border-inline-end: 1px solid var(--border);
+}
+
+.brand-forma {
+    font-size: 0.875rem;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+}
+
+.brand-azure {
+    margin-top: 0.25rem;
+    color: var(--primary);
+    font-size: 8px;
+    letter-spacing: 0.34em;
+}
+
+.brand-name {
+    display: none;
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 0.375rem;
+}
+
+.site-header .nav .btn:not(.btn-primary):not(.btn-outline) {
+    color: var(--primary);
+}
+
+.site-header .nav .btn:not(.btn-primary):not(.btn-outline):hover {
+    background: var(--accent);
+    color: var(--primary);
+}
+
+.nav-home,
+.nav-role {
+    display: none;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--foreground);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn:hover {
+    background: var(--accent);
+    color: var(--accent-foreground);
+}
+
+.btn-sm {
+    height: 2rem;
+    padding-inline: 0.75rem;
+}
+
+.btn-lg {
+    height: 2.5rem;
+    padding-inline: 2rem;
+    font-size: 0.875rem;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: var(--shadow);
+}
+
+.btn-primary:hover {
+    background: color-mix(in oklab, var(--primary) 90%, black);
+    color: var(--primary-foreground);
+}
+
+.btn-outline {
+    border-color: var(--input);
+    background: var(--background);
+    color: var(--foreground);
+    box-shadow: var(--shadow);
+}
+
+.btn-outline:hover {
+    background: var(--accent);
+    color: var(--accent-foreground);
+}
+
+.btn-square {
+    height: 3rem;
+    border-radius: 0;
+    font-size: 0.875rem;
+}
+
+.btn-square-outline {
+    height: 3rem;
+    border-radius: 0;
+    border-color: color-mix(in oklab, var(--primary) 40%, transparent);
+    background: transparent;
+    color: var(--foreground);
+    font-size: 0.875rem;
+}
+
+.btn-square-outline:hover {
+    background: var(--accent);
+    color: var(--accent-foreground);
+}
+
+.icon {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+}
+
+.login-label {
+    display: none;
+}
+
+.session-chip {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.session-who {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    color: var(--foreground);
+    font-size: 0.875rem;
+}
+
+.session-email,
+.session-out-label {
+    display: none;
+}
+
+.session-email {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 16rem;
+}
+
+.session-out {
+    margin: 0;
+}
+
+.icon-forward {
+    transform: rotate(180deg);
+}
+
+html[dir="rtl"] .icon-forward {
+    transform: none;
+}
+
+.hero {
+    position: relative;
+    min-height: calc(100svh - var(--header-h));
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+    background: var(--background);
+}
+
+.hero-photo,
+.hero-shade {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.hero-photo {
+    object-fit: cover;
+}
+
+.hero-shade {
+    background: oklch(33% 0.07 238 / 35%);
+}
+
+.hero-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: calc(100svh - var(--header-h));
+    max-width: 80rem;
+    margin-inline: auto;
+    padding: 6rem 1.25rem 3.5rem;
+}
+
+.hero-copy {
+    max-width: 48rem;
+    color: var(--background);
+}
+
+.eyebrow {
+    margin: 0;
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.32em;
+}
+
+.hero h1 {
+    margin: 1.25rem 0 0;
+    font-family: var(--font-display);
+    font-size: 3.75rem;
+    font-weight: 500;
+    line-height: 1;
+}
+
+.hero-sub {
+    margin: 1.25rem 0 0;
+    font-size: 1.125rem;
+    font-weight: 300;
+}
+
+.hero-body {
+    max-width: 36rem;
+    margin: 1rem 0 0;
+    color: color-mix(in oklab, var(--background) 85%, transparent);
+    font-size: 0.875rem;
+    line-height: 1.625;
+}
+
+.hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 2rem;
+}
+
+.hero-note,
+.section-note {
+    margin: 1.75rem 0 0;
+    font-size: 0.75rem;
+}
+
+.hero-note {
+    color: color-mix(in oklab, var(--background) 70%, transparent);
+}
+
+.packages {
+    background: var(--muted);
+    color: var(--foreground);
+    padding: 5rem 0;
+}
+
+.packages-head {
+    margin-bottom: 3rem;
+    text-align: center;
+}
+
+.packages-head .eyebrow {
+    margin-bottom: 1rem;
+    font-size: 0.65rem;
+}
+
+.packages h2,
+.includes h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.1;
+}
+
+.packages h2 {
+    font-size: 2.25rem;
+}
+
+.packages-lead {
+    max-width: 42rem;
+    margin: 1rem auto 0;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    line-height: 1.75rem;
+}
+
+.package-grid {
+    display: grid;
+    gap: 1px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--border);
+    box-shadow: var(--shadow-2xl);
+}
+
+.package-card {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    background: var(--card);
+    color: var(--foreground);
+}
+
+.package-card.is-classic {
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+}
+
+.package-media {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: var(--muted);
+}
+
+.package-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.7s ease, opacity 0.7s ease;
+}
+
+.package-card.is-vip .package-media img {
+    opacity: 0.85;
+}
+
+.package-card:hover .package-media img {
+    transform: scale(1.05);
+}
+
+.package-card.is-vip:hover .package-media img {
+    opacity: 1;
+}
+
+.badge {
+    position: absolute;
+    top: 1.25rem;
+    inset-inline-end: 1.25rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+}
+
+.badge-vip {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: var(--shadow-lg);
+}
+
+.badge-classic {
+    border: 1px solid var(--border);
+    background: color-mix(in oklab, var(--card) 90%, transparent);
+    color: var(--foreground);
+    backdrop-filter: blur(12px);
+}
+
+.package-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 1.75rem;
+}
+
+.package-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+}
+
+.package-card h3 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 2.25rem;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1;
+}
+
+.package-card.is-vip h3 {
+    color: var(--primary);
+}
+
+.accent-bar {
+    width: 3rem;
+    height: 0.25rem;
+    margin-top: 0.75rem;
+    background: var(--primary);
+}
+
+.package-card.is-vip .accent-bar {
+    width: 5rem;
+}
+
+.premium {
+    border: 1px solid var(--primary);
+    padding: 0.25rem 0.5rem;
+    color: var(--primary);
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.tagline {
+    min-height: 3rem;
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    line-height: 1.75rem;
+}
+
+.highlights {
+    margin: 2rem 0;
+    padding: 1.5rem 0;
+    border-block: 1px solid var(--border);
+}
+
+.highlights div {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.highlights div + div {
+    margin-top: 0.75rem;
+}
+
+.mark {
+    color: var(--primary);
+}
+
+.price-block {
+    margin-top: auto;
+}
+
+.price-label,
+.price-vat {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.65rem;
+}
+
+.price {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: 0.25rem 0 0;
+    font-size: 2.25rem;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+.package-card.is-vip .price {
+    color: var(--primary);
+}
+
+.price span {
+    font-size: 1rem;
+    font-weight: 400;
+}
+
+.price-vat {
+    margin-top: 0.25rem;
+}
+
+.package-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 2rem;
+}
+
+.section-note {
+    color: var(--muted-foreground);
+    text-align: center;
+}
+
+.includes {
+    border-block: 1px solid var(--border);
+    background: color-mix(in oklab, var(--card) 35%, transparent);
+}
+
+.includes-inner {
+    display: grid;
+    gap: 2rem;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding: 4rem 1.25rem;
+}
+
+.includes h2 {
+    font-size: 2.25rem;
+}
+
+.include-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 2rem;
+}
+
+.include-grid div {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-block: 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+}
+
+.include-grid svg {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    color: var(--primary);
+}
+
+.site-footer {
+    border-top: 1px solid var(--border);
+}
+
+.footer-inner {
+    display: grid;
+    gap: 2rem;
+    max-width: 72rem;
+    padding-block: 2.5rem;
+    font-size: 0.875rem;
+}
+
+.footer-brand {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    line-height: 1.2;
+}
+
+.footer-brand span {
+    color: var(--primary);
+}
+
+.footer-line {
+    margin: 0.25rem 0 0;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    letter-spacing: 0.25em;
+}
+
+.footer-contact p {
+    margin: 0;
+}
+
+.footer-contact .hours {
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+}
+
+.footer-contact .phones {
+    font-weight: 500;
+}
+
+@media (min-width: 640px) {
+    .header-inner,
+    .hero-inner,
+    .includes-inner {
+        padding-inline: 1.5rem;
+    }
+
+    .header-inner {
+        gap: 1rem;
+    }
+
+    .brand-name,
+    .nav-home,
+    .nav-role,
+    .login-label,
+    .session-email,
+    .session-out-label {
+        display: inline-flex;
+    }
+
+    .login-icon {
+        display: none;
+    }
+
+    .package-body {
+        padding: 2.5rem;
+    }
+
+    .package-actions {
+        gap: 1rem;
+    }
+
+    .include-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .wrap,
+    .packages-head,
+    .package-grid,
+    .section-note {
+        padding-inline: 0;
+    }
+}
+
+@media (min-width: 768px) {
+    .hero-inner {
+        padding-bottom: 5rem;
+    }
+
+    .hero h1 {
+        font-size: 6rem;
+    }
+
+    .hero-sub {
+        font-size: 1.5rem;
+    }
+
+    .hero-body {
+        font-size: 1rem;
+    }
+
+    .packages {
+        padding-block: 7rem;
+    }
+
+    .packages-head {
+        margin-bottom: 4rem;
+    }
+
+    .packages h2 {
+        font-size: 3.75rem;
+    }
+
+    .package-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .footer-inner {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .footer-contact {
+        text-align: end;
+    }
+}
+
+@media (min-width: 1024px) {
+    .includes-inner {
+        grid-template-columns: 0.7fr 1.3fr;
+        align-items: start;
+    }
+}
+
+.packages > .wrap {
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+}
+
+@media (min-width: 640px) {
+    .packages > .wrap {
+        padding-inline: 1.5rem;
+    }
+}
+
+.pkg-page {
+    max-width: 72rem;
+    margin-inline: auto;
+    padding: 3rem 1.25rem 4rem;
+}
+
+.pkg-kicker {
+    margin: 0;
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+}
+
+.pkg-page h1 {
+    margin: 0.75rem 0 0;
+    font-size: 2.25rem;
+    font-weight: 300;
+    letter-spacing: 0.16em;
+    line-height: 1.1;
+}
+
+.pkg-sub {
+    margin: 0.75rem 0 0;
+    color: var(--muted-foreground);
+    font-size: 1.125rem;
+}
+
+.pkg-gallery {
+    display: grid;
+    gap: 1px;
+    margin-top: 2rem;
+    background: var(--border);
+}
+
+.pkg-shot {
+    position: relative;
+    overflow: hidden;
+    margin: 0;
+    background: var(--background);
+}
+
+.pkg-shot img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    transition: transform 0.7s ease;
+}
+
+.pkg-shot:hover img {
+    transform: scale(1.025);
+}
+
+.pkg-shot figcaption {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    background: color-mix(in oklab, var(--background) 80%, transparent);
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    backdrop-filter: blur(8px);
+}
+
+.pkg-prices {
+    margin-top: 3rem;
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+}
+
+.pkg-prices h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.tier-grid {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.tier-card {
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+}
+
+.tier-name,
+.tier-desc,
+.tier-label,
+.tier-amount {
+    margin: 0;
+}
+
+.tier-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+}
+
+.tier-desc {
+    margin-top: 0.25rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.tier-label {
+    margin-top: 1rem;
+    color: var(--muted-foreground);
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+}
+
+.tier-label.is-primary,
+.tier-amount.is-primary,
+.item-qty {
+    color: var(--primary);
+}
+
+.tier-amount {
+    font-size: 1.5rem;
+    font-weight: 300;
+    line-height: 1.35;
+}
+
+.tier-rule {
+    height: 1px;
+    margin: 1rem 0;
+    background: var(--border);
+}
+
+.tier-list {
+    margin: 0.75rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tier-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+}
+
+.tier-list li + li {
+    margin-top: 0.5rem;
+}
+
+.tier-list svg {
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.125rem;
+    flex: 0 0 auto;
+    color: var(--primary);
+}
+
+.item-title {
+    color: var(--foreground);
+}
+
+.item-spec,
+.item-qty {
+    display: block;
+    font-size: 0.75rem;
+}
+
+.pkg-note {
+    margin: 1rem 0 0;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.pkg-order {
+    margin-top: 1.5rem;
+    width: 100%;
+}
+
+@media (min-width: 640px) {
+    .pkg-gallery,
+    .tier-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .pkg-order {
+        width: auto;
+    }
+}
+
+@media (min-width: 768px) {
+    .pkg-page h1 {
+        font-size: 3rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .pkg-gallery,
+    .tier-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+.auth-page {
+    max-width: 28rem;
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 3.5rem 1.25rem 4rem;
+}
+
+.auth-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.875rem;
+    font-weight: 400;
+    line-height: 1.2;
+}
+
+.auth-lead {
+    margin: 0.5rem 0 0;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+}
+
+.auth-package {
+    margin-top: 1.25rem;
+    border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--secondary) 50%, transparent);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+}
+
+.auth-package-label {
+    color: var(--muted-foreground);
+}
+
+.auth-package-code {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.auth-card {
+    margin-top: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 1.25rem;
+    background: var(--card);
+    box-shadow: 0 24px 60px -34px color-mix(in oklab, var(--foreground) 28%, transparent);
+    padding: 1.5rem;
+}
+
+.auth-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 2.25rem;
+    align-items: center;
+    border-radius: 0.5rem;
+    background: var(--muted);
+    padding: 0.25rem;
+    color: var(--muted-foreground);
+}
+
+.auth-tab {
+    height: 100%;
+    border: 0;
+    border-radius: 0.375rem;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.auth-tab.is-active {
+    background: var(--background);
+    color: var(--foreground);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.25rem;
+}
+
+.auth-form[hidden],
+.auth-field[hidden],
+.auth-tabs[hidden],
+.auth-text-btn[hidden],
+.auth-alert[hidden] {
+    display: none;
+}
+
+.auth-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.auth-field label {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.auth-field input {
+    height: 2.25rem;
+    width: 100%;
+    border: 1px solid var(--input);
+    border-radius: 6px;
+    background: transparent;
+    padding: 0.25rem 0.75rem;
+    color: var(--foreground);
+    font: inherit;
+    font-size: 1rem;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+.auth-field input:focus {
+    outline: 1px solid var(--primary);
+}
+
+.auth-submit,
+.auth-google {
+    width: 100%;
+}
+
+.auth-text-btn {
+    border: 0;
+    background: transparent;
+    color: var(--muted-foreground);
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+#mode-toggle {
+    margin-top: 1rem;
+}
+
+.auth-text-btn:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.25rem 0;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.auth-divider span:first-child,
+.auth-divider span:last-child {
+    height: 1px;
+    flex: 1;
+    background: var(--border);
+}
+
+.auth-alert {
+    margin: 1rem 0 0;
+    border-radius: 0.5rem;
+    padding: 0.75rem 0.875rem;
+    font-size: 0.8125rem;
+}
+
+.auth-alert.is-error {
+    background: color-mix(in oklab, oklch(62% 0.2 25) 12%, white);
+    color: oklch(42% 0.16 25);
+}
+
+.auth-alert.is-success {
+    background: color-mix(in oklab, var(--primary) 10%, white);
+    color: var(--primary);
+}
+
+.account-page {
+    max-width: 48rem;
+    margin-inline: auto;
+    padding: 3.5rem 1.25rem 4rem;
+}
+
+.account-compound + .account-compound {
+    margin-top: 1rem;
+}
+
+.account-compound {
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    background: var(--card);
+    padding: 1rem 1.25rem;
+}
+
+.account-compound h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 500;
+}
+
+.account-meta {
+    margin: 0.25rem 0 0;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+}
+
+.account-units {
+    margin: 0.75rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.account-units li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border-top: 1px solid var(--border);
+    padding: 0.65rem 0;
+    font-size: 0.875rem;
+}
+
+.account-units span {
+    color: var(--muted-foreground);
+}

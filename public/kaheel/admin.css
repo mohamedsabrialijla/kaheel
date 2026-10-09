@@ -1,0 +1,1782 @@
+html:has(body.kaheel-admin) {
+    font-size: 16px !important;
+    background: oklch(98.5% 0.006 75) !important;
+}
+
+body.kaheel-admin {
+    --background: oklch(98.5% 0.006 75);
+    --foreground: oklch(42% 0.09 235);
+    --card: oklch(100% 0 0);
+    --primary: oklch(42% 0.09 235);
+    --primary-foreground: oklch(99% 0.002 85);
+    --secondary: oklch(95.5% 0.008 80);
+    --secondary-foreground: oklch(42% 0.09 235);
+    --muted: oklch(96% 0.006 80);
+    --muted-foreground: oklch(50% 0.012 70);
+    --accent: oklch(94% 0.018 68);
+    --accent-foreground: oklch(42% 0.09 235);
+    --border: oklch(89% 0.008 78);
+    --destructive: oklch(57% 0.2 27);
+    --font-sans: "Work Sans", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Instrument Serif", "IBM Plex Sans Arabic", serif;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: var(--background) !important;
+    color: var(--foreground) !important;
+    font-family: var(--font-sans) !important;
+}
+
+body.kaheel-admin.header-fixed,
+body.kaheel-admin.header-tablet-and-mobile-fixed {
+    padding-top: 0 !important;
+}
+
+body.kaheel-admin .ka-shell,
+body.kaheel-admin .ka-shell * {
+    box-sizing: border-box;
+}
+
+body.kaheel-admin .ka-shell {
+    min-height: 100vh;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+}
+
+body.kaheel-admin .ka-shell h1,
+body.kaheel-admin .ka-shell h2,
+body.kaheel-admin .ka-shell h3,
+body.kaheel-admin .ka-shell p,
+body.kaheel-admin .ka-shell ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+body.kaheel-admin .ka-aside {
+    display: none;
+}
+
+body.kaheel-admin .ka-content {
+    min-width: 0;
+}
+
+body.kaheel-admin .ka-top {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 4.5rem;
+    padding: 0 1.25rem;
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in oklab, var(--background) 90%, transparent);
+    backdrop-filter: blur(24px);
+}
+
+body.kaheel-admin .ka-head-start,
+body.kaheel-admin .ka-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+body.kaheel-admin .ka-head-actions {
+    gap: 0.25rem;
+}
+
+body.kaheel-admin .ka-admin-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+body.kaheel-admin .ka-admin-role {
+    font-size: 0.75rem;
+    line-height: 1.25;
+    color: var(--muted-foreground);
+}
+
+body.kaheel-admin button.ka-icon-btn {
+    all: unset;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.375rem;
+    color: var(--foreground);
+    cursor: pointer;
+}
+
+body.kaheel-admin button.ka-icon-btn:hover {
+    background: var(--accent);
+    color: var(--accent-foreground);
+}
+
+body.kaheel-admin button.ka-menu-btn {
+    border: 1px solid var(--border);
+    background: var(--background);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+
+body.kaheel-admin .ka-icon-btn svg,
+body.kaheel-admin .ka-nav svg,
+body.kaheel-admin .ka-section-title svg,
+body.kaheel-admin .ka-kpi svg {
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+body.kaheel-admin .ka-icon-btn svg,
+body.kaheel-admin .ka-nav svg,
+body.kaheel-admin .ka-section-title svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+body.kaheel-admin .ka-kpi svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: oklch(42% 0.09 235);
+}
+
+body.kaheel-admin .ka-brand {
+    display: block;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    color: inherit;
+    text-decoration: none;
+}
+
+body.kaheel-admin .ka-forma {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    line-height: 1;
+    letter-spacing: 0;
+}
+
+body.kaheel-admin .ka-azure {
+    margin-inline-start: 0.5rem;
+    color: var(--primary);
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+}
+
+body.kaheel-admin .ka-ops {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    letter-spacing: 0;
+}
+
+body.kaheel-admin .ka-nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+body.kaheel-admin a.ka-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.25rem;
+    padding: 0 1rem;
+    border-radius: 0.375rem;
+    color: var(--foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+body.kaheel-admin a.ka-nav:hover {
+    background: var(--accent);
+    color: var(--accent-foreground);
+}
+
+body.kaheel-admin a.ka-nav.router-link-exact-active {
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+}
+
+body.kaheel-admin .ka-main {
+    width: min(90rem, 100%);
+    margin: 0 auto;
+    padding: 1.25rem;
+}
+
+body.kaheel-admin .ka-page {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+body.kaheel-admin .ka-eyebrow {
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.24em;
+}
+
+body.kaheel-admin .ka-title {
+    margin-top: 0.75rem;
+    font-family: var(--font-display);
+    font-size: 2.25rem;
+    font-weight: 400;
+    line-height: 1.1;
+}
+
+body.kaheel-admin .ka-lead {
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+body.kaheel-admin .ka-kpis {
+    display: grid;
+    gap: 1px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: var(--border);
+}
+
+body.kaheel-admin .ka-kpi {
+    background: var(--background);
+    padding: 1.5rem;
+}
+
+body.kaheel-admin .ka-kpi-value {
+    margin-top: 1.25rem;
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+body.kaheel-admin .ka-kpi-label {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-kpi-hint {
+    margin-top: 0.25rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-split,
+body.kaheel-admin .ka-split-even {
+    display: grid;
+    gap: 1.5rem;
+}
+
+body.kaheel-admin .ka-panel {
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: color-mix(in oklab, var(--card) 30%, transparent);
+    padding: 1.25rem;
+}
+
+body.kaheel-admin .ka-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+body.kaheel-admin .ka-section-title svg {
+    color: oklch(42% 0.09 235);
+}
+
+body.kaheel-admin .ka-chart {
+    width: 100%;
+    height: 280px;
+    display: block;
+}
+
+body.kaheel-admin .ka-chart.short {
+    height: 260px;
+}
+
+body.kaheel-admin .ka-chart text {
+    fill: currentColor;
+    font-size: 11px;
+    font-family: var(--font-sans);
+}
+
+body.kaheel-admin .ka-legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem;
+    margin-top: 0.75rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-legend li,
+body.kaheel-admin .ka-series {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+body.kaheel-admin .ka-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    flex: none;
+}
+
+body.kaheel-admin .ka-series {
+    margin-top: 0.75rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    gap: 1rem;
+}
+
+body.kaheel-admin .ka-sla {
+    border-top: 1px solid var(--border);
+}
+
+body.kaheel-admin .ka-sla li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-sla li:last-child {
+    border-bottom: 0;
+}
+
+body.kaheel-admin .ka-sla .hint,
+body.kaheel-admin .ka-end .hint {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-end {
+    text-align: end;
+}
+
+body.kaheel-admin .ka-end strong {
+    font-weight: 500;
+}
+
+body.kaheel-admin .ka-table-wrap {
+    overflow-x: auto;
+}
+
+body.kaheel-admin table.ka-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin table.ka-table.wide {
+    min-width: 46rem;
+}
+
+body.kaheel-admin table.ka-table.mid {
+    min-width: 42rem;
+}
+
+body.kaheel-admin table.ka-table th {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-align: start;
+    white-space: nowrap;
+}
+
+body.kaheel-admin table.ka-table td {
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+    text-align: start;
+    white-space: nowrap;
+    font-weight: 400;
+}
+
+body.kaheel-admin table.ka-table td.ka-primary {
+    color: var(--primary);
+}
+
+body.kaheel-admin .ka-empty {
+    color: var(--muted-foreground);
+    text-align: center !important;
+}
+
+body.kaheel-admin .ka-mix {
+    display: grid;
+    gap: 1rem;
+}
+
+body.kaheel-admin .ka-mix article {
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    padding: 1.25rem;
+}
+
+body.kaheel-admin .ka-mix h3 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 400;
+}
+
+body.kaheel-admin .ka-mix p {
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-mix p.muted {
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+}
+
+body.kaheel-admin .ka-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    height: 220px;
+    padding-top: 1rem;
+}
+
+body.kaheel-admin .ka-bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    height: 100%;
+    color: var(--muted-foreground);
+    font-size: 0.68rem;
+    text-align: center;
+}
+
+body.kaheel-admin .ka-bar-track {
+    width: 100%;
+    max-width: 2.4rem;
+    height: 160px;
+    border-radius: 4px 4px 0 0;
+    background: var(--muted);
+    display: flex;
+    align-items: flex-end;
+}
+
+body.kaheel-admin .ka-bar-fill {
+    width: 100%;
+    height: 0;
+    border-radius: 4px 4px 0 0;
+    background: #c7783e;
+}
+
+body.kaheel-admin .ka-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgb(20 18 16 / 45%);
+}
+
+body.kaheel-admin .ka-sheet {
+    position: fixed;
+    z-index: 70;
+    top: 0;
+    bottom: 0;
+    inset-inline-start: 0;
+    width: min(18rem, 88vw);
+    padding: 1.25rem;
+    background: var(--background);
+    border-inline-end: 1px solid var(--border);
+    overflow: auto;
+}
+
+@media (min-width: 640px) {
+    body.kaheel-admin .ka-kpis,
+    body.kaheel-admin .ka-mix {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 1024px) {
+    body.kaheel-admin .ka-shell {
+        display: grid;
+        grid-template-columns: 17rem minmax(0, 1fr);
+    }
+
+    body.kaheel-admin .ka-aside {
+        display: block;
+        position: sticky;
+        top: 0;
+        align-self: start;
+        height: 100vh;
+        overflow: auto;
+        padding: 1.25rem;
+        border-inline-end: 1px solid var(--border);
+        background: color-mix(in oklab, var(--card) 35%, var(--background));
+    }
+
+    body.kaheel-admin .ka-menu-btn,
+    body.kaheel-admin .ka-backdrop,
+    body.kaheel-admin .ka-sheet {
+        display: none !important;
+    }
+
+    body.kaheel-admin .ka-top {
+        padding-inline: 2rem;
+    }
+
+    body.kaheel-admin .ka-main {
+        padding: 2rem;
+    }
+}
+
+body.kaheel-admin .ka-suppliers,
+body.kaheel-admin .ka-suppliers h1,
+body.kaheel-admin .ka-suppliers h2,
+body.kaheel-admin .ka-suppliers p,
+body.kaheel-admin .ka-suppliers span {
+    color: var(--foreground);
+}
+
+body.kaheel-admin .ka-sup-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+body.kaheel-admin .ka-suppliers p.ka-sup-kicker {
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+}
+
+body.kaheel-admin .ka-suppliers h1 {
+    margin-top: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 2.25rem;
+    font-weight: 400;
+    line-height: 1.1;
+}
+
+body.kaheel-admin .ka-suppliers p.ka-sup-lead,
+body.kaheel-admin .ka-suppliers p.ka-sup-muted,
+body.kaheel-admin .ka-sup-dialog p.ka-sup-muted {
+    margin-top: 0.25rem;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-suppliers p.ka-sup-lead {
+    margin-top: 0.5rem;
+}
+
+body.kaheel-admin .ka-sup-grid {
+    display: grid;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+body.kaheel-admin .ka-sup-card {
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: color-mix(in oklab, var(--card) 30%, transparent);
+    padding: 1.25rem;
+}
+
+body.kaheel-admin .ka-sup-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+body.kaheel-admin .ka-sup-truck {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    color: oklch(42% 0.09 235);
+}
+
+body.kaheel-admin .ka-sup-card-top .is-on {
+    color: #10b981;
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-sup-card-top .is-off {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-sup-card h2 {
+    margin-top: 1.25rem;
+    font-size: 1.125rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+body.kaheel-admin .ka-suppliers p.ka-sup-rate {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-sup-rate span {
+    color: var(--primary);
+}
+
+body.kaheel-admin .ka-sup-contact {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-sup-contact p + p {
+    margin-top: 0.25rem;
+}
+
+body.kaheel-admin button.ka-btn {
+    all: unset;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.375rem;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+body.kaheel-admin button.ka-btn svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+body.kaheel-admin button.ka-btn-primary {
+    height: 2.25rem;
+    padding: 0 1rem;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 0.875rem;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+body.kaheel-admin button.ka-btn-primary svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+body.kaheel-admin button.ka-btn-primary:hover {
+    background: color-mix(in oklab, var(--primary) 90%, black);
+}
+
+body.kaheel-admin button.ka-btn-outline {
+    height: 2rem;
+    margin-top: 1rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--border);
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 0.75rem;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+body.kaheel-admin button.ka-btn-outline svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+body.kaheel-admin button.ka-btn-outline:hover {
+    background: var(--accent);
+}
+
+body.kaheel-admin button.ka-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+body.kaheel-admin .ka-sup-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: rgb(0 0 0 / 0.8);
+}
+
+body.kaheel-admin .ka-sup-dialog {
+    position: fixed;
+    z-index: 81;
+    top: 50%;
+    left: 50%;
+    width: min(32rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
+    transform: translate(-50%, -50%);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--background);
+    padding: 1.5rem;
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.16);
+}
+
+body.kaheel-admin .ka-sup-dialog h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+body.kaheel-admin .ka-sup-x {
+    all: unset;
+    box-sizing: border-box;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: inline-flex;
+    opacity: 0.7;
+    cursor: pointer;
+}
+
+body.kaheel-admin .ka-sup-x svg {
+    width: 1rem;
+    height: 1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+body.kaheel-admin .ka-sup-form {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+body.kaheel-admin .ka-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-field input {
+    all: unset;
+    box-sizing: border-box;
+    height: 2.25rem;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: transparent;
+    padding: 0 0.75rem;
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+body.kaheel-admin .ka-field input:focus {
+    outline: 1px solid var(--foreground);
+}
+
+body.kaheel-admin .ka-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-check input {
+    appearance: none;
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: 0.2rem;
+    background: var(--background) center / 0.75rem no-repeat;
+    accent-color: var(--primary);
+}
+
+body.kaheel-admin .ka-check input:checked {
+    border-color: var(--primary);
+    background-color: var(--primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+}
+
+body.kaheel-admin .ka-suppliers p.ka-sup-error {
+    color: var(--destructive);
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin button.ka-btn.ka-sup-submit {
+    grid-column: 1 / -1;
+    width: 100%;
+}
+
+body.kaheel-admin .ka-packages,
+body.kaheel-admin .ka-packages h1,
+body.kaheel-admin .ka-packages h2,
+body.kaheel-admin .ka-packages p,
+body.kaheel-admin .ka-packages span {
+    color: var(--foreground);
+}
+
+body.kaheel-admin .ka-packages h1 {
+    margin-top: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 2.25rem;
+    font-weight: 400;
+    line-height: 1.1;
+}
+
+body.kaheel-admin .ka-pkg-grid {
+    display: grid;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+body.kaheel-admin .ka-pkg-card {
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: color-mix(in oklab, var(--card) 30%, transparent);
+    padding: 1.25rem;
+}
+
+body.kaheel-admin .ka-pkg-top,
+body.kaheel-admin .ka-pkg-tier-top,
+body.kaheel-admin .ka-pkg-subhead,
+body.kaheel-admin .ka-item-foot {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+body.kaheel-admin .ka-pkg-code,
+body.kaheel-admin .ka-pkg-subhead p {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+}
+
+body.kaheel-admin .ka-pkg-code {
+    letter-spacing: 0.2em;
+    font-weight: 500;
+}
+
+body.kaheel-admin .ka-pkg-card h2 {
+    margin-top: 0.25rem;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 400;
+}
+
+body.kaheel-admin .ka-pkg-top .is-on,
+body.kaheel-admin .ka-pkg-tier-top .is-on {
+    color: #059669;
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-pkg-tier-top .is-on {
+    font-size: 11px;
+}
+
+body.kaheel-admin .ka-pkg-top .is-off,
+body.kaheel-admin .ka-pkg-tier-top .is-off {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-pkg-subhead {
+    align-items: center;
+    margin-top: 1rem;
+}
+
+body.kaheel-admin .ka-pkg-subhead svg,
+body.kaheel-admin .ka-pkg-actions svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+body.kaheel-admin .ka-packages ul.ka-pkg-tiers {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0;
+}
+
+body.kaheel-admin .ka-pkg-tiers li {
+    border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+    border-radius: 0.375rem;
+    background: color-mix(in oklab, var(--background) 40%, transparent);
+    padding: 0.75rem;
+}
+
+body.kaheel-admin .ka-pkg-tiers li.is-empty {
+    border-style: dashed;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-pkg-tier-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+body.kaheel-admin .ka-pkg-prices {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+body.kaheel-admin .ka-pkg-prices p {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-pkg-prices strong {
+    display: block;
+    margin-top: 0.125rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+}
+
+body.kaheel-admin .ka-pkg-prices strong.is-primary {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+body.kaheel-admin .ka-pkg-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+body.kaheel-admin .ka-pkg-orders {
+    margin-top: 0.75rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-pkg-copy,
+body.kaheel-admin .ka-field select {
+    height: 2rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: var(--background);
+    color: var(--foreground);
+    padding: 0 0.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-field select {
+    height: 2.25rem;
+    width: 100%;
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin button.ka-btn.ka-btn-inline,
+body.kaheel-admin button.ka-btn.ka-btn-ghost,
+body.kaheel-admin button.ka-btn.ka-btn-soft {
+    height: 2rem;
+    margin-top: 0;
+    padding: 0 0.75rem;
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin button.ka-btn.ka-btn-ghost {
+    background: transparent;
+    color: var(--foreground);
+}
+
+body.kaheel-admin button.ka-btn.ka-btn-soft {
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+body.kaheel-admin button.ka-btn.is-danger {
+    color: var(--destructive);
+}
+
+body.kaheel-admin .ka-check.ka-span,
+body.kaheel-admin p.ka-sup-error.ka-span {
+    grid-column: 1 / -1;
+}
+
+body.kaheel-admin .ka-settings {
+    max-width: 48rem;
+}
+
+body.kaheel-admin .ka-settings,
+body.kaheel-admin .ka-settings h1,
+body.kaheel-admin .ka-settings p,
+body.kaheel-admin .ka-settings span {
+    color: var(--foreground);
+}
+
+body.kaheel-admin .ka-settings p.ka-sup-kicker {
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+}
+
+body.kaheel-admin .ka-settings h1 {
+    margin-top: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 2.25rem;
+    font-weight: 400;
+    line-height: 1.1;
+}
+
+body.kaheel-admin .ka-settings p.ka-sup-lead,
+body.kaheel-admin .ka-settings p.ka-sup-muted {
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-set-list {
+    margin-top: 2rem;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+}
+
+body.kaheel-admin .ka-set-row {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--border);
+}
+
+body.kaheel-admin .ka-set-row:last-child {
+    border-bottom: 0;
+}
+
+body.kaheel-admin .ka-set-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+body.kaheel-admin .ka-set-label svg {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+body.kaheel-admin .ka-set-key {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 400;
+}
+
+body.kaheel-admin .ka-set-row input {
+    all: unset;
+    box-sizing: border-box;
+    width: 100%;
+    height: 2.25rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: transparent;
+    padding: 0 0.75rem;
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+body.kaheel-admin .ka-set-row input:focus {
+    outline: 1px solid var(--foreground);
+}
+
+body.kaheel-admin .ka-settings p.ka-set-ok,
+body.kaheel-admin .ka-settings p.ka-set-error {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-settings p.ka-set-ok {
+    color: #10b981;
+}
+
+body.kaheel-admin .ka-settings p.ka-set-error {
+    color: var(--destructive);
+}
+
+body.kaheel-admin button.ka-btn.ka-set-save {
+    margin-top: 1.25rem;
+}
+
+@media (min-width: 640px) {
+    body.kaheel-admin .ka-set-row {
+        grid-template-columns: 1fr 16rem;
+        align-items: center;
+    }
+}
+
+body.kaheel-admin .ka-sup-dialog.is-wide {
+    width: min(56rem, calc(100vw - 2rem));
+}
+
+body.kaheel-admin .ka-item {
+    margin-top: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+}
+
+body.kaheel-admin .ka-item-grid {
+    display: grid;
+    gap: 0.75rem;
+}
+
+body.kaheel-admin .ka-item-foot {
+    align-items: center;
+    margin-top: 0.75rem;
+}
+
+@media (min-width: 640px) {
+    body.kaheel-admin .ka-sup-form,
+    body.kaheel-admin .ka-item-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    body.kaheel-admin .ka-item-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 768px) {
+    body.kaheel-admin .ka-sup-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 1280px) {
+    body.kaheel-admin .ka-kpis {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    body.kaheel-admin .ka-sup-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    body.kaheel-admin .ka-pkg-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    body.kaheel-admin .ka-split {
+        grid-template-columns: 1.6fr 1fr;
+    }
+
+    body.kaheel-admin .ka-split-even {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+body.kaheel-admin .ka-roles,
+body.kaheel-admin .ka-roles h1,
+body.kaheel-admin .ka-roles h2,
+body.kaheel-admin .ka-roles p,
+body.kaheel-admin .ka-roles span {
+    color: var(--foreground);
+}
+
+body.kaheel-admin .ka-roles p.ka-sup-kicker {
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+}
+
+body.kaheel-admin .ka-roles h1 {
+    margin-top: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 2.25rem;
+    font-weight: 400;
+    line-height: 1.1;
+}
+
+body.kaheel-admin .ka-roles p.ka-sup-lead,
+body.kaheel-admin .ka-roles p.ka-sup-muted {
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-role-grid {
+    display: grid;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+body.kaheel-admin .ka-role-card,
+body.kaheel-admin .ka-role-staff {
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: color-mix(in oklab, var(--card) 30%, transparent);
+    padding: 1.25rem;
+}
+
+body.kaheel-admin .ka-role-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+body.kaheel-admin .ka-role-card h2,
+body.kaheel-admin .ka-role-staff h2 {
+    font-size: 1.125rem;
+    font-weight: 500;
+}
+
+body.kaheel-admin .ka-role-staff h2 {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+body.kaheel-admin .ka-role-top .is-on {
+    color: #10b981;
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-role-top .is-off {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-roles p.ka-role-meta {
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-roles ul.ka-role-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.75rem;
+    padding: 0;
+}
+
+body.kaheel-admin .ka-role-tags li {
+    border: 1px solid var(--border);
+    border-radius: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    color: var(--muted-foreground);
+    font-size: 11px;
+}
+
+body.kaheel-admin .ka-role-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+body.kaheel-admin .ka-role-staff {
+    margin-top: 2.5rem;
+}
+
+body.kaheel-admin .ka-roles .ka-role-staff ul {
+    margin-top: 1rem;
+    padding: 0;
+}
+
+body.kaheel-admin .ka-role-staff li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-role-staff li:last-child {
+    border-bottom: 0;
+}
+
+body.kaheel-admin .ka-role-staff p.ka-sup-muted {
+    margin-top: 0;
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-role-staff select {
+    height: 2.25rem;
+    min-width: 12rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: var(--background);
+    color: var(--foreground);
+    padding: 0 0.75rem;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-role-staff select:disabled {
+    opacity: 0.6;
+}
+
+body.kaheel-admin .ka-sup-dialog.ka-role-dialog {
+    width: min(42rem, calc(100vw - 2rem));
+    max-height: 85vh;
+}
+
+body.kaheel-admin .ka-role-form {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+body.kaheel-admin .ka-role-perms {
+    display: grid;
+    gap: 0.5rem;
+}
+
+body.kaheel-admin .ka-role-perm {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-role-perm input,
+body.kaheel-admin .ka-role-active input {
+    appearance: none;
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    flex: none;
+    border: 1px solid var(--border);
+    border-radius: 0.2rem;
+    background: var(--background) center / 0.75rem no-repeat;
+}
+
+body.kaheel-admin .ka-role-perm input:checked,
+body.kaheel-admin .ka-role-active input:checked {
+    border-color: var(--primary);
+    background-color: var(--primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+}
+
+body.kaheel-admin .ka-roles p.ka-set-error {
+    margin-top: 0.75rem;
+    color: var(--destructive);
+    font-size: 0.875rem;
+}
+
+@media (min-width: 640px) {
+    body.kaheel-admin .ka-role-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    body.kaheel-admin .ka-role-perms,
+    body.kaheel-admin .ka-role-active,
+    body.kaheel-admin .ka-role-form .ka-set-error,
+    body.kaheel-admin .ka-role-form button {
+        grid-column: 1 / -1;
+    }
+
+    body.kaheel-admin .ka-role-perms {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 768px) {
+    body.kaheel-admin .ka-role-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 1280px) {
+    body.kaheel-admin .ka-role-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+body.kaheel-admin .ka-staff-table {
+    margin-top: 2rem;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+}
+
+body.kaheel-admin .ka-staff-table table {
+    width: 100%;
+    border-collapse: collapse;
+    background: transparent;
+}
+
+body.kaheel-admin .ka-staff-table th,
+body.kaheel-admin .ka-staff-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    text-align: start;
+    vertical-align: middle;
+    font-size: 0.875rem;
+    color: var(--foreground);
+    background: transparent;
+}
+
+body.kaheel-admin .ka-staff-table th {
+    color: var(--muted-foreground);
+    font-weight: 500;
+}
+
+body.kaheel-admin .ka-staff-table tr:last-child td {
+    border-bottom: 0;
+}
+
+body.kaheel-admin .ka-roles.ka-staff p.ka-staff-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+body.kaheel-admin .ka-roles.ka-staff td p.ka-sup-muted {
+    margin-top: 0;
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-staff-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-staff-count svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+body.kaheel-admin .ka-staff .is-on {
+    color: #10b981;
+}
+
+body.kaheel-admin .ka-staff .is-off {
+    color: var(--muted-foreground);
+}
+
+body.kaheel-admin .ka-staff button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+body.kaheel-admin .ka-staff-grant,
+body.kaheel-admin .ka-staff .ka-role-form > .ka-field:last-of-type {
+    grid-column: 1 / -1;
+}
+
+body.kaheel-admin .ka-staff-grant > p {
+    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+body.kaheel-admin .ka-staff-grant .ka-role-perms {
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    padding: 1rem;
+}
+
+body.kaheel-admin .ka-roles.ka-staff p.ka-set-error {
+    margin-top: 0.75rem;
+    color: var(--destructive);
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-alt,
+body.kaheel-admin .ka-alt h1,
+body.kaheel-admin .ka-alt h2,
+body.kaheel-admin .ka-alt p,
+body.kaheel-admin .ka-alt li,
+body.kaheel-admin .ka-alt span {
+    color: var(--foreground);
+}
+
+body.kaheel-admin .ka-alt p.ka-sup-kicker {
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+}
+
+body.kaheel-admin .ka-alt h1 {
+    margin-top: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 2.25rem;
+    font-weight: 400;
+    line-height: 1.1;
+}
+
+body.kaheel-admin .ka-alt-help,
+body.kaheel-admin .ka-alt-add {
+    margin-top: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    padding: 1rem;
+}
+
+body.kaheel-admin .ka-alt-help {
+    background: color-mix(in oklab, var(--muted) 40%, transparent);
+    font-size: 0.875rem;
+    line-height: 1.75;
+}
+
+body.kaheel-admin .ka-alt p.ka-alt-help-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+body.kaheel-admin .ka-alt ol.ka-alt-steps {
+    margin-top: 0.5rem;
+    padding-inline: 1.25rem;
+    list-style: decimal;
+    color: var(--muted-foreground);
+}
+
+body.kaheel-admin .ka-alt ol.ka-alt-steps li + li {
+    margin-top: 0.25rem;
+}
+
+body.kaheel-admin .ka-alt p.ka-alt-note,
+body.kaheel-admin .ka-alt p.ka-sup-muted {
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
+body.kaheel-admin .ka-alt p.ka-alt-note + p.ka-alt-note {
+    margin-top: 0.5rem;
+}
+
+body.kaheel-admin .ka-alt-form {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+body.kaheel-admin .ka-alt .ka-field span {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin button.ka-btn.ka-alt-add-btn {
+    margin-top: 0.75rem;
+}
+
+body.kaheel-admin .ka-alt-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+body.kaheel-admin .ka-alt-filters > span {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-alt-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+body.kaheel-admin .ka-alt-group {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: var(--card);
+}
+
+body.kaheel-admin .ka-alt-group header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in oklab, var(--muted) 50%, transparent);
+    padding: 0.75rem 1rem;
+}
+
+body.kaheel-admin .ka-alt-group h2 {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+body.kaheel-admin .ka-alt-group header span {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-alt-row {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+body.kaheel-admin .ka-alt-row:last-child {
+    border-bottom: 0;
+}
+
+body.kaheel-admin .ka-alt p.ka-alt-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+body.kaheel-admin .ka-alt p.ka-alt-price {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+body.kaheel-admin .ka-alt p.ka-alt-price.is-plus {
+    color: var(--primary);
+}
+
+body.kaheel-admin .ka-alt p.ka-alt-price.is-minus {
+    color: #059669;
+}
+
+body.kaheel-admin .ka-alt p.ka-alt-price.is-zero {
+    color: var(--muted-foreground);
+}
+
+body.kaheel-admin .ka-alt-row-actions,
+body.kaheel-admin .ka-alt-edit-names {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+body.kaheel-admin .ka-alt-edit-names,
+body.kaheel-admin .ka-alt-row input {
+    min-width: 0;
+}
+
+body.kaheel-admin .ka-alt-row input {
+    all: unset;
+    box-sizing: border-box;
+    width: 100%;
+    height: 2.25rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    padding: 0 0.75rem;
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+}
+
+body.kaheel-admin .ka-alt-empty {
+    margin-top: 1.5rem;
+    border: 1px dashed var(--border);
+    border-radius: 0.375rem;
+    padding: 1.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+body.kaheel-admin .ka-alt p.ka-set-error {
+    margin-top: 0.75rem;
+    color: var(--destructive);
+    font-size: 0.875rem;
+}
+
+@media (min-width: 640px) {
+    body.kaheel-admin .ka-alt-form,
+    body.kaheel-admin .ka-alt-edit-names {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    body.kaheel-admin .ka-alt-form {
+        display: grid;
+    }
+
+    body.kaheel-admin .ka-alt-row {
+        grid-template-columns: 1.6fr 1fr auto;
+        align-items: center;
+    }
+
+    body.kaheel-admin .ka-alt-edit-names {
+        display: grid;
+    }
+}
+
+@media (min-width: 1024px) {
+    body.kaheel-admin .ka-alt-form {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
