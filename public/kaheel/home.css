@@ -934,9 +934,17 @@ html[dir="rtl"] .icon-forward {
 }
 
 .item-spec,
-.item-qty {
+.item-qty,
+.item-detail {
     display: block;
     font-size: 0.75rem;
+}
+
+.item-detail {
+    margin-top: 0.15rem;
+    color: var(--muted-foreground);
+    line-height: 1.5;
+    white-space: pre-line;
 }
 
 .pkg-note {

@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=10" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=12" rel="stylesheet">
 </head>
 <body>
     <header class="site-header">
@@ -76,6 +76,9 @@
                                     <span>
                                         <span class="item-title" data-ar="{{ $item->name_ar }}" data-en="{{ $item->name_en }}">{{ $item->name_ar }}</span>
                                         <span class="item-spec" data-ar="{{ $item->product_name_ar }}" data-en="{{ $item->product_name_en }}">{{ $item->product_name_ar }}</span>
+                                        @if ($item->detail_ar || $item->detail_en)
+                                            <span class="item-detail" data-ar="{{ $item->detail_ar }}" data-en="{{ $item->detail_en }}">{{ $item->detail_ar }}</span>
+                                        @endif
                                         <span class="item-qty" data-ar="{{ rtrim(rtrim(number_format($item->quantity, 2, '.', ''), '0'), '.') }} {{ $item->unit_label_ar }}" data-en="{{ rtrim(rtrim(number_format($item->quantity, 2, '.', ''), '0'), '.') }} {{ $item->unit_label_en }}">{{ rtrim(rtrim(number_format($item->quantity, 2, '.', ''), '0'), '.') }} {{ $item->unit_label_ar }}</span>
                                     </span>
                                 </li>

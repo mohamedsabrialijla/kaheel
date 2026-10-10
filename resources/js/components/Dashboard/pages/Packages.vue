@@ -144,6 +144,10 @@
                         <label class="ka-field"><span>{{ t.itemAr }}</span><input v-model="item.name_ar"></label>
                         <label class="ka-field"><span>{{ t.itemEn }}</span><input v-model="item.name_en"></label>
                         <label class="ka-field"><span>{{ t.product }}</span><input v-model="item.product_name_ar" @input="item.product_name_en = item.product_name_ar"></label>
+                        <div class="ka-item-split">
+                            <label class="ka-field"><span>{{ t.detailAr }}</span><textarea v-model="item.detail_ar" rows="2"></textarea></label>
+                            <label class="ka-field"><span>{{ t.detailEn }}</span><textarea v-model="item.detail_en" rows="2"></textarea></label>
+                        </div>
                         <label class="ka-field"><span>{{ t.qty }}</span><input v-model="item.quantity" type="number" step="0.01"></label>
                         <label class="ka-field"><span>{{ t.unitAr }}</span><input v-model="item.unit_label_ar"></label>
                         <label class="ka-field"><span>{{ t.unitEn }}</span><input v-model="item.unit_label_en"></label>
@@ -187,6 +191,8 @@ const blankItem = () => ({
     name_en: "",
     product_name_ar: "",
     product_name_en: "",
+    detail_ar: "",
+    detail_en: "",
     quantity: 1,
     unit_label_ar: "قطعة",
     unit_label_en: "piece",
@@ -255,6 +261,8 @@ export default {
                 itemAr: "Item name (AR)",
                 itemEn: "Item name (EN)",
                 product: "Product / model",
+                detailAr: "Details (Arabic)",
+                detailEn: "Details (English)",
                 qty: "Quantity",
                 unitAr: "Unit (AR)",
                 unitEn: "Unit (EN)",
@@ -300,6 +308,8 @@ export default {
                 itemAr: "اسم العنصر (عربي)",
                 itemEn: "اسم العنصر (إنجليزي)",
                 product: "المنتج / الموديل",
+                detailAr: "التفاصيل (عربي)",
+                detailEn: "التفاصيل (إنجليزي)",
                 qty: "العدد",
                 unitAr: "وحدة القياس (عربي)",
                 unitEn: "وحدة القياس (إنجليزي)",

@@ -11,7 +11,7 @@ class KaheelPackageItem extends Model
 
     protected $fillable = [
         'package_id', 'tier_id', 'category', 'name_ar', 'name_en',
-        'product_name_ar', 'product_name_en', 'quantity',
+        'product_name_ar', 'product_name_en', 'detail_ar', 'detail_en', 'quantity',
         'unit_label_ar', 'unit_label_en', 'price_per_unit',
         'allow_alternatives', 'sort_order',
     ];
