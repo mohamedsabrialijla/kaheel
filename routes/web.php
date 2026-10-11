@@ -131,6 +131,11 @@ Route::get('/test-signed', function () {
 
     Route::get('/packages/{code}', [App\Http\Controllers\Kaheel\SiteController::class, 'package']);
 
+    Route::get('/order', [App\Http\Controllers\Kaheel\OrderController::class, 'create']);
+    Route::post('/order', [App\Http\Controllers\Kaheel\OrderController::class, 'store']);
+    Route::get('/orders', [App\Http\Controllers\Kaheel\OrderController::class, 'index']);
+    Route::get('/orders/{order}', [App\Http\Controllers\Kaheel\OrderController::class, 'show']);
+
     Route::get('/{pathMatch}', function () {
         return view('basic.landing');
     })->where('pathMatch', '^(?!dashboard|web|user|api).*');

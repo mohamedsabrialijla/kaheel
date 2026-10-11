@@ -1206,3 +1206,226 @@ html[dir="rtl"] .icon-forward {
 .account-units span {
     color: var(--muted-foreground);
 }
+
+.order-page {
+    max-width: 56rem;
+    margin-inline: auto;
+    padding: 3rem 1.25rem 4rem;
+}
+
+.order-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.order-step {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.order-step.is-on,
+.order-step.is-done {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.order-step.is-done {
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+}
+
+.order-card {
+    margin-top: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    background: var(--card);
+    padding: 1.5rem;
+}
+
+.order-card h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.order-card h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1.5rem 0 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.order-lead {
+    margin: 0.35rem 0 0;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.order-grid {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.order-choice {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: transparent;
+    padding: 1rem;
+    color: var(--foreground);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+}
+
+.order-choice.is-on {
+    border-color: var(--primary);
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+}
+
+.order-choice strong,
+.order-choice span {
+    display: block;
+}
+
+.order-choice span,
+.order-muted {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.order-price {
+    margin-top: 0.5rem;
+    color: var(--primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.order-list {
+    margin: 1rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.order-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border-top: 1px solid var(--border);
+    padding: 0.75rem 0;
+    font-size: 0.875rem;
+}
+
+.order-list li:first-child {
+    border-top: 0;
+}
+
+.order-rows {
+    margin: 1rem 0 0;
+}
+
+.order-rows div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border-top: 1px solid var(--border);
+    padding: 0.75rem 0;
+    font-size: 0.875rem;
+}
+
+.order-rows dt {
+    color: var(--muted-foreground);
+}
+
+.order-rows dd {
+    margin: 0;
+    font-weight: 500;
+}
+
+.order-rows dd.is-strong {
+    color: var(--primary);
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.order-contract {
+    max-height: 14rem;
+    overflow: auto;
+    margin: 0.75rem 0 0;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--secondary) 40%, transparent);
+    padding: 1rem;
+    white-space: pre-wrap;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.75rem;
+    line-height: 1.6;
+}
+
+.order-file,
+.order-pad {
+    display: block;
+    width: 100%;
+    margin-top: 0.75rem;
+    border: 1px dashed var(--border);
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--secondary) 40%, transparent);
+    padding: 0.75rem;
+    color: var(--foreground);
+    font: inherit;
+    font-size: 0.875rem;
+}
+
+.order-pad {
+    height: 9rem;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+.order-agree {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+}
+
+.order-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.order-list-card {
+    display: block;
+    margin-top: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+.order-list-card strong {
+    display: block;
+}
+
+@media (min-width: 640px) {
+    .order-grid.cols-2 {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .order-grid.cols-3 {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}

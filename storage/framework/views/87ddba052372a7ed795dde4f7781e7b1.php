@@ -134,10 +134,14 @@
 
         function nextUrl() {
             const redirect = authConfig.redirect;
+            let url = "/" + authConfig.locale + "/account";
             if (redirect.startsWith("/") && !redirect.startsWith("//")) {
-                return "/" + authConfig.locale + redirect;
+                url = "/" + authConfig.locale + redirect;
             }
-            return "/" + authConfig.locale + "/account";
+            if (authConfig.pkg) {
+                url += (url.includes("?") ? "&" : "?") + "pkg=" + encodeURIComponent(authConfig.pkg);
+            }
+            return url;
         }
 
         document.getElementById("lang-toggle").addEventListener("click", () => {
