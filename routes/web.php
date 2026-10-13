@@ -134,6 +134,11 @@ Route::get('/test-signed', function () {
     Route::get('/order', [App\Http\Controllers\Kaheel\OrderController::class, 'create']);
     Route::post('/order', [App\Http\Controllers\Kaheel\OrderController::class, 'store']);
     Route::get('/orders', [App\Http\Controllers\Kaheel\OrderController::class, 'index']);
+    Route::get('/orders/{order}/files/{file}', [App\Http\Controllers\Kaheel\OrderController::class, 'file']);
+    Route::get('/orders/{order}/pay', [App\Http\Controllers\Kaheel\OrderController::class, 'pay']);
+    Route::post('/orders/{order}/pay', [App\Http\Controllers\Kaheel\OrderController::class, 'storePayment']);
+    Route::post('/orders/{order}/design', [App\Http\Controllers\Kaheel\OrderController::class, 'confirmDesign']);
+    Route::post('/orders/{order}/final', [App\Http\Controllers\Kaheel\OrderController::class, 'submitFinalPayment']);
     Route::get('/orders/{order}', [App\Http\Controllers\Kaheel\OrderController::class, 'show']);
 
     Route::get('/{pathMatch}', function () {
@@ -518,6 +523,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('KaheelStaff/getAllItems', [App\Http\Controllers\Kaheel\StaffController::class, 'index']);
         Route::post('KaheelStaff/createItem', [App\Http\Controllers\Kaheel\StaffController::class, 'store']);
         Route::post('KaheelStaff/save', [App\Http\Controllers\Kaheel\StaffController::class, 'save']);
+
+        Route::get('KaheelOrders/getAllItems', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'index']);
+        Route::get('KaheelOrders/show', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'show']);
+        Route::get('KaheelOrders/packageItems', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'packageItems']);
+        Route::get('KaheelOrders/file/{file}', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'file']);
+        Route::post('KaheelOrders/reviewPayment', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'reviewPayment']);
+        Route::post('KaheelOrders/confirmFinal', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'confirmFinal']);
+        Route::post('KaheelOrders/advance', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'advance']);
+        Route::post('KaheelOrders/saveComponents', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'saveComponents']);
+        Route::post('KaheelOrders/sendDesign', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'sendDesign']);
+        Route::post('KaheelOrders/assignSuppliers', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'assignSuppliers']);
+        Route::post('KaheelOrders/markDelivered', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'markDelivered']);
+        Route::post('KaheelOrders/message', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'message']);
+        Route::post('KaheelOrders/upload', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'upload']);
 
         Route::get('KaheelAlternatives/getAllItems', [App\Http\Controllers\Kaheel\AlternativeController::class, 'index']);
         Route::post('KaheelAlternatives/save', [App\Http\Controllers\Kaheel\AlternativeController::class, 'save']);

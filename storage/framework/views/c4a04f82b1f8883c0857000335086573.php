@@ -11,18 +11,24 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="<?php echo e(asset('kaheel/home.css')); ?>?v=13" rel="stylesheet">
+    <link href="<?php echo e(asset('kaheel/home.css')); ?>?v=18" rel="stylesheet">
 </head>
 <body>
     <?php echo $__env->make('kaheel.partials.public-header', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     <main class="order-page">
         <h1 class="auth-title" data-ar="طلباتي" data-en="My orders">طلباتي</h1>
         <?php $__empty_1 = true; $__currentLoopData = $orders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $order): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+            <?php $status = $order->statusCopy(); ?>
             <a class="order-list-card" href="<?php echo e(url(app()->getLocale().'/orders/'.$order->id)); ?>">
-                <strong><?php echo e($order->number); ?></strong>
-                <span class="order-muted"><?php echo e($order->compound_name); ?> · <?php echo e($order->unit_no); ?> · <span data-ar="<?php echo e($order->package_name_ar); ?>" data-en="<?php echo e($order->package_name_en); ?>"><?php echo e($order->package_name_ar); ?></span></span>
-                <span class="order-price"><?php echo e($money($order->price_incl)); ?> <span data-ar="ريال" data-en="SAR">ريال</span></span>
-                <span class="order-muted" data-ar="بانتظار العربون" data-en="Awaiting deposit">بانتظار العربون</span>
+                <div class="min-w-0">
+                    <strong><?php echo e($order->number); ?></strong>
+                    <span class="order-muted"><?php echo e($order->compound_name); ?> · <?php echo e($order->unit_no); ?> · <span data-ar="<?php echo e($order->package_name_ar); ?>" data-en="<?php echo e($order->package_name_en); ?>"><?php echo e($order->package_name_ar); ?></span></span>
+                </div>
+                <div class="order-list-side">
+                    <p class="order-list-amount"><?php echo e($money($order->price_incl)); ?> <span data-ar="ريال" data-en="SAR">ريال</span></p>
+                    <span class="order-badge" data-ar="<?php echo e($status['ar']); ?>" data-en="<?php echo e($status['en']); ?>"><?php echo e($status['ar']); ?></span>
+                </div>
+                <?php echo $__env->make('kaheel.partials.order-progress', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
             </a>
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
             <section class="order-card">

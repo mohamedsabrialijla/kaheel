@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="<?php echo e(asset('kaheel/home.css')); ?>?v=13" rel="stylesheet">
+    <link href="<?php echo e(asset('kaheel/home.css')); ?>?v=21" rel="stylesheet">
 </head>
 <body>
     <?php echo $__env->make('kaheel.partials.public-header', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
@@ -57,6 +57,7 @@
             <dl class="order-rows" id="review-rows"></dl>
             <h3 data-ar="مخطط الوحدة" data-en="Unit plan">مخطط الوحدة</h3>
             <input class="order-file" id="plans" type="file" accept="image/*,application/pdf" multiple>
+            <p class="order-lead" data-ar="حتى 5 ملفات، وكل ملف 20 ميغابايت كحد أقصى." data-en="Up to 5 files, 20 MB each.">حتى 5 ملفات، وكل ملف 20 ميغابايت كحد أقصى.</p>
             <h3 data-ar="العقد" data-en="Contract">العقد</h3>
             <pre class="order-contract" id="contract"></pre>
             <label class="order-agree">
@@ -68,6 +69,7 @@
             <div class="order-actions">
                 <button class="btn btn-sm btn-outline" type="button" id="clear-sign" data-ar="مسح التوقيع" data-en="Clear">مسح التوقيع</button>
             </div>
+            <p class="auth-alert is-error" id="sign-hint" data-ar="يلزم الإقرار على العقد والتوقيع قبل إرسال الطلب." data-en="Accept the contract and add your signature before sending the order.">يلزم الإقرار على العقد والتوقيع قبل إرسال الطلب.</p>
             <p class="auth-alert" id="order-alert" hidden></p>
             <button class="btn btn-lg btn-primary auth-submit" type="button" id="submit-order" data-ar="المتابعة للدفع" data-en="Proceed to payment">المتابعة للدفع</button>
             <p class="order-lead" data-ar="<?php echo e($deliveryAr); ?>" data-en="<?php echo e($deliveryEn); ?>"><?php echo e($deliveryAr); ?></p>
@@ -189,16 +191,23 @@
             (tier?.items || []).forEach((item) => {
                 const li = document.createElement("li");
                 const copy = document.createElement("div");
+                copy.className = "order-copy";
                 const title = document.createElement("strong");
                 title.textContent = pick(item, "name");
                 copy.append(title);
                 const spec = pick(item, "product_name");
                 const detail = pick(item, "detail");
-                if (spec || detail) {
-                    const extra = document.createElement("span");
-                    extra.className = "order-muted";
-                    extra.textContent = [spec, detail].filter(Boolean).join(" — ");
-                    copy.append(extra);
+                if (spec) {
+                    const specNode = document.createElement("span");
+                    specNode.className = "item-spec";
+                    specNode.textContent = spec;
+                    copy.append(specNode);
+                }
+                if (detail) {
+                    const detailNode = document.createElement("span");
+                    detailNode.className = "item-detail";
+                    detailNode.textContent = detail;
+                    copy.append(detailNode);
                 }
                 const qty = document.createElement("span");
                 qty.className = "order-price";
@@ -301,6 +310,7 @@
             document.title = (lang === "ar" ? "إنشاء طلب" : "Create order") + " | FORMA BY AZURE – KAHEEL";
             localStorage.setItem("forma-lang", lang);
             render();
+            refreshSubmit();
         }
 
         function point(event) {
@@ -315,7 +325,6 @@
         let drawing = false;
         function start(event) {
             drawing = true;
-            signed = true;
             const at = point(event);
             pen.beginPath();
             pen.moveTo(at.x, at.y);
@@ -323,9 +332,11 @@
         function move(event) {
             if (!drawing) return;
             event.preventDefault();
+            signed = true;
             const at = point(event);
             pen.lineTo(at.x, at.y);
             pen.stroke();
+            refreshSubmit();
         }
         pad.addEventListener("pointerdown", start);
         pad.addEventListener("pointermove", move);
@@ -334,7 +345,29 @@
         document.getElementById("clear-sign").addEventListener("click", () => {
             pen.clearRect(0, 0, pad.width, pad.height);
             signed = false;
+            refreshSubmit();
         });
+        document.getElementById("agreed").addEventListener("change", refreshSubmit);
+        function gateMessage() {
+            const agreed = document.getElementById("agreed").checked;
+            if (!agreed && !signed) {
+                return lang === "ar" ? "يلزم الإقرار على العقد والتوقيع قبل إرسال الطلب." : "Accept the contract and add your signature before sending the order.";
+            }
+            if (!agreed) {
+                return lang === "ar" ? "يلزم الإقرار على العقد قبل إرسال الطلب." : "Accept the contract before sending the order.";
+            }
+            return lang === "ar" ? "يلزم التوقيع قبل إرسال الطلب." : "Add your signature before sending the order.";
+        }
+        function refreshSubmit() {
+            const agreed = document.getElementById("agreed").checked;
+            const hint = document.getElementById("sign-hint");
+            const ready = agreed && signed;
+            hint.hidden = ready;
+            if (!ready) hint.textContent = gateMessage();
+            const tried = hint.dataset.tried === "1";
+            document.querySelector(".order-agree").classList.toggle("is-missing", tried && !agreed);
+            pad.classList.toggle("is-missing", tried && !signed);
+        }
 
         document.getElementById("lang-toggle").addEventListener("click", () => {
             applyLang(lang === "ar" ? "en" : "ar");
@@ -344,9 +377,20 @@
             const alertBox = document.getElementById("order-alert");
             alertBox.hidden = true;
             if (!document.getElementById("agreed").checked || !signed) {
+                const hint = document.getElementById("sign-hint");
+                hint.dataset.tried = "1";
+                refreshSubmit();
+                hint.scrollIntoView({ block: "center" });
+                return;
+            }
+            const files = Array.from(document.getElementById("plans").files || []);
+            const maxFile = 20 * 1024 * 1024;
+            if (files.length > 5 || files.some((file) => file.size > maxFile)) {
                 alertBox.hidden = false;
                 alertBox.className = "auth-alert is-error";
-                alertBox.textContent = lang === "ar" ? "يلزم الموافقة على العقد والتوقيع." : "Accept the contract and add your signature.";
+                alertBox.textContent = lang === "ar"
+                    ? "كل ملف يجب أن يكون 20 ميغابايت أو أقل، وبحد أقصى 5 ملفات. لم يُحفظ الطلب."
+                    : "Each file must be 20 MB or less, with a maximum of 5 files. The order was not saved.";
                 return;
             }
             const body = new FormData();
@@ -357,7 +401,9 @@
             body.append("agreed", "1");
             body.append("signature", pad.toDataURL("image/png"));
             body.append("lang", lang);
-            Array.from(document.getElementById("plans").files || []).slice(0, 5).forEach((file) => body.append("plans[]", file));
+            Array.from(files).forEach((file) => body.append("plans[]", file));
+            const submit = document.getElementById("submit-order");
+            submit.disabled = true;
             const response = await fetch("/" + config.locale + "/order", {
                 method: "POST",
                 headers: {
@@ -368,6 +414,7 @@
             });
             const data = await response.json().catch(() => null);
             if (!data || data.status !== true) {
+                submit.disabled = false;
                 alertBox.hidden = false;
                 alertBox.className = "auth-alert is-error";
                 alertBox.textContent = (data && data.message) || (lang === "ar" ? "تعذر إنشاء الطلب." : "The order could not be created.");

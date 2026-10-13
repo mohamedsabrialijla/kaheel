@@ -51,7 +51,7 @@
                     <p class="hero-body" data-t="heroBody">باقات تأثيث وتشطيبات متكاملة، صُممت خصيصاً لوحدات كحيل وتُسلّم جاهزة للسكن.</p>
                     <div class="hero-actions">
                         <a class="btn btn-lg btn-primary" href="#packages" data-t="heroCta">استعرض الباقات</a>
-                        <a class="btn btn-lg btn-outline" href="<?php echo e((auth()->check() || kaheel_customer()) ? url(app()->getLocale().'/account') : (auth('admin')->check() ? url(app()->getLocale().'/dashboard') : url(app()->getLocale().'/auth'))); ?>" data-t="navOrders">طلباتي</a>
+                        <a class="btn btn-lg btn-outline" href="<?php echo e(kaheel_customer() ? url(app()->getLocale().'/orders') : (auth()->check() ? url(app()->getLocale().'/account') : (auth('admin')->check() ? url(app()->getLocale().'/dashboard') : url(app()->getLocale().'/auth')))); ?>" data-t="navOrders">طلباتي</a>
                     </div>
                     <p class="hero-note" data-ar="<?php echo e($deliveryAr); ?>" data-en="<?php echo e($deliveryEn); ?>"><?php echo e($deliveryAr); ?></p>
                 </div>

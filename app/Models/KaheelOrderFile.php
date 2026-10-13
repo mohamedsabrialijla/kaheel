@@ -10,7 +10,7 @@ class KaheelOrderFile extends Model
     protected $table = 'kaheel_order_files';
 
     protected $fillable = [
-        'order_id', 'original_name', 'path', 'mime', 'size',
+        'order_id', 'kind', 'original_name', 'path', 'mime', 'size',
     ];
 
     public function order(): BelongsTo

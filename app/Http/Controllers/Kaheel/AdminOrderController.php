@@ -1,0 +1,502 @@
+<?php
+
+namespace App\Http\Controllers\Kaheel;
+
+use App\Http\Controllers\Controller;
+use App\Models\KaheelAlternative;
+use App\Models\KaheelOrder;
+use App\Models\KaheelOrderEvent;
+use App\Models\KaheelOrderFile;
+use App\Models\KaheelOrderMessage;
+use App\Models\KaheelPackage;
+use App\Models\KaheelSupplier;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
+class AdminOrderController extends Controller
+{
+    public function index()
+    {
+        $orders = KaheelOrder::query()->orderByDesc('id')->get()->map(fn (KaheelOrder $order) => [
+            'id' => $order->id,
+            'number' => $order->number,
+            'customer_name' => $order->customer_name ?: $order->username,
+            'unit_no' => $order->unit_no,
+            'compound_name' => $order->compound_name,
+            'amount' => round((float) $order->price_incl + (float) $order->addons_total, 2),
+            'status' => $order->status === 'awaiting_approval' ? 'admin_review' : $order->status,
+            'status_ar' => $order->statusCopy()['ar'],
+            'status_en' => $order->statusCopy()['en'],
+            'step' => $order->progressStep(),
+            'percent' => $order->progressPercent(),
+            'created_at' => optional($order->created_at)->toIso8601String(),
+        ]);
+
+        return mainResponse(true, 'Success', $orders, 200, 'items', '');
+    }
+
+    public function show(Request $request)
+    {
+        $order = $this->order($request->integer('id'));
+
+        return mainResponse(true, 'Success', $this->detail($order), 200, 'items', '');
+    }
+
+    public function reviewPayment(Request $request)
+    {
+        $order = $this->order($request->integer('id'));
+        if (!$order->payment_method) {
+            return mainResponse(false, 'لا توجد عملية دفع على هذا الطلب.', null, 422, 'items', '');
+        }
+
+        $decision = $request->input('decision');
+        if ($decision === 'approved') {
+            $from = $order->status;
+            $order->payment_status = 'approved';
+            $order->payment_note = null;
+            if ($order->status === 'deposit_pending') {
+                $order->status = 'admin_review';
+            }
+            $order->save();
+            $this->event($order, $from, $order->status, 'تم تأكيد الدفع');
+
+            return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
+        }
+
+        $note = trim((string) $request->input('note'));
+        if ($decision !== 'rejected' || $note === '') {
+            return mainResponse(false, 'اكتب ملاحظة الرفض لتظهر للعميل.', null, 422, 'items', '');
+        }
+
+        $from = $order->status;
+        $order->payment_status = 'rejected';
+        $order->payment_note = $note;
+        $order->status = 'deposit_pending';
+        $order->save();
+        $this->event($order, $from, 'deposit_pending', 'تم رفض الدفع: '.$note);
+
+        return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
+    }
+
+    public function confirmFinal(Request $request)
+    {
+        $order = $this->order($request->integer('id'));
+        if ($order->status !== 'final_payment') {
+            return mainResponse(false, 'تأكيد السداد النهائي متاح في مرحلة السداد النهائي فقط.', null, 422, 'items', '');
+        }
+        if ($order->payment_status !== 'approved') {
+            return mainResponse(false, 'لا يمكن تغيير المرحلة قبل تأكيد الدفع.', null, 422, 'items', '');
+        }
+
+        $order->final_payment_status = 'approved';
+        $order->save();
+        $this->event($order, $order->status, $order->status, 'تم تأكيد السداد النهائي');
+
+        return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
+    }
+
+    public function advance(Request $request)
+    {
+        $order = $this->order($request->integer('id'));
+        if ($block = $this->stageBlock($order)) {
+            return mainResponse(false, $block['ar'], null, 422, 'items', '');
+        }
+        $next = $order->nextStatus();
+        if (!$next || $request->input('to_status') !== $next) {
+            return mainResponse(false, 'لا يمكن نقل هذا الطلب إلى المرحلة المطلوبة.', null, 422, 'items', '');
+        }
+
+        $from = $order->status;
+        if ($next === 'design_review') {
+            $order->design_status = 'sent';
+        }
+        $order->status = $next;
+        $order->save();
+        $this->event($order, $from, $next, $request->input('note'));
+
+        return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
+    }
+
+    public function packageItems(Request $request)
+    {
+        $order = $this->order($request->integer('id'));
+        $package = KaheelPackage::query()->where('code', $order->package_code)->first();
+        $tier = $package?->tiers()
+            ->where(function ($query) use ($order) {
+                $query->where('name_ar', $order->tier_name_ar)->orWhere('name_en', $order->tier_name_en);
+            })
+            ->first();
+        $items = $tier ? $tier->items()->get() : collect();
+
+        return mainResponse(true, 'Success', $items->map(fn ($item) => [
+            'category' => $item->category ?: 'furniture',
+            'name_ar' => $item->name_ar,
+            'name_en' => $item->name_en,
+            'unit_label_ar' => $item->unit_label_ar ?: 'قطعة',
+            'unit_label_en' => $item->unit_label_en ?: 'piece',
+            'base_qty' => (float) $item->quantity,
+            'price_per_unit' => (float) $item->price_per_unit,
+            'allow_alternatives' => (bool) $item->allow_alternatives,
+            'category_key' => $item->category ?: 'furniture',
+        ]), 200, 'items', '');
+    }
+
+    public function saveComponents(Request $request)
+    {
+        $order = $this->order($request->integer('id'));
+        if ($blocked = $this->needsPaymentApproval($order)) {
+            return $blocked;
+        }
+        if ($order->status !== 'design_preparation') {
+            return mainResponse(false, 'تسعير المكوّنات متاح أثناء إعداد التصميم.', null, 422, 'items', '');
+        }
+
+        $components = collect($request->input('components', []))->map(function ($row) {
+            return [
+                'id' => $row['id'] ?? (string) Str::uuid(),
+                'category' => $row['category'] ?? 'furniture',
+                'name_ar' => trim((string) ($row['name_ar'] ?? '')),
+                'name_en' => trim((string) ($row['name_en'] ?? '')),
+                'unit_label_ar' => $row['unit_label_ar'] ?? 'قطعة',
+                'unit_label_en' => $row['unit_label_en'] ?? 'piece',
+                'base_qty' => (float) ($row['base_qty'] ?? 0),
+                'price_per_unit' => (float) ($row['price_per_unit'] ?? 0),
+                'extra_cost' => (float) ($row['extra_cost'] ?? 0),
+                'options' => collect($row['options'] ?? [])->map(fn ($option) => [
+                    'name_ar' => trim((string) ($option['name_ar'] ?? '')),
+                    'name_en' => trim((string) ($option['name_en'] ?? '')),
+                    'price_delta' => (float) ($option['price_delta'] ?? 0),
+                ])->filter(fn ($option) => $option['name_ar'] !== '' || $option['name_en'] !== '')->values()->all(),
+            ];
+        })->filter(fn ($row) => $row['name_ar'] !== '' || $row['name_en'] !== '')->values()->all();
+
+        $order->design_components = $components;
+        $order->addons_total = round(collect($components)->sum('extra_cost'), 2);
+        $order->save();
+
+        return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
+    }
+
+    public function sendDesign(Request $request)
+    {
+        $order = $this->order($request->integer('id'));
+        if ($blocked = $this->needsPaymentApproval($order)) {
+            return $blocked;
+        }
+        $allowed = $order->status === 'design_preparation' || $order->design_status === 'rejected';
+        if (!$allowed) {
+            return mainResponse(false, 'إرسال التصميم متاح أثناء إعداده أو بعد رفض العميل.', null, 422, 'items', '');
+        }
+        if (!$this->hasFreshDesign($order)) {
+            return mainResponse(false, 'ارفع التصميم (صورة أو ملف) قبل إرساله لمراجعة العميل.', null, 422, 'items', '');
+        }
+
+        $from = $order->status;
+        $order->design_status = 'sent';
+        if ($order->status === 'design_preparation') {
+            $order->status = 'design_review';
+        }
+        $order->save();
+        if ($from !== $order->status) {
+            $this->event($order, $from, $order->status, 'تم إرسال التصميم للعميل');
+        }
+
+        return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
+    }
+
+    public function assignSuppliers(Request $request)
+    {
+        $order = $this->order($request->integer('id'));
+        if ($blocked = $this->needsPaymentApproval($order)) {
+            return $blocked;
+        }
+        if (!in_array($order->status, ['final_approval', 'in_supply'], true)) {
+            return mainResponse(false, 'إسناد الموردين متاح بعد الموافقة النهائية وأثناء التوريد.', null, 422, 'items', '');
+        }
+
+        $current = $order->supplier_assignments ?? [];
+        foreach ($request->input('assignments', []) as $row) {
+            $supplier = KaheelSupplier::query()->find($row['supplier_id'] ?? 0);
+            $scope = trim((string) ($row['scope_ar'] ?? ''));
+            if (!$supplier || $scope === '') {
+                continue;
+            }
+            $current[] = [
+                'id' => (string) Str::uuid(),
+                'supplier_id' => $supplier->id,
+                'supplier_name_ar' => $supplier->name_ar,
+                'supplier_name_en' => $supplier->name_en,
+                'scope_ar' => $scope,
+                'scope_en' => trim((string) ($row['scope_en'] ?? '')) ?: $scope,
+                'cost' => (float) ($row['cost'] ?? 0),
+                'expected_date' => $row['expected_date'] ?: null,
+                'delivered_at' => null,
+            ];
+        }
+        $order->supplier_assignments = array_values($current);
+        $order->save();
+
+        return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
+    }
+
+    public function markDelivered(Request $request)
+    {
+        $order = $this->order($request->integer('id'));
+        if ($blocked = $this->needsPaymentApproval($order)) {
+            return $blocked;
+        }
+        $rows = $order->supplier_assignments ?? [];
+        foreach ($rows as &$row) {
+            if (($row['id'] ?? null) === $request->input('assignment_id')) {
+                $row['delivered_at'] = $request->input('delivered_at') ?: now()->toDateString();
+            }
+        }
+        unset($row);
+        $order->supplier_assignments = $rows;
+        $order->save();
+
+        return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
+    }
+
+    public function message(Request $request)
+    {
+        $order = $this->order($request->integer('id'));
+        if ($blocked = $this->needsPaymentApproval($order)) {
+            return $blocked;
+        }
+        $body = trim((string) $request->input('body'));
+        if ($body === '' || $order->status === 'closed' || $order->design_status === 'approved') {
+            return mainResponse(false, 'المناقشة مغلقة لهذا الطلب.', null, 422, 'items', '');
+        }
+
+        KaheelOrderMessage::query()->create([
+            'order_id' => $order->id,
+            'sender_role' => 'admin',
+            'sender_name' => $this->actor(),
+            'body' => $body,
+        ]);
+
+        return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
+    }
+
+    public function upload(Request $request)
+    {
+        $order = $this->order($request->integer('id'));
+        if ($blocked = $this->needsPaymentApproval($order)) {
+            return $blocked;
+        }
+        $kind = $request->input('kind') === 'handover' ? 'handover' : 'design';
+        if (in_array($order->status, ['deposit_pending', 'closed'], true)) {
+            return mainResponse(false, 'لا يمكن رفع ملفات في هذه المرحلة.', null, 422, 'items', '');
+        }
+
+        $file = $request->file('file');
+        $allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        $tooBig = $file && (in_array($file->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) || ($file->isValid() && $file->getSize() > 25 * 1024 * 1024));
+        if ($tooBig) {
+            return mainResponse(false, 'كل ملف يجب أن يكون 25 ميغابايت أو أقل.', null, 422, 'items', '');
+        }
+        if (!$file || !$file->isValid() || !in_array($file->getMimeType(), $allowed, true)) {
+            return mainResponse(false, 'الملف يجب أن يكون صورة أو PDF.', null, 422, 'items', '');
+        }
+
+        KaheelOrderFile::query()->create([
+            'order_id' => $order->id,
+            'kind' => $kind,
+            'original_name' => $file->getClientOriginalName(),
+            'path' => $file->store('kaheel-orders/'.$order->id),
+            'mime' => $file->getMimeType(),
+            'size' => $file->getSize(),
+        ]);
+
+        if ($kind === 'design' && $order->status === 'design_review' && $order->design_status !== 'approved') {
+            $order->design_status = 'sent';
+            $order->save();
+        }
+
+        return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
+    }
+
+    public function file(KaheelOrderFile $file)
+    {
+        $mime = (string) $file->mime;
+        $allowed = str_starts_with($mime, 'image/') || $mime === 'application/pdf';
+        $path = Storage::disk('local')->path($file->path);
+        if (!$allowed || !is_file($path)) {
+            abort(404);
+        }
+
+        return response()
+            ->file($path, [
+                'Content-Type' => $mime,
+                'X-Content-Type-Options' => 'nosniff',
+            ])
+            ->setContentDisposition('inline', $file->original_name);
+    }
+
+    private function order(int $id): KaheelOrder
+    {
+        return KaheelOrder::query()->with(['files', 'events', 'messages'])->findOrFail($id);
+    }
+
+    private function detail(KaheelOrder $order): array
+    {
+        $order->load(['files', 'events', 'messages']);
+        $copy = $order->statusCopy();
+        $next = $order->nextStatus();
+        $gate = $this->stageBlock($order);
+        $nextCopy = $next ? KaheelOrder::stageCopy()[array_search($next, KaheelOrder::workflow(), true)] : null;
+        $paid = $order->payment_status === 'approved' ? (float) $order->deposit_amount : 0;
+        $final = round((float) $order->price_incl + (float) $order->addons_total, 2);
+        if ($order->final_payment_status === 'approved') {
+            $paid = $final;
+        }
+        $locale = app()->getLocale();
+
+        return [
+            'id' => $order->id,
+            'number' => $order->number,
+            'status' => $order->status === 'awaiting_approval' ? 'admin_review' : $order->status,
+            'status_ar' => $copy['ar'],
+            'status_en' => $copy['en'],
+            'step' => $order->progressStep(),
+            'percent' => $order->progressPercent(),
+            'next_status' => $gate === null ? $next : null,
+            'next_ar' => $nextCopy['ar'] ?? null,
+            'next_en' => $nextCopy['en'] ?? null,
+            'gate_ar' => $gate['ar'] ?? null,
+            'gate_en' => $gate['en'] ?? null,
+            'design_ready' => $this->hasFreshDesign($order),
+            'customer_name' => $order->customer_name ?: '—',
+            'username' => $order->username,
+            'compound_name' => $order->compound_name,
+            'unit_no' => $order->unit_no,
+            'bedrooms' => $order->bedrooms_number,
+            'area' => $order->squar_meters,
+            'package_ar' => $order->package_name_ar,
+            'package_en' => $order->package_name_en,
+            'tier_ar' => $order->tier_name_ar,
+            'tier_en' => $order->tier_name_en,
+            'created_at' => optional($order->created_at)->toIso8601String(),
+            'design_status' => $order->design_status ?: 'none',
+            'price_excl' => (float) $order->price_excl,
+            'vat' => round((float) $order->price_incl - (float) $order->price_excl, 2),
+            'price_incl' => (float) $order->price_incl,
+            'addons_total' => (float) $order->addons_total,
+            'final_total' => $final,
+            'deposit_amount' => (float) $order->deposit_amount,
+            'deposit_paid' => $order->payment_status === 'approved',
+            'paid' => $paid,
+            'remaining' => round(max(0, $final - $paid), 2),
+            'payment_method' => $order->payment_method,
+            'payment_status' => $order->payment_status,
+            'payment_note' => $order->payment_note,
+            'final_payment_status' => $order->final_payment_status,
+            'contract_body' => $order->contract_body,
+            'components' => $order->design_components ?? [],
+            'assignments' => $order->supplier_assignments ?? [],
+            'files' => $order->files->map(fn (KaheelOrderFile $file) => [
+                'id' => $file->id,
+                'kind' => $file->kind,
+                'name' => $file->original_name,
+                'url' => url($locale.'/web/KaheelOrders/file/'.$file->id),
+                'created_at' => optional($file->created_at)->toIso8601String(),
+            ])->values(),
+            'events' => $order->events->sortBy('id')->values()->map(fn (KaheelOrderEvent $event) => [
+                'id' => $event->id,
+                'from_status' => $event->from_status,
+                'to_status' => $event->to_status,
+                'note' => $event->note,
+                'actor_name' => $event->actor_name,
+                'created_at' => optional($event->created_at)->toIso8601String(),
+            ]),
+            'messages' => $order->messages->sortBy('id')->values()->map(fn (KaheelOrderMessage $message) => [
+                'id' => $message->id,
+                'role' => $message->sender_role,
+                'name' => $message->sender_name,
+                'body' => $message->body,
+                'created_at' => optional($message->created_at)->toIso8601String(),
+            ]),
+            'alternatives' => KaheelAlternative::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'category', 'name_ar', 'name_en', 'price_delta']),
+            'suppliers' => KaheelSupplier::query()->orderBy('name_ar')->get(['id', 'name_ar', 'name_en']),
+        ];
+    }
+
+    private function event(KaheelOrder $order, ?string $from, string $to, ?string $note): void
+    {
+        KaheelOrderEvent::query()->create([
+            'order_id' => $order->id,
+            'from_status' => $from,
+            'to_status' => $to,
+            'note' => trim((string) $note) ?: null,
+            'actor_name' => $this->actor(),
+        ]);
+    }
+
+    private function stageBlock(KaheelOrder $order): ?array
+    {
+        if ($order->payment_status !== 'approved') {
+            return ['ar' => 'لا يمكن تغيير المرحلة قبل تأكيد الدفع.', 'en' => 'The stage cannot change before the payment is confirmed.'];
+        }
+
+        $order->loadMissing('files', 'events');
+
+        return match ($order->status) {
+            'design_preparation' => $this->hasFreshDesign($order) ? null : [
+                'ar' => 'ارفع التصميم (صورة أو ملف، ويمكن عدة ملفات) قبل نقل الطلب لمراجعة العميل.',
+                'en' => 'Upload the design (an image or file, several files are allowed) before moving the order to customer review.',
+            ],
+            'design_review' => !$this->hasFreshDesign($order) ? [
+                'ar' => 'ارفع التصميم أولاً. لن تتغير المرحلة قبل رفعه وموافقة العميل.',
+                'en' => 'Upload the design first. The stage cannot change before the upload and the customer approval.',
+            ] : ($order->design_status === 'approved' ? null : [
+                'ar' => 'بانتظار موافقة العميل على التصميم. لا تتغير المرحلة قبلها.',
+                'en' => 'Waiting for the customer to approve the design. The stage cannot change before that.',
+            ]),
+            'final_payment' => $order->final_payment_status === 'approved' ? null : [
+                'ar' => 'أكّد استلام السداد النهائي قبل نقل الطلب.',
+                'en' => 'Confirm the final payment before moving the order.',
+            ],
+            'final_approval' => !empty($order->supplier_assignments) ? null : [
+                'ar' => 'أسند مورداً واحداً على الأقل قبل نقل الطلب للتنفيذ.',
+                'en' => 'Assign at least one supplier before moving the order into production.',
+            ],
+            'in_supply' => ($order->files->contains('kind', 'handover') || collect($order->supplier_assignments ?? [])->contains(fn ($row) => !empty($row['delivered_at']))) ? null : [
+                'ar' => 'سجّل تاريخ توريد أو ارفع محضر الاستلام قبل تأكيد التوريد.',
+                'en' => 'Record a delivery date or upload the handover report before confirming supply.',
+            ],
+            'closed' => ['ar' => 'اكتملت دورة هذا الطلب.', 'en' => 'This order workflow is complete.'],
+            default => null,
+        };
+    }
+
+    private function hasFreshDesign(KaheelOrder $order): bool
+    {
+        $order->loadMissing('files', 'events');
+        $files = $order->files->where('kind', 'design');
+        if ($order->design_status !== 'rejected') {
+            return $files->isNotEmpty();
+        }
+
+        $rejectedAt = $order->events->sortByDesc('id')->first(fn ($event) => str_contains((string) $event->note, 'رفض العميل'))?->created_at;
+
+        return $rejectedAt
+            ? $files->contains(fn ($file) => $file->created_at && $file->created_at->greaterThan($rejectedAt))
+            : false;
+    }
+
+    private function needsPaymentApproval(KaheelOrder $order)
+    {
+        if ($order->payment_status === 'approved') {
+            return null;
+        }
+
+        return mainResponse(false, 'أكّد الدفع أولاً قبل متابعة باقي الإجراءات.', null, 422, 'items', '');
+    }
+
+    private function actor(): string
+    {
+        return auth('admin')->user()->name ?? 'Admin';
+    }
+}

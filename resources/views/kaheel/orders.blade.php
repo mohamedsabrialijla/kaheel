@@ -11,18 +11,24 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=13" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=18" rel="stylesheet">
 </head>
 <body>
     @include('kaheel.partials.public-header')
     <main class="order-page">
         <h1 class="auth-title" data-ar="طلباتي" data-en="My orders">طلباتي</h1>
         @forelse ($orders as $order)
+            @php $status = $order->statusCopy(); @endphp
             <a class="order-list-card" href="{{ url(app()->getLocale().'/orders/'.$order->id) }}">
-                <strong>{{ $order->number }}</strong>
-                <span class="order-muted">{{ $order->compound_name }} · {{ $order->unit_no }} · <span data-ar="{{ $order->package_name_ar }}" data-en="{{ $order->package_name_en }}">{{ $order->package_name_ar }}</span></span>
-                <span class="order-price">{{ $money($order->price_incl) }} <span data-ar="ريال" data-en="SAR">ريال</span></span>
-                <span class="order-muted" data-ar="بانتظار العربون" data-en="Awaiting deposit">بانتظار العربون</span>
+                <div class="min-w-0">
+                    <strong>{{ $order->number }}</strong>
+                    <span class="order-muted">{{ $order->compound_name }} · {{ $order->unit_no }} · <span data-ar="{{ $order->package_name_ar }}" data-en="{{ $order->package_name_en }}">{{ $order->package_name_ar }}</span></span>
+                </div>
+                <div class="order-list-side">
+                    <p class="order-list-amount">{{ $money($order->price_incl) }} <span data-ar="ريال" data-en="SAR">ريال</span></p>
+                    <span class="order-badge" data-ar="{{ $status['ar'] }}" data-en="{{ $status['en'] }}">{{ $status['ar'] }}</span>
+                </div>
+                @include('kaheel.partials.order-progress')
             </a>
         @empty
             <section class="order-card">

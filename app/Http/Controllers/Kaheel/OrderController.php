@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Kaheel;
 
 use App\Http\Controllers\Controller;
 use App\Models\KaheelOrder;
+use App\Models\KaheelOrderEvent;
 use App\Models\KaheelOrderFile;
 use App\Models\KaheelPackage;
 use App\Models\KaheelSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class OrderController extends Controller
 {
@@ -81,6 +83,9 @@ class OrderController extends Controller
         if (!$customer) {
             return mainResponse(false, $isAr ? 'يلزم تسجيل الدخول.' : 'Sign in is required.', null, 401, 'items', '');
         }
+        if ($this->requestTooLarge($request)) {
+            return mainResponse(false, $isAr ? 'حجم الملفات أكبر من 20 ميغابايت. صغّر الملف ثم أعد الإرسال، ولن يُحفظ الطلب قبل نجاح الرفع.' : 'The files are larger than 20 MB. Reduce the file size and send again. The order is not saved until the upload succeeds.', null, 422, 'items', '');
+        }
 
         $package = KaheelPackage::query()
             ->whereRaw('LOWER(code) = ?', [strtolower((string) $request->input('package_code'))])
@@ -98,8 +103,17 @@ class OrderController extends Controller
         }
 
         $signature = (string) $request->input('signature', '');
-        if (!str_starts_with($signature, 'data:image/png;base64,') || strlen($signature) < 80 || strlen($signature) > 500000) {
-            return mainResponse(false, $isAr ? 'يلزم التوقيع.' : 'A signature is required.', null, 422, 'items', '');
+        if (!str_starts_with($signature, 'data:image/png;base64,') || strlen($signature) < 80 || strlen($signature) > 500000 || !$this->signatureHasInk($signature)) {
+            return mainResponse(false, $isAr ? 'يلزم الموافقة على العقد وتوقيعه قبل إرسال الطلب.' : 'Accept the contract and sign it before sending the order.', null, 422, 'items', '');
+        }
+
+        $files = $request->file('plans', []);
+        if (!is_array($files)) {
+            $files = $files ? [$files] : [];
+        }
+        $fileError = $this->fileError($files, $isAr);
+        if ($fileError) {
+            return mainResponse(false, $fileError, null, 422, 'items', '');
         }
 
         $settings = KaheelSetting::map();
@@ -126,10 +140,12 @@ class OrderController extends Controller
                 'compound_id' => (string) ($compound['id'] ?? ''),
                 'compound_name' => (string) ($compound['display_name'] ?? ''),
                 'compound_meta' => trim((string) ($compound['compound_number'] ?? '').' '.(string) ($compound['short_name'] ?? '')),
+                'compound_snapshot' => $this->compoundSnapshot($compound),
                 'unit_id' => (string) ($unit['id'] ?? ''),
                 'unit_no' => (string) ($unit['unit_no'] ?? ''),
                 'bedrooms_number' => $unit['bedrooms_number'] ?? null,
                 'squar_meters' => $unit['squar_meters'] ?? null,
+                'unit_snapshot' => $this->unitSnapshot($unit),
                 'price_excl' => $excl,
                 'price_incl' => $incl,
                 'deposit_percent' => $percent,
@@ -144,19 +160,13 @@ class OrderController extends Controller
             return $order;
         });
 
-        $files = $request->file('plans', []);
-        if (!is_array($files)) {
-            $files = $files ? [$files] : [];
-        }
-        foreach (array_slice($files, 0, 5) as $file) {
-            if (!$file || !$file->isValid()) {
-                continue;
-            }
-            if (!in_array($file->getMimeType(), ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'], true)) {
+        foreach ($files as $file) {
+            if (!$file) {
                 continue;
             }
             KaheelOrderFile::query()->create([
                 'order_id' => $order->id,
+                'kind' => 'plan',
                 'original_name' => $file->getClientOriginalName(),
                 'path' => $file->store('kaheel-orders/'.$order->id),
                 'mime' => $file->getMimeType(),
@@ -168,6 +178,65 @@ class OrderController extends Controller
             'id' => $order->id,
             'number' => $order->number,
         ], 200, 'items', '');
+    }
+
+    public function pay(KaheelOrder $order)
+    {
+        if (!$this->owns($order)) {
+            return redirect(url(app()->getLocale().'/orders'));
+        }
+
+        return view('kaheel.order-pay', ['order' => $order]);
+    }
+
+    public function storePayment(Request $request, KaheelOrder $order)
+    {
+        $isAr = $request->input('lang') !== 'en';
+        if (!$this->owns($order)) {
+            return redirect(url(app()->getLocale().'/orders'));
+        }
+        if ($order->status !== 'deposit_pending') {
+            return redirect(url(app()->getLocale().'/orders/'.$order->id.'/pay'));
+        }
+
+        $method = (string) $request->input('method');
+        if ($method === 'visa') {
+            $order->payment_method = 'visa';
+            $order->payment_status = 'pending';
+            $order->payment_note = null;
+            $order->status = 'admin_review';
+            $order->save();
+
+            return redirect(url(app()->getLocale().'/orders/'.$order->id.'/pay'));
+        }
+        if ($method !== 'receipt') {
+            return back()->with('pay_error', $isAr ? 'اختر طريقة الدفع.' : 'Choose a payment method.');
+        }
+
+        $file = $request->file('receipt');
+        $allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        $tooBig = $file && in_array($file->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true);
+        if ($this->requestTooLarge($request) || $tooBig || !$file || !$file->isValid() || !in_array($file->getMimeType(), $allowed, true) || $file->getSize() > 20 * 1024 * 1024) {
+            return back()->with('pay_error', $isAr ? 'أرفق صورة الإيصال أو ملف PDF بحجم 20 ميغابايت أو أقل. الطلب نفسه ما زال محفوظاً.' : 'Attach a receipt image or PDF of 20 MB or less. The order itself is still saved.');
+        }
+
+        DB::transaction(function () use ($order, $file) {
+            KaheelOrderFile::query()->create([
+                'order_id' => $order->id,
+                'kind' => 'receipt',
+                'original_name' => $file->getClientOriginalName(),
+                'path' => $file->store('kaheel-orders/'.$order->id),
+                'mime' => $file->getMimeType(),
+                'size' => $file->getSize(),
+            ]);
+            $order->payment_method = 'receipt';
+            $order->payment_status = 'pending';
+            $order->payment_note = null;
+            $order->status = 'admin_review';
+            $order->save();
+        });
+
+        return redirect(url(app()->getLocale().'/orders/'.$order->id.'/pay'));
     }
 
     public function index()
@@ -193,8 +262,177 @@ class OrderController extends Controller
         }
 
         $order->load('files');
+        $settings = KaheelSetting::map();
+        $days = $settings['delivery_working_days'] ?? '25';
 
-        return view('kaheel.order-show', ['order' => $order]);
+        return view('kaheel.order-show', [
+            'order' => $order,
+            'deliveryAr' => "مدة التنفيذ {$days} يوم عمل من تاريخ الدفع (عدا الجمعة والسبت).",
+            'deliveryEn' => "Delivery is {$days} working days from payment date (Friday and Saturday excluded).",
+        ]);
+    }
+
+    public function confirmDesign(Request $request, KaheelOrder $order)
+    {
+        if (!$this->owns($order) || $order->status !== 'design_review') {
+            return redirect(url(app()->getLocale().'/orders/'.$order->id));
+        }
+
+        $from = $order->status;
+        if ($request->input('decision') === 'approve') {
+            $order->design_status = 'approved';
+            $order->save();
+            $this->customerEvent($order, $from, $order->status, 'وافق العميل على التصميم');
+        } else {
+            $order->design_status = 'rejected';
+            $order->status = 'design_preparation';
+            $order->save();
+            $this->customerEvent($order, $from, 'design_preparation', 'رفض العميل للتصميم');
+        }
+
+        return redirect(url(app()->getLocale().'/orders/'.$order->id));
+    }
+
+    public function submitFinalPayment(KaheelOrder $order)
+    {
+        if (!$this->owns($order) || $order->status !== 'final_payment' || $order->final_payment_status === 'approved') {
+            return redirect(url(app()->getLocale().'/orders/'.$order->id));
+        }
+
+        $order->final_payment_status = 'pending';
+        $order->save();
+        $this->customerEvent($order, $order->status, $order->status, 'أرسل العميل السداد النهائي');
+
+        return redirect(url(app()->getLocale().'/orders/'.$order->id));
+    }
+
+    public function file(KaheelOrder $order, KaheelOrderFile $file)
+    {
+        $mime = (string) $file->mime;
+        $allowed = str_starts_with($mime, 'image/') || $mime === 'application/pdf';
+        if (!$this->owns($order) || (int) $file->order_id !== (int) $order->id || !in_array($file->kind, ['plan', 'design', null, ''], true) || !$allowed) {
+            abort(404);
+        }
+
+        $path = Storage::disk('local')->path($file->path);
+        if (!is_file($path)) {
+            abort(404);
+        }
+
+        return response()
+            ->file($path, [
+                'Content-Type' => $mime,
+                'X-Content-Type-Options' => 'nosniff',
+            ])
+            ->setContentDisposition('inline', $file->original_name);
+    }
+
+    private function customerEvent(KaheelOrder $order, ?string $from, string $to, string $note): void
+    {
+        KaheelOrderEvent::query()->create([
+            'order_id' => $order->id,
+            'from_status' => $from,
+            'to_status' => $to,
+            'note' => $note,
+            'actor_name' => $order->customer_name ?: $order->username,
+        ]);
+    }
+
+    private function signatureHasInk(string $data): bool
+    {
+        $raw = base64_decode(substr($data, strpos($data, ',') + 1), true);
+        if ($raw === false || !function_exists('imagecreatefromstring')) {
+            return strlen($data) > 8000;
+        }
+
+        $image = @imagecreatefromstring($raw);
+        if (!$image) {
+            return false;
+        }
+
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $ink = 0;
+        for ($y = 0; $y < $height; $y += 3) {
+            for ($x = 0; $x < $width; $x += 3) {
+                $color = imagecolorat($image, $x, $y);
+                $alpha = ($color >> 24) & 0x7F;
+                $red = ($color >> 16) & 0xFF;
+                $green = ($color >> 8) & 0xFF;
+                $blue = $color & 0xFF;
+                if ($alpha < 100 && ($red < 245 || $green < 245 || $blue < 245)) {
+                    $ink++;
+                    if ($ink > 12) {
+                        imagedestroy($image);
+
+                        return true;
+                    }
+                }
+            }
+        }
+        imagedestroy($image);
+
+        return false;
+    }
+
+    private function owns(KaheelOrder $order): bool
+    {
+        $customer = kaheel_customer();
+
+        return $customer && (int) $order->bricks_user_id === (int) $customer->bricks_user_id;
+    }
+
+    private function requestTooLarge(Request $request): bool
+    {
+        $length = (int) $request->server('CONTENT_LENGTH');
+
+        return $length > 20 * 1024 * 1024 && $request->request->count() === 0 && $request->files->count() === 0;
+    }
+
+    private function fileError(array $files, bool $isAr): ?string
+    {
+        if (count($files) > 5) {
+            return $isAr ? 'يمكن رفع 5 ملفات كحد أقصى.' : 'You can upload up to 5 files.';
+        }
+
+        $allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        foreach ($files as $file) {
+            if (!$file) {
+                continue;
+            }
+            $tooBig = in_array($file->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) || ($file->isValid() && $file->getSize() > 20 * 1024 * 1024);
+            if ($tooBig) {
+                return $isAr ? 'أحد الملفات أكبر من 20 ميغابايت. صغّر الملف ثم أعد الإرسال، ولن يُحفظ الطلب قبل نجاح الرفع.' : 'One file is larger than 20 MB. Reduce it and send again. The order is not saved until the upload succeeds.';
+            }
+            if (!$file->isValid() || !in_array($file->getMimeType(), $allowed, true)) {
+                return $isAr ? 'الملفات المسموحة هي الصور و PDF فقط.' : 'Only images and PDF files are allowed.';
+            }
+        }
+
+        return null;
+    }
+
+    private function compoundSnapshot(array $compound): array
+    {
+        return [
+            'id' => $compound['id'] ?? null,
+            'display_name' => (string) ($compound['display_name'] ?? ''),
+            'compound_number' => (string) ($compound['compound_number'] ?? ''),
+            'short_name' => (string) ($compound['short_name'] ?? ''),
+            'owned_units_count' => $compound['owned_units_count'] ?? null,
+        ];
+    }
+
+    private function unitSnapshot(array $unit): array
+    {
+        return [
+            'id' => $unit['id'] ?? null,
+            'unit_no' => (string) ($unit['unit_no'] ?? ''),
+            'bedrooms_number' => $unit['bedrooms_number'] ?? null,
+            'bathrooms_number' => $unit['bathrooms_number'] ?? null,
+            'status_text' => (string) ($unit['status_text'] ?? ''),
+            'squar_meters' => $unit['squar_meters'] ?? null,
+        ];
     }
 
     private function compound(array $compounds, string $id): ?array
