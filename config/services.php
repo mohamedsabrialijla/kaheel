@@ -64,6 +64,7 @@ return [
     'bricks' => [
         'url' => env('BRICKS_API_URL', 'https://api.brickspms.com'),
         'slug' => env('BRICKS_SLUG', 'demo'),
+        'password_path' => env('BRICKS_PASSWORD_PATH', ''),
     ],
 
 
@@ -75,6 +76,12 @@ return [
         'log_payloads' => env('FCM_LOG_PAYLOADS', false),
         'action_base_url' => env('FCM_ACTION_BASE_URL', 'https://www.brandy.sa'),
 
+    ],
+
+    'kaheel_firebase' => [
+        'credentials' => env('KAHEEL_FIREBASE_CREDENTIALS', storage_path('app/firebase/kaheel-credentials.json')),
+        'database_url' => env('KAHEEL_FIREBASE_DATABASE_URL'),
+        'project_id' => env('KAHEEL_FIREBASE_PROJECT_ID', 'kaheel-9ff5f'),
     ],
 
     /*

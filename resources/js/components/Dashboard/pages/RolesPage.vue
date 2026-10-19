@@ -35,23 +35,7 @@
                 </div>
             </article>
         </div>
-
-        <section class="ka-role-staff">
-            <h2>{{ t.assign }}</h2>
-            <ul>
-                <li v-for="person in staff" :key="person.id">
-                    <div>
-                        <p>{{ person.name }}</p>
-                        <p class="ka-sup-muted">{{ person.email }}</p>
-                    </div>
-                    <select :value="person.role_id || ''" :disabled="person.locked" @change="assign(person, $event.target.value)">
-                        <option value="">{{ t.none }}</option>
-                        <option v-for="role in roles" :key="role.id" :value="role.id">{{ locale === "ar" ? role.name_ar : role.name_en }}</option>
-                    </select>
-                </li>
-            </ul>
-            <p v-if="error" class="ka-set-error">{{ error }}</p>
-        </section>
+        <p v-if="error" class="ka-set-error">{{ error }}</p>
 
         <div v-if="dialog" class="ka-sup-overlay" @click.self="dialog = false">
             <div class="ka-sup-dialog ka-role-dialog" role="dialog" aria-modal="true">
@@ -63,11 +47,19 @@
                 <form class="ka-role-form" @submit.prevent="save">
                     <label class="ka-field"><span>الاسم بالعربية</span><input v-model="form.name_ar" required></label>
                     <label class="ka-field"><span>English name</span><input v-model="form.name_en" required></label>
-                    <div class="ka-role-perms">
-                        <label v-for="perm in catalog" :key="perm.code" class="ka-role-perm">
-                            <input type="checkbox" :checked="form.permissions.includes(perm.code)" @change="toggle(perm.code, $event.target.checked)">
-                            {{ locale === "ar" ? perm.label_ar : perm.label_en }}
-                        </label>
+                    <div class="ka-role-modules">
+                        <section v-for="module in modules" :key="module.code" class="ka-role-module">
+                            <div class="ka-role-module-head">
+                                <strong>{{ locale === "ar" ? module.label_ar : module.label_en }}</strong>
+                                <button type="button" class="ka-btn ka-btn-ghost ka-btn-inline" @click="toggleModule(module)">{{ moduleSelected(module) ? t.clear : t.all }}</button>
+                            </div>
+                            <div class="ka-role-actions-grid">
+                                <label v-for="perm in module.permissions" :key="perm.code" class="ka-role-perm">
+                                    <input type="checkbox" :checked="form.permissions.includes(perm.code)" @change="toggle(perm.code, $event.target.checked)">
+                                    {{ locale === "ar" ? perm.label_ar : perm.label_en }}
+                                </label>
+                            </div>
+                        </section>
                     </div>
                     <label class="ka-check ka-role-active"><input v-model="form.is_active" type="checkbox">{{ t.activeRole }}</label>
                     <p v-if="formError" class="ka-set-error">{{ formError }}</p>
@@ -93,8 +85,8 @@ export default {
     data() {
         return {
             roles: [],
+            modules: [],
             catalog: [],
-            staff: [],
             loading: true,
             dialog: false,
             form: blank(),
@@ -111,7 +103,7 @@ export default {
             if (this.locale === "en") {
                 return {
                     title: "Roles and permissions",
-                    lead: "Create permission sets and assign them to admin staff; edits apply to members instantly.",
+                    lead: "Create roles from the sidebar sections, then grant view, create, edit, or delete on each.",
                     newRole: "New role",
                     active: "Active",
                     disabled: "Disabled",
@@ -119,17 +111,17 @@ export default {
                     members: "Members",
                     edit: "Edit",
                     remove: "Delete",
-                    assign: "Assign roles to staff",
-                    none: "No role",
                     editRole: "Edit role",
-                    dialogLead: "Pick the permissions this role grants.",
+                    dialogLead: "Permissions match the side menu. Tick view, create, edit, or delete for each section.",
                     activeRole: "Role active",
                     save: "Save role",
+                    all: "Select all",
+                    clear: "Clear",
                 };
             }
             return {
                 title: "الأدوار والصلاحيات",
-                lead: "أنشئ أدواراً بصلاحيات محددة وأسندها لموظفي الإدارة؛ أي تعديل على الدور ينعكس فوراً على أعضائه.",
+                lead: "أنشئ دوراً من أقسام القائمة الجانبية، ثم امنح لكل قسم عرض أو إضافة أو تعديل أو حذف.",
                 newRole: "دور جديد",
                 active: "مفعّل",
                 disabled: "معطّل",
@@ -137,12 +129,12 @@ export default {
                 members: "الأعضاء",
                 edit: "تعديل",
                 remove: "حذف",
-                assign: "إسناد الأدوار للموظفين",
-                none: "بدون دور",
                 editRole: "تعديل الدور",
-                dialogLead: "اختر الصلاحيات التي يمنحها هذا الدور.",
+                dialogLead: "الصلاحيات مطابقة للقائمة الجانبية. اختر عرض أو إضافة أو تعديل أو حذف لكل قسم.",
                 activeRole: "الدور مفعّل",
                 save: "حفظ الدور",
+                all: "تحديد الكل",
+                clear: "مسح",
             };
         },
     },
@@ -167,8 +159,8 @@ export default {
         },
         apply(data) {
             this.roles = data.roles || [];
+            this.modules = data.modules || [];
             this.catalog = data.catalog || [];
-            this.staff = data.staff || [];
         },
         async load() {
             this.loading = true;
@@ -188,6 +180,19 @@ export default {
                 ? { id: role.id, name_ar: role.name_ar, name_en: role.name_en, is_active: !!role.is_active, permissions: [...role.permissions] }
                 : blank();
             this.dialog = true;
+        },
+        moduleSelected(module) {
+            return module.permissions.every((perm) => this.form.permissions.includes(perm.code));
+        },
+        toggleModule(module) {
+            const codes = module.permissions.map((perm) => perm.code);
+            if (this.moduleSelected(module)) {
+                this.form.permissions = this.form.permissions.filter((code) => !codes.includes(code));
+                return;
+            }
+            codes.forEach((code) => {
+                if (!this.form.permissions.includes(code)) this.form.permissions.push(code);
+            });
         },
         toggle(code, checked) {
             if (checked) {
@@ -214,6 +219,7 @@ export default {
             }
         },
         async remove(role) {
+            if (!window.confirm(this.locale === "ar" ? "حذف هذا الدور؟" : "Delete this role?")) return;
             this.error = "";
             try {
                 const response = await axios.post("KaheelRoles/delete", { id: role.id });
@@ -224,22 +230,6 @@ export default {
                 this.apply(response.data.items || {});
             } catch (error) {
                 this.error = this.locale === "ar" ? "تعذر الحذف." : "Could not delete.";
-            }
-        },
-        async assign(person, roleId) {
-            this.error = "";
-            try {
-                const response = await axios.post("KaheelRoles/assign", {
-                    user_id: person.id,
-                    role_id: roleId || null,
-                });
-                if (!response.data.status) {
-                    this.error = response.data.message || (this.locale === "ar" ? "تعذر الإسناد." : "Could not assign.");
-                    return;
-                }
-                this.apply(response.data.items || {});
-            } catch (error) {
-                this.error = this.locale === "ar" ? "تعذر الإسناد." : "Could not assign.";
             }
         },
     },

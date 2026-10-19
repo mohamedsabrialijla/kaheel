@@ -6,7 +6,7 @@
                 <span class="ka-ops">KAHEEL OPERATIONS</span>
             </a>
             <nav class="ka-nav-list">
-                <router-link v-for="item in items" :key="item.to" class="ka-nav" :to="'/' + locale + item.to">
+                <router-link v-for="item in visibleItems" :key="item.to" class="ka-nav" :to="'/' + locale + item.to">
                     <span v-html="item.icon"></span>
                     {{ t[item.key] }}
                 </router-link>
@@ -25,6 +25,20 @@
                     </div>
                 </div>
                 <div class="ka-head-actions">
+                    <div class="ka-notice">
+                        <button type="button" class="ka-icon-btn" :aria-label="t.notices" @click.stop="noticeOpen = !noticeOpen">
+                            <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                            <span v-if="noticeTotal" class="ka-unread">{{ noticeTotal }}</span>
+                        </button>
+                        <div v-if="noticeOpen" class="ka-notice-menu">
+                            <p v-if="!notices.length" class="ka-notice-empty">{{ t.noNotices }}</p>
+                            <button v-for="item in notices" :key="item.id" type="button" class="ka-notice-item" @click="openNotice(item)">
+                                <strong>{{ item.number }}<template v-if="item.name"> · {{ item.name }}</template></strong>
+                                <span>{{ noticeBody(item) }}</span>
+                                <time>{{ noticeTime(item.created_at) }}</time>
+                            </button>
+                        </div>
+                    </div>
                     <button type="button" class="ka-icon-btn" aria-label="language" @click="toggleLang">
                         <svg viewBox="0 0 24 24"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
                     </button>
@@ -45,7 +59,7 @@
                 <span class="ka-ops">KAHEEL OPERATIONS</span>
             </a>
             <nav class="ka-nav-list">
-                <router-link v-for="item in items" :key="'m-' + item.to" class="ka-nav" :to="'/' + locale + item.to" @click="open = false">
+                <router-link v-for="item in visibleItems" :key="'m-' + item.to" class="ka-nav" :to="'/' + locale + item.to" @click="open = false">
                     <span v-html="item.icon"></span>
                     {{ t[item.key] }}
                 </router-link>
@@ -55,7 +69,7 @@
 </template>
 
 <script>
-import { mapActions } from "vuex";
+import { mapActions, mapGetters } from "vuex";
 
 const svg = (inner) => `<svg viewBox="0 0 24 24" aria-hidden="true">${inner}</svg>`;
 
@@ -63,6 +77,10 @@ export default {
     data() {
         return {
             open: false,
+            noticeOpen: false,
+            noticeTotal: 0,
+            notices: [],
+            noticeTimer: null,
             items: [
                 { key: "overview", to: "/dashboard", icon: svg('<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>') },
                 { key: "orders", to: "/dashboard/orders", icon: svg('<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>') },
@@ -76,8 +94,21 @@ export default {
         };
     },
     computed: {
+        ...mapGetters(["getUser"]),
         locale() {
             return this.$route.params.locale || "ar";
+        },
+        isFullAdmin() {
+            const user = this.getUser || {};
+            return user.account_role === "admin" || (!user.staff_sort && user.account_role !== "admin_staff");
+        },
+        permissionCodes() {
+            const list = this.getUser?.role;
+            return Array.isArray(list) ? list : [];
+        },
+        visibleItems() {
+            if (this.isFullAdmin) return this.items;
+            return this.items.filter((item) => this.permissionCodes.includes(item.key + ".view"));
         },
         t() {
             const ar = {
@@ -93,6 +124,12 @@ export default {
                 alternatives: "البدائل والأسعار",
                 roles: "الأدوار والصلاحيات",
                 settings: "الإعدادات",
+                notices: "التنبيهات",
+                noNotices: "لا رسائل جديدة",
+                photo: "صورة",
+                video: "فيديو",
+                voice: "رسالة صوتية",
+                pdf: "PDF",
             };
             const en = {
                 menu: "Menu",
@@ -107,6 +144,12 @@ export default {
                 alternatives: "Alternatives",
                 roles: "Roles",
                 settings: "Settings",
+                notices: "Notifications",
+                noNotices: "No new messages",
+                photo: "Photo",
+                video: "Video",
+                voice: "Voice message",
+                pdf: "PDF",
             };
             return this.locale === "ar" ? ar : en;
         },
@@ -127,9 +170,39 @@ export default {
     mounted() {
         document.body.classList.add("kaheel-admin");
         this.fetchUser();
+        this.loadNotices();
+        this.noticeTimer = setInterval(() => this.loadNotices(), 8000);
+        this._closeNotices = (event) => {
+            if (!event.target.closest(".ka-notice")) this.noticeOpen = false;
+        };
+        document.addEventListener("click", this._closeNotices);
+    },
+    beforeUnmount() {
+        clearInterval(this.noticeTimer);
+        document.removeEventListener("click", this._closeNotices);
     },
     methods: {
         ...mapActions(["fetchUser"]),
+        async loadNotices() {
+            try {
+                const response = await axios.get("KaheelOrders/notices");
+                const data = response.data.items || {};
+                this.noticeTotal = Number(data.total || 0);
+                this.notices = data.items || [];
+            } catch (error) {}
+        },
+        noticeTime(value) {
+            if (!value) return "";
+            return new Date(value).toLocaleString(this.locale === "en" ? "en-GB" : "ar-EG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+        },
+        noticeBody(item) {
+            if (item.body && String(item.body).trim()) return item.body;
+            return this.t[item.kind === "image" ? "photo" : item.kind === "audio" ? "voice" : item.kind === "pdf" ? "pdf" : item.kind === "video" ? "video" : ""] || "";
+        },
+        openNotice(item) {
+            this.noticeOpen = false;
+            this.$router.push({ path: "/" + this.locale + "/dashboard/orders/" + item.order_id, query: { chat: "1" } });
+        },
         toggleLang() {
             const next = this.locale === "ar" ? "en" : "ar";
             const path = this.$route.path.replace(/^\/(ar|en)/, "/" + next);

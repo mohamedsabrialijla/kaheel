@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=12" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=30" rel="stylesheet">
 </head>
 <body>
     <header class="site-header">
@@ -26,6 +26,7 @@
             <nav class="nav" aria-label="main">
                 <a class="btn btn-sm nav-home" href="{{ $home }}" data-ar="الرئيسية" data-en="Home">الرئيسية</a>
                 @include('kaheel.partials.role-links')
+                @include('kaheel.partials.notice-bell')
                 <button class="btn btn-sm" type="button" id="lang-toggle" aria-label="language">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="m5 8 6 6"/>

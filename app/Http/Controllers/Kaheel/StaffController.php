@@ -15,7 +15,7 @@ class StaffController extends Controller
     {
         return mainResponse(true, 'Success', [
             'staff' => $this->rows(),
-            'catalog' => $this->catalog(),
+            'roles' => $this->roles(),
         ], 200, 'items', '');
     }
 
@@ -24,13 +24,16 @@ class StaffController extends Controller
         $name = trim((string) $request->input('name'));
         $email = trim((string) $request->input('email'));
         $password = (string) $request->input('password');
-        $role = $request->input('account_role') === 'admin' ? 'admin' : 'admin_staff';
+        $roleId = $request->input('role_id') ? (int) $request->input('role_id') : null;
 
         if ($name === '' || $email === '' || $password === '') {
             return mainResponse(false, 'Name, email and password are required', null, 422, 'items', '');
         }
         if (DB::table('admins')->where('email', $email)->exists()) {
             return mainResponse(false, 'Email already exists', null, 422, 'items', '');
+        }
+        if ($roleId && !$this->activeRole($roleId)) {
+            return mainResponse(false, 'Role not found', null, 422, 'items', '');
         }
 
         $now = now();
@@ -41,7 +44,8 @@ class StaffController extends Controller
             'mobile' => (string) $request->input('phone', ''),
             'job_title' => $request->input('job_title') ?: null,
             'department' => $request->input('department') ?: null,
-            'account_role' => $role,
+            'account_role' => 'admin_staff',
+            'role_id' => $roleId,
             'staff_sort' => ((int) DB::table('admins')->max('staff_sort')) + 1,
             'status' => 'active',
             'created_by' => auth('admin')->id(),
@@ -49,12 +53,12 @@ class StaffController extends Controller
             'updated_at' => $now,
         ]);
 
-        $this->syncPermissions($adminId, (array) $request->input('permissions', []));
+        $this->syncRole($adminId, $roleId);
         $this->forget();
 
         return mainResponse(true, 'Success', [
             'staff' => $this->rows(),
-            'catalog' => $this->catalog(),
+            'roles' => $this->roles(),
         ], 200, 'items', '');
     }
 
@@ -68,88 +72,108 @@ class StaffController extends Controller
             return mainResponse(false, 'The system administrator cannot be changed', null, 422, 'items', '');
         }
 
-        $role = $request->input('account_role') === 'admin' ? 'admin' : 'admin_staff';
+        $roleId = $request->input('role_id') ? (int) $request->input('role_id') : null;
+        if ($roleId && !$this->activeRole($roleId)) {
+            return mainResponse(false, 'Role not found', null, 422, 'items', '');
+        }
+
         DB::table('admins')->where('id', $admin->id)->update([
-            'account_role' => $role,
+            'role_id' => $roleId,
             'status' => $request->boolean('is_active') ? 'active' : 'not_active',
             'updated_at' => now(),
         ]);
-        $this->syncPermissions($admin->id, (array) $request->input('permissions', []));
+        $this->syncRole((int) $admin->id, $roleId);
         $this->forget();
 
         return mainResponse(true, 'Success', [
             'staff' => $this->rows(),
-            'catalog' => $this->catalog(),
+            'roles' => $this->roles(),
         ], 200, 'items', '');
     }
 
     private function rows()
     {
-        $codes = DB::table('model_has_permissions')
-            ->join('permissions', 'permissions.id', '=', 'model_has_permissions.permission_id')
-            ->where('model_has_permissions.model_type', Admin::class)
-            ->select('model_has_permissions.model_id', 'permissions.name')
-            ->get()
-            ->groupBy('model_id')
-            ->map(fn ($rows) => $rows->pluck('name')->values()->all());
+        $roles = DB::table('roles')->whereNotNull('name_ar')->get(['id', 'name_ar', 'name_en'])->keyBy('id');
+        $assigned = DB::table('model_has_roles')
+            ->where('model_type', Admin::class)
+            ->pluck('role_id', 'model_id');
 
         return DB::table('admins')
             ->whereNotNull('staff_sort')
             ->whereNull('deleted_at')
             ->orderBy('staff_sort')
             ->get()
-            ->map(fn ($admin) => [
-                'id' => $admin->id,
-                'name' => $admin->name,
-                'email' => $admin->email,
-                'phone' => $admin->mobile,
-                'job_title' => $admin->job_title,
-                'department' => $admin->department,
-                'account_role' => $admin->account_role,
-                'is_active' => $admin->status === 'active',
-                'locked' => $admin->account_role === 'admin',
-                'permissions' => $codes->get($admin->id, []),
-            ])
+            ->map(function ($admin) use ($roles, $assigned) {
+                $roleId = $assigned[$admin->id] ?? $admin->role_id;
+                $role = $roleId ? $roles->get($roleId) : null;
+
+                return [
+                    'id' => $admin->id,
+                    'name' => $admin->name,
+                    'email' => $admin->email,
+                    'phone' => $admin->mobile,
+                    'job_title' => $admin->job_title,
+                    'department' => $admin->department,
+                    'account_role' => $admin->account_role,
+                    'role_id' => $roleId,
+                    'role_name_ar' => $role->name_ar ?? null,
+                    'role_name_en' => $role->name_en ?? null,
+                    'is_active' => $admin->status === 'active',
+                    'locked' => $admin->account_role === 'admin',
+                ];
+            })
             ->values();
     }
 
-    private function catalog()
+    private function roles()
     {
-        return DB::table('permissions')
+        return DB::table('roles')
             ->where('guard_name', 'admin')
-            ->whereNotNull('category')
-            ->orderBy('sort_order')
+            ->whereNotNull('name_ar')
+            ->where('is_active', true)
             ->orderBy('id')
-            ->get(['name', 'display_name', 'label_en'])
-            ->map(fn ($row) => [
-                'code' => $row->name,
-                'label_ar' => $row->display_name,
-                'label_en' => $row->label_en,
+            ->get(['id', 'name_ar', 'name_en'])
+            ->map(fn ($role) => [
+                'id' => $role->id,
+                'name_ar' => $role->name_ar,
+                'name_en' => $role->name_en,
             ])
             ->values();
     }
 
-    private function syncPermissions(int $adminId, array $codes): void
+    private function activeRole(int $roleId): bool
     {
-        $codes = array_values(array_unique(array_filter($codes)));
-        $ids = DB::table('permissions')
+        return DB::table('roles')
+            ->where('id', $roleId)
             ->where('guard_name', 'admin')
-            ->whereNotNull('category')
-            ->whereIn('name', $codes)
-            ->pluck('id');
+            ->whereNotNull('name_ar')
+            ->where('is_active', true)
+            ->exists();
+    }
+
+    private function syncRole(int $adminId, ?int $roleId): void
+    {
+        DB::table('model_has_roles')
+            ->where('model_id', $adminId)
+            ->where('model_type', Admin::class)
+            ->delete();
 
         DB::table('model_has_permissions')
             ->where('model_id', $adminId)
             ->where('model_type', Admin::class)
             ->delete();
 
-        foreach ($ids as $id) {
-            DB::table('model_has_permissions')->insert([
-                'permission_id' => $id,
+        if ($roleId) {
+            DB::table('model_has_roles')->insert([
+                'role_id' => $roleId,
                 'model_type' => Admin::class,
                 'model_id' => $adminId,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
+
+        DB::table('admins')->where('id', $adminId)->update(['role_id' => $roleId]);
     }
 
     private function forget(): void

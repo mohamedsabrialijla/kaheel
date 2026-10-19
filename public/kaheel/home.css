@@ -1103,9 +1103,61 @@ html[dir="rtl"] .icon-forward {
     outline: 1px solid var(--primary);
 }
 
+.auth-code-row {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    direction: ltr;
+}
+
+.auth-field .auth-code-row input.auth-code {
+    width: 3.25rem;
+    height: 3.25rem;
+    flex: 0 0 3.25rem;
+    padding: 0;
+    text-align: center;
+    font-size: 1.25rem;
+    letter-spacing: 0;
+}
+
+.auth-note {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+}
+
 .auth-submit,
 .auth-google {
     width: 100%;
+}
+
+.auth-submit:disabled {
+    cursor: wait;
+    opacity: 0.85;
+}
+
+.auth-submit-wait {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.auth-submit-wait[hidden],
+.auth-submit-label[hidden] {
+    display: none;
+}
+
+.auth-spinner {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid currentColor;
+    border-inline-end-color: transparent;
+    border-radius: 50%;
+    animation: auth-spin 0.7s linear infinite;
+}
+
+@keyframes auth-spin {
+    to { transform: rotate(360deg); }
 }
 
 .auth-text-btn {
@@ -1211,6 +1263,24 @@ html[dir="rtl"] .icon-forward {
     max-width: 56rem;
     margin-inline: auto;
     padding: 3rem 1.25rem 4rem;
+}
+
+.orders-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.orders-head .btn {
+    flex: 0 0 auto;
+}
+
+.orders-new {
+    height: 2.25rem;
+    padding-inline: 1rem;
+    font-size: 0.875rem;
 }
 
 .order-steps {
@@ -1462,8 +1532,87 @@ html[dir="rtl"] .icon-forward {
 }
 
 .order-list-card strong {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     font-weight: 600;
+}
+
+.order-unread,
+.notice-bell-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.2rem;
+    height: 1.2rem;
+    padding-inline: 0.3rem;
+    border-radius: 999px;
+    background: oklch(62% 0.2 25);
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.notice-bell {
+    position: relative;
+}
+
+.notice-bell-btn {
+    position: relative;
+}
+
+.notice-bell-badge {
+    position: absolute;
+    top: -0.2rem;
+    inset-inline-end: -0.15rem;
+}
+
+.notice-bell-badge[hidden],
+.notice-bell-menu[hidden] {
+    display: none;
+}
+
+.notice-bell-menu {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 0.45rem);
+    inset-inline-end: 0;
+    width: min(20rem, calc(100vw - 2rem));
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: #fff;
+    box-shadow: var(--shadow-lg);
+    padding: 0.35rem;
+}
+
+.notice-bell-empty {
+    margin: 0;
+    padding: 0.7rem;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+}
+
+.notice-bell-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    border-radius: 0.5rem;
+    padding: 0.55rem 0.65rem;
+}
+
+.notice-bell-item:hover {
+    background: var(--muted);
+}
+
+.notice-bell-item strong {
+    font-size: 0.8125rem;
+}
+
+.notice-bell-item span,
+.notice-bell-item time {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
 }
 
 .order-list-side {
@@ -1593,7 +1742,58 @@ html[dir="rtl"] .icon-forward {
 }
 
 .order-pay-submit {
+    display: block;
+    width: 100%;
     margin-top: 1.25rem;
+}
+
+.order-pay-list {
+    display: grid;
+    gap: 0;
+    margin-top: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.order-pay-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.order-pay-row:first-child {
+    border-top: 0;
+}
+
+.order-pay-row-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.order-pay-row-side {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.order-pay-row-side strong {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.order-final-pay .order-pay-note {
+    margin-top: 0.5rem;
+}
+
+.order-final-pay form {
+    margin: 0;
 }
 
 .order-docs {
@@ -1784,5 +1984,702 @@ a.order-doc:hover {
 
     .order-grid.cols-3 {
         grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+.order-chat-launch[hidden] {
+    display: none;
+}
+
+.order-chat-launch {
+    position: fixed;
+    z-index: 45;
+    bottom: 1.25rem;
+    inset-inline-start: 1.25rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    max-width: calc(100vw - 2.5rem);
+    height: 2.75rem;
+    padding-inline: 1rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--primary);
+    color: #fff;
+    box-shadow: var(--shadow-lg);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.order-chat-launch svg,
+.order-chat-close svg,
+.order-chat-tools svg {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.order-chat-badge {
+    position: absolute;
+    top: -0.4rem;
+    inset-inline-end: -0.15rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.2rem;
+    height: 1.2rem;
+    padding-inline: 0.3rem;
+    border-radius: 999px;
+    background: oklch(62% 0.2 25);
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.order-chat-badge[hidden],
+.order-chat-count[hidden],
+.order-chat[hidden],
+.order-chat-preview[hidden] {
+    display: none;
+}
+
+.order-chat {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+}
+
+.order-chat-dim {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: oklch(25% 0.02 70 / 55%);
+    cursor: pointer;
+}
+
+.order-chat-panel {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    inset-inline-start: 0;
+    display: flex;
+    flex-direction: column;
+    width: min(26rem, 100%);
+    background: var(--background);
+    box-shadow: var(--shadow-2xl);
+}
+
+.order-chat-head {
+    padding: 1.25rem 1.25rem 0.75rem;
+}
+
+.order-chat-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.order-chat-title h2 {
+    margin: 0;
+    color: var(--primary);
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.order-chat-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding-inline: 0.35rem;
+    border-radius: 999px;
+    background: oklch(62% 0.2 25);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.order-chat-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin-inline-start: auto;
+    border: 0;
+    border-radius: 0.4rem;
+    background: transparent;
+    color: var(--primary);
+    cursor: pointer;
+}
+
+.order-chat-head p {
+    margin: 0.35rem 0 0;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+}
+
+.order-chat-log {
+    flex: 1;
+    overflow: auto;
+    padding: 0.5rem 1.25rem 1rem;
+}
+
+.order-chat-empty,
+.order-chat-error {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+}
+
+.order-chat-error {
+    padding: 0 1.25rem 0.5rem;
+    color: oklch(45% 0.16 25);
+}
+
+.order-chat-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: 0.9rem;
+}
+
+.order-chat-row.is-mine {
+    align-items: flex-end;
+}
+
+.order-chat-meta {
+    margin-bottom: 0.25rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.order-chat-bubble {
+    max-width: 85%;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: #fff;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.order-chat-row.is-mine .order-chat-bubble {
+    border-color: transparent;
+    background: oklch(94% 0.015 230);
+}
+
+.order-chat-bubble img,
+.order-chat-bubble video {
+    display: block;
+    width: min(14rem, 70vw);
+    max-height: 12rem;
+    margin-bottom: 0.4rem;
+    border-radius: 0.5rem;
+    object-fit: cover;
+    cursor: pointer;
+}
+
+.order-chat-bubble a {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.order-chat-form {
+    padding: 0.75rem 1.25rem 1.25rem;
+}
+
+.order-chat-form textarea {
+    width: 100%;
+    min-height: 5.5rem;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: #fff;
+    padding: 0.75rem 0.85rem;
+    color: var(--foreground);
+    font: inherit;
+    font-size: 0.875rem;
+}
+
+.order-chat-tools {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.order-chat-tools .btn {
+    height: 2.25rem;
+    padding-inline: 0.9rem;
+    border-radius: 0.6rem;
+    font-size: 0.8125rem;
+}
+
+.order-chat-hint {
+    flex: 1;
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.order-chat-preview {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: oklch(20% 0.02 70 / 88%);
+}
+
+.order-chat-preview img,
+.order-chat-preview video {
+    max-width: 92%;
+    max-height: 88%;
+    object-fit: contain;
+}
+
+.order-chat-preview button {
+    position: absolute;
+    top: 0.75rem;
+    inset-inline-end: 0.75rem;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--foreground);
+    font-size: 1.25rem;
+    cursor: pointer;
+}
+
+.order-design-card {
+    overflow: hidden;
+    padding: 0;
+}
+
+.order-design-banner {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+}
+
+.order-design-banner img {
+    width: 100%;
+    height: 10rem;
+    object-fit: cover;
+}
+
+.order-design-banner-copy {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.75rem;
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+    padding: 1.25rem 1.5rem;
+}
+
+.order-design-banner-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    color: var(--foreground);
+    font-family: "Instrument Serif", "IBM Plex Sans Arabic", serif;
+    font-size: 1.5rem;
+}
+
+.order-design-banner-title svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.order-design-status {
+    padding: 1.25rem 1.5rem;
+}
+
+.order-design-status.is-ok {
+    background: color-mix(in oklab, var(--secondary) 40%, transparent);
+}
+
+.order-design-status.is-back {
+    background: color-mix(in oklab, oklch(62% 0.2 25) 5%, transparent);
+}
+
+.order-design-status h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.order-design-status h2 svg {
+    width: 1rem;
+    height: 1rem;
+    color: var(--primary);
+}
+
+.order-design-body {
+    padding: 1.5rem;
+}
+
+.order-design-files {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.order-design-files h3 {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.design-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.design-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--card);
+    padding: 0.65rem 0.75rem;
+    color: var(--muted-foreground);
+    font: inherit;
+    font-size: 0.8rem;
+    text-align: start;
+    cursor: pointer;
+}
+
+.design-step:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.design-step.is-on {
+    border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+    color: var(--foreground);
+    font-weight: 600;
+}
+
+.design-step.is-done .design-step-num,
+.design-step.is-on .design-step-num {
+    background: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.design-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 999px;
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.design-panel > .btn.auth-submit {
+    margin-top: 1.25rem;
+    width: 100%;
+}
+
+.design-q {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.design-comp-list {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.design-comp-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.85rem 1rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.875rem;
+}
+
+.design-comp-list li:first-child {
+    border-top: 0;
+}
+
+.design-comp-name {
+    margin: 0;
+    font-weight: 600;
+}
+
+.design-comp-meta {
+    margin: 0.25rem 0 0;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.design-comp-delta {
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.design-totals {
+    margin-top: 1.25rem;
+}
+
+.design-choice-grid {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.design-choice {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--card);
+    padding: 1rem;
+    text-align: start;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.design-choice:hover,
+.design-choice.is-on {
+    border-color: var(--primary);
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+}
+
+.design-choice-title {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.design-choice-sub {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.design-editor {
+    margin-top: 1.25rem;
+}
+
+.design-chat-nudge {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid color-mix(in oklab, var(--primary) 40%, transparent);
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--primary) 5%, transparent);
+    padding: 1rem;
+}
+
+.design-chat-nudge-title {
+    margin: 0;
+    color: var(--primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.design-comp-editor {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.design-comp-card {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1rem;
+}
+
+.design-comp-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.design-ask {
+    margin-top: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: transparent;
+    padding: 0.35rem 0.75rem;
+    color: var(--muted-foreground);
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.design-ask:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.design-comp-fields {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+}
+
+.design-comp-fields label {
+    display: grid;
+    gap: 0.35rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.design-comp-fields input,
+.design-comp-fields select {
+    height: 2.25rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--background);
+    padding: 0 0.75rem;
+    color: var(--foreground);
+    font: inherit;
+    font-size: 0.875rem;
+}
+
+.design-sticky-bar {
+    position: sticky;
+    bottom: 0.75rem;
+    margin-top: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--card) 92%, transparent);
+    padding: 1rem;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
+    backdrop-filter: blur(8px);
+}
+
+.design-sticky-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.design-sticky-row strong {
+    color: var(--primary);
+}
+
+.design-sticky-actions {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.design-sticky-actions .btn {
+    width: 100%;
+    min-height: 2.75rem;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.design-sticky-bar {
+    z-index: 30;
+}
+
+.design-sel-msg {
+    margin: 0.65rem 0 0;
+    font-size: 0.8rem;
+}
+
+.design-sel-msg.is-ok {
+    color: var(--primary);
+}
+
+.design-sel-msg.is-error {
+    color: oklch(45% 0.18 25);
+}
+
+.order-chat-locked {
+    margin: 0;
+    border-top: 1px solid var(--border);
+    background: color-mix(in oklab, var(--secondary) 45%, transparent);
+    padding: 0.9rem 1rem;
+    color: var(--muted-foreground);
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.order-chat-panel.is-locked .order-chat-log {
+    flex: 1;
+}
+
+.design-sign-box {
+    margin-top: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--secondary) 30%, transparent);
+    padding: 1rem;
+}
+
+.design-decide {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.design-reject {
+    border-color: color-mix(in oklab, oklch(55% 0.2 25) 55%, var(--border));
+    color: oklch(45% 0.18 25);
+}
+
+@media (min-width: 640px) {
+    .order-design-banner {
+        flex-direction: row;
+    }
+
+    .order-design-banner img {
+        width: 16rem;
+        height: auto;
+        min-height: 100%;
+    }
+
+    .design-choice-grid,
+    .design-comp-fields,
+    .design-sticky-actions,
+    .design-decide {
+        grid-template-columns: 1fr 1fr;
     }
 }

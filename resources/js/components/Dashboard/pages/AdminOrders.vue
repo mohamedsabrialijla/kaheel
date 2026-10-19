@@ -38,7 +38,7 @@
                         <tr v-else-if="!filtered.length"><td class="ka-empty" colspan="6">{{ t.empty }}</td></tr>
                         <tr v-for="row in filtered" :key="row.id">
                             <td>
-                                <p class="ka-ord-strong">{{ row.number }}</p>
+                                <p class="ka-ord-strong">{{ row.number }} <span v-if="row.unread" class="ka-unread">{{ row.unread }}</span></p>
                                 <p class="ka-sup-muted">{{ date(row.created_at) }}</p>
                             </td>
                             <td>
@@ -89,11 +89,25 @@
                     <div><p>{{ t.excl }}</p><strong>{{ money(order.price_excl) }} SAR</strong></div>
                     <div><p>{{ t.vat }}</p><strong>{{ money(order.vat) }} SAR</strong></div>
                     <div><p>{{ t.packageTotal }}</p><strong>{{ money(order.price_incl) }} SAR</strong></div>
-                    <div><p>{{ t.addons }}</p><strong>{{ money(order.addons_total) }} SAR</strong></div>
-                    <div><p>{{ t.finalTotal }}</p><strong>{{ money(order.final_total) }} SAR</strong></div>
+                    <div><p>{{ t.addons }}</p><strong>{{ money(billAddons) }} SAR</strong></div>
+                    <div><p>{{ t.finalTotal }}</p><strong>{{ money(billFinal) }} SAR</strong></div>
                     <div><p>{{ t.deposit }}</p><strong>{{ money(order.deposit_amount) }} SAR · {{ order.deposit_paid ? t.paidState : t.unpaid }}</strong></div>
                     <div><p>{{ t.paid }}</p><strong>{{ money(order.paid) }} SAR</strong></div>
-                    <div><p>{{ t.remaining }}</p><strong>{{ money(order.remaining) }} SAR</strong></div>
+                    <div><p>{{ t.remaining }}</p><strong>{{ money(billRemaining) }} SAR</strong></div>
+                </div>
+                <h3 class="ka-ord-subhead">{{ t.payments }}</h3>
+                <p v-if="!paymentEntries.length" class="ka-sup-muted">{{ t.noPayments }}</p>
+                <div v-else class="ka-ord-pay-list">
+                    <article v-for="row in paymentEntries" :key="row.id" class="ka-ord-pay-row">
+                        <div class="ka-ord-pay-main">
+                            <strong>{{ row.label }} — {{ row.ref }}</strong>
+                            <span class="ka-sup-muted">{{ row.method }} · {{ row.status }} · {{ date(row.at) }}</span>
+                        </div>
+                        <div class="ka-ord-pay-side">
+                            <strong>{{ money(row.amount) }} SAR</strong>
+                            <a v-if="row.url" class="ka-ord-file" :href="row.url" target="_blank" rel="noopener noreferrer">{{ t.viewReceipt }}</a>
+                        </div>
+                    </article>
                 </div>
             </section>
 
@@ -106,12 +120,14 @@
                         <div><p>{{ t.amount }}</p><strong>{{ money(order.deposit_amount) }} SAR</strong></div>
                         <div><p>{{ t.payState }}</p><strong>{{ payStateLabel }}</strong></div>
                     </div>
-                    <a v-if="latestReceipt" class="ka-ord-file" :href="latestReceipt.url" target="_blank" rel="noopener noreferrer">{{ t.viewReceipt }} — {{ latestReceipt.name }}</a>
                     <p v-if="order.payment_status === 'approved'" class="ka-ord-ok">{{ t.paymentOk }}</p>
                     <p v-if="order.payment_note" class="ka-ord-error">{{ order.payment_note }}</p>
                     <div v-if="order.status === 'final_payment' && order.final_payment_status !== 'approved'" class="ka-ord-pay-actions">
-                        <p class="ka-sup-muted">{{ order.final_payment_status === 'pending' ? t.finalPending : t.finalWait }}</p>
-                        <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="confirmFinal">{{ t.confirmFinal }}</button>
+                        <template v-if="order.final_payment_status === 'pending'">
+                            <p class="ka-sup-muted">{{ t.finalPending }}</p>
+                            <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="confirmFinal">{{ t.confirmFinal }}</button>
+                        </template>
+                        <p v-else class="ka-sup-muted">{{ t.finalWaitCustomer }}</p>
                     </div>
                     <p v-if="order.final_payment_status === 'approved'" class="ka-ord-ok">{{ t.finalOk }}</p>
                     <div v-if="order.payment_status === 'pending'" class="ka-ord-pay-actions">
@@ -135,10 +151,12 @@
                 <p class="ka-ord-hint">{{ hint }}</p>
                 <p v-if="!canOperate && order.payment_method" class="ka-ord-hint">{{ t.confirmFirst }}</p>
 
+                <div class="ka-ord-stack">
+                <div class="ka-ord-panel">
                 <h3>{{ t.designFiles }}</h3>
                 <p v-if="!designFiles.length" class="ka-sup-muted">{{ t.none }}</p>
                 <a v-for="file in designFiles" :key="file.id" class="ka-ord-file" :href="file.url" target="_blank" rel="noopener noreferrer">{{ file.name }}</a>
-                <h3>{{ t.otherDocs }}</h3>
+                <h3 class="ka-ord-sub">{{ t.otherDocs }}</h3>
                 <button type="button" class="ka-btn ka-btn-outline" @click="contractOpen = !contractOpen">{{ t.contract }}</button>
                 <pre v-if="contractOpen" class="ka-ord-contract">{{ order.contract_body }}</pre>
                 <a v-for="file in plans" :key="file.id" class="ka-ord-file" :href="file.url" target="_blank" rel="noopener noreferrer">{{ file.name }}</a>
@@ -155,19 +173,31 @@
                         <input type="file" accept="image/*,application/pdf" @change="upload($event, 'handover')">
                     </label>
                 </div>
+                </div>
 
+                <div class="ka-ord-panel">
                 <h3>{{ t.components }}</h3>
+                <template v-if="order.status !== 'design_preparation'">
                 <p v-if="!order.components.length" class="ka-sup-muted">{{ t.none }}</p>
                 <div v-for="item in order.components" :key="item.id" class="ka-ord-block">
                     <div class="ka-ord-line">
                         <strong>{{ locale === 'en' ? item.name_en : item.name_ar }}</strong>
                         <span class="ka-sup-muted">{{ item.base_qty }} {{ unitOf(item) }} · {{ money(item.price_per_unit) }} SAR/{{ unitOf(item) }}</span>
                     </div>
-                    <p v-if="Number(item.extra_cost) > 0" class="ka-ord-extra">{{ t.extra }}: +{{ money(item.extra_cost) }} SAR</p>
+                    <p v-if="item.added || item.selected_key" class="ka-ord-extra">
+                        <span v-if="item.added">{{ t.addedFlag }}</span>
+                        <span v-if="item.selected_key">{{ item.added ? ' · ' : '' }}{{ t.swapped }} {{ deltaText(item.extra_cost) }}</span>
+                    </p>
+                    <p v-else-if="Number(item.extra_cost) > 0" class="ka-ord-extra">{{ t.extra }}: +{{ money(item.extra_cost) }} SAR</p>
                 </div>
+                </template>
 
                 <div v-if="order.status === 'design_preparation'" class="ka-ord-editor">
-                    <article v-for="(item, index) in drafts" :key="index" class="ka-comp-card">
+                    <article v-for="(item, index) in drafts" :key="item.id || index" class="ka-comp-card">
+                        <div v-if="item.added || item.selected_key" class="ka-comp-flags">
+                            <span v-if="item.added" class="ka-comp-flag">{{ t.addedFlag }}</span>
+                            <span v-if="item.selected_key" class="ka-comp-flag">{{ t.swapped }} {{ deltaText(item.extra_cost) }}</span>
+                        </div>
                         <div class="ka-comp-grid">
                             <label class="ka-field"><span>{{ t.category }}</span>
                                 <select :value="item.category" @change="setCategory(item, $event.target.value)">
@@ -182,13 +212,15 @@
                             <label class="ka-field"><span>{{ t.qty }}</span><input v-model.number="item.base_qty" type="number" min="0"></label>
                             <label class="ka-field"><span>{{ t.unitPrice }}</span><input v-model.number="item.price_per_unit" type="number" min="0"></label>
                         </div>
+                        <p class="ka-comp-price">{{ t.linePrice }}: {{ money(shownPrice(item)) }} SAR<span v-if="item.selected_key" class="ka-comp-delta">{{ t.swapDelta }} {{ deltaText(item.extra_cost) }}</span></p>
                         <div class="ka-comp-alts">
                             <p class="ka-comp-alts-title">{{ t.altsTitle }} <span class="ka-sup-muted">{{ t.categoryOf }}: {{ categoryName(item.category) }}</span></p>
-                            <div v-for="(option, optionIndex) in item.options" :key="optionIndex" class="ka-comp-alt">
+                            <div v-for="(option, optionIndex) in item.options" :key="optionIndex" class="ka-comp-alt" :class="{ 'is-swapped': item.selected_key && item.selected_key === altKey(option) }">
                                 <label class="ka-field"><span>{{ t.altAr }}</span><input v-model="option.name_ar"></label>
                                 <label class="ka-field"><span>Alternative</span><input v-model="option.name_en"></label>
-                                <label class="ka-field"><span>{{ t.delta }}</span><input v-model.number="option.price_delta" type="number"></label>
-                                <button type="button" class="ka-btn ka-btn-ghost" @click="item.options.splice(optionIndex, 1)">{{ t.remove }}</button>
+                                <label class="ka-field"><span>{{ t.delta }}</span><input v-model.number="option.price_delta" type="number" @input="syncAlt(item, option)"></label>
+                                <button type="button" class="ka-btn ka-btn-outline" @click="swapAlt(item, option)">{{ item.selected_key === altKey(option) ? t.swapped : t.swap }}</button>
+                                <button type="button" class="ka-btn ka-btn-ghost" @click="removeOption(item, optionIndex)">{{ t.remove }}</button>
                             </div>
                             <div class="ka-ord-actions">
                                 <select class="ka-ord-select" @change="insertAlt($event, item)">
@@ -203,12 +235,16 @@
                     </article>
                     <div class="ka-ord-actions">
                         <button type="button" class="ka-btn ka-btn-outline" @click="loadItems">{{ t.loadItems }}</button>
+                        <button v-if="loadedFromPackage" type="button" class="ka-btn ka-btn-outline" @click="undoLoad">{{ t.undoLoad }}</button>
                         <button type="button" class="ka-btn ka-btn-outline" @click="addDraft">{{ t.addComponent }}</button>
-                        <button type="button" class="ka-btn ka-btn-primary" :disabled="!drafts.length || saving" @click="saveComponents">{{ t.saveComponents }}</button>
+                        <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="saveComponents">{{ t.saveComponents }}</button>
                         <button type="button" class="ka-btn ka-btn-primary" :disabled="saving || !order.design_ready" @click="sendDesign">{{ t.sendDesign }}</button>
                     </div>
+                    <p v-if="drafts.length" class="ka-comp-sum">{{ t.componentsSum }}: {{ money(editorCharge) }} SAR</p>
+                </div>
                 </div>
 
+                <div class="ka-ord-panel">
                 <h3>{{ t.suppliers }}</h3>
                 <p v-if="!order.assignments.length" class="ka-sup-muted">{{ t.none }}</p>
                 <div v-for="row in order.assignments" :key="row.id" class="ka-ord-block">
@@ -240,22 +276,21 @@
                         <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="assignSuppliers">{{ t.assign }}</button>
                     </div>
                 </div>
+                </div>
+                </div>
 
                 <div class="ka-ord-thread">
                     <h3>{{ t.thread }}</h3>
-                    <p v-if="!order.messages.length" class="ka-sup-muted">{{ t.noMessages }}</p>
-                    <article v-for="message in order.messages" :key="message.id" class="ka-ord-msg" :class="{ 'is-admin': message.role === 'admin' }">
-                        <p class="ka-sup-muted">{{ message.name || t.admin }} · {{ date(message.created_at) }}</p>
-                        <p>{{ message.body }}</p>
-                    </article>
-                    <p v-if="threadClosed" class="ka-ord-hint">{{ t.threadClosed }}</p>
-                    <template v-else-if="canOperate && order.status !== 'deposit_pending'">
-                        <label class="ka-field"><span>{{ t.note }}</span><textarea v-model="messageBody" rows="3" :placeholder="t.write"></textarea></label>
-                        <div class="ka-ord-actions">
-                            <button type="button" class="ka-btn ka-btn-primary" :disabled="saving || !messageBody.trim()" @click="sendMessage">{{ t.send }}</button>
-                            <button v-if="order.design_status === 'rejected'" type="button" class="ka-btn ka-btn-outline" :disabled="saving || !order.design_ready" @click="sendDesign">{{ t.resubmit }}</button>
-                        </div>
-                    </template>
+                    <p class="ka-sup-muted">{{ t.chatHint }}</p>
+                    <div class="ka-ord-actions">
+                        <button type="button" class="ka-btn ka-btn-primary ka-chat-launch" @click="openChat">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+                            {{ t.startChat }}
+                            <span v-if="order.unread" class="ka-unread">{{ order.unread }}</span>
+                        </button>
+                        <p v-if="order.unread" class="ka-unread-note">{{ t.newMessages }}: {{ order.unread }}</p>
+                        <button v-if="order.design_status === 'rejected'" type="button" class="ka-btn ka-btn-outline" :disabled="saving || !order.design_ready" @click="sendDesign">{{ t.resubmit }}</button>
+                    </div>
                 </div>
             </section>
 
@@ -271,18 +306,72 @@
                 </article>
             </section>
 
-            <section class="ka-ord-card">
+            <section class="ka-ord-card ka-ord-advance">
                 <h2>{{ t.advance }}</h2>
                 <template v-if="order.next_status">
                     <label class="ka-field"><span>{{ t.updateNote }}</span><textarea v-model="advanceNote" rows="3"></textarea></label>
                     <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="advance">{{ t.moveTo }} {{ locale === 'en' ? order.next_en : order.next_ar }}</button>
                 </template>
-                <p v-else-if="order.gate_ar" class="ka-sup-muted">{{ locale === 'en' ? order.gate_en : order.gate_ar }}</p>
-                <p v-else class="ka-sup-muted">{{ order.status === 'deposit_pending' ? t.waitDeposit : t.complete }}</p>
+                <p v-else-if="order.gate_ar" class="ka-sup-muted ka-ord-gate">{{ locale === 'en' ? order.gate_en : order.gate_ar }}</p>
+                <p v-else class="ka-sup-muted ka-ord-gate">{{ order.status === 'deposit_pending' ? t.waitDeposit : t.complete }}</p>
             </section>
         </template>
         <p v-else-if="loading" class="ka-sup-muted">…</p>
         <p v-if="error" class="ka-ord-error">{{ error }}</p>
+        <div v-if="chatOpen && order" class="ka-chat-layer" @click.self="chatOpen = false">
+            <section class="ka-chat" role="dialog" aria-modal="true" :aria-label="t.thread">
+                <header class="ka-chat-head">
+                    <span class="ka-chat-avatar" aria-hidden="true">{{ chatInitial }}</span>
+                    <div class="min-w-0">
+                        <strong>{{ order.customer_name }}</strong>
+                        <span v-if="chatSeen" class="ka-unread">{{ chatSeen }}</span>
+                        <p>{{ order.number }} · {{ t.chatScope }}</p>
+                    </div>
+                    <button type="button" class="ka-chat-close" @click="chatOpen = false" :aria-label="t.chatClose">×</button>
+                </header>
+                <div class="ka-chat-log" ref="chatLog">
+                    <p v-if="!order.messages.length" class="ka-chat-empty">{{ t.chatEmpty }}</p>
+                    <article v-for="message in order.messages" :key="message.id" class="ka-chat-row" :class="{ 'is-mine': message.role === 'admin' }">
+                        <div class="ka-chat-bubble" :class="'is-' + (message.kind || 'text')">
+                            <img v-if="message.kind === 'image'" class="ka-chat-photo" :src="message.url" alt="" @pointerdown="pressMedia(message)" @pointerup="releaseMedia" @pointerleave="releaseMedia" @pointercancel="releaseMedia" @click="openPreview(message)">
+                            <video v-else-if="message.kind === 'video'" class="ka-chat-video" :src="message.url" controls @pointerdown="pressMedia(message)" @pointerup="releaseMedia" @pointercancel="releaseMedia"></video>
+                            <audio v-else-if="message.kind === 'audio'" class="ka-chat-audio" :src="message.url" controls></audio>
+                            <a v-else-if="message.kind === 'pdf'" class="ka-chat-filelink" :href="message.url" target="_blank" rel="noopener">{{ message.file_name || mediaCaption(message) }}</a>
+                            <p v-if="message.body">{{ message.body }}</p>
+                            <p v-else-if="message.kind && message.kind !== 'text' && message.kind !== 'pdf'">{{ mediaCaption(message) }}</p>
+                            <time>{{ message.kind === 'audio' && message.duration ? voiceLength(message.duration) + ' · ' : '' }}{{ chatTime(message.created_at) }}</time>
+                        </div>
+                    </article>
+                </div>
+                <form class="ka-chat-form" @submit.prevent="sendMessage">
+                    <input ref="chatImage" class="ka-chat-file" type="file" accept="image/*" @change="sendPicked($event, 'image')">
+                    <input ref="chatVideo" class="ka-chat-file" type="file" accept="video/mp4,video/webm,video/quicktime" @change="sendPicked($event, 'video')">
+                    <button type="button" class="ka-chat-tool" :disabled="saving || recording" :aria-label="t.chatImage" @click="$refs.chatImage.click()">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                    </button>
+                    <button type="button" class="ka-chat-tool" :disabled="saving || recording" :aria-label="t.chatVideo" @click="$refs.chatVideo.click()">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>
+                    </button>
+                    <div v-if="recording" class="ka-chat-recording">
+                        <span class="ka-chat-dot"></span>
+                        <strong>{{ voiceLength(recordSeconds) }}</strong>
+                        <span>{{ t.releaseToSend }}</span>
+                    </div>
+                    <input v-else v-model="messageBody" type="text" :placeholder="t.write" :disabled="saving">
+                    <button v-if="!recording && messageBody.trim()" type="submit" class="ka-btn ka-btn-primary" :disabled="saving" :aria-label="t.send">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                    </button>
+                    <button v-else type="button" class="ka-btn ka-btn-primary ka-chat-mic" :class="{ 'is-recording': recording }" :disabled="saving" :aria-label="t.chatVoice" @pointerdown.prevent="beginRecord" @pointerup="finishRecord" @pointercancel="finishRecord(true)">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></svg>
+                    </button>
+                </form>
+                <div v-if="previewUrl" class="ka-chat-preview" @click.self="previewUrl = ''">
+                    <button type="button" class="ka-chat-close" @click="previewUrl = ''" :aria-label="t.chatClose">×</button>
+                    <img v-if="previewKind === 'image'" :src="previewUrl" alt="">
+                    <video v-else :src="previewUrl" controls autoplay></video>
+                </div>
+            </section>
+        </div>
     </div>
 </template>
 
@@ -321,6 +410,7 @@ const blankComponent = () => ({
     base_qty: 1,
     price_per_unit: 0,
     extra_cost: 0,
+    selected_key: "",
     options: [],
 });
 
@@ -348,8 +438,17 @@ export default {
             saving: false,
             error: "",
             drafts: [],
+            editorOpen: false,
+            loadedFromPackage: false,
+            draftsBeforeLoad: null,
             supplierDrafts: [],
             messageBody: "",
+            chatOpen: false,
+            chatSeen: 0,
+            recording: false,
+            recordSeconds: 0,
+            previewUrl: "",
+            previewKind: "image",
             advanceNote: "",
             paymentNote: "",
             contractOpen: false,
@@ -412,10 +511,11 @@ export default {
                 customerPlan: "Plan uploaded by the customer",
                 noPlan: "The customer has not uploaded a plan.",
                 confirmFirst: "Confirm the payment before the rest of the workflow.",
-                finalWait: "Confirm the final payment was received before the order can move on.",
+                finalWaitCustomer: "Waiting for the customer to pay the final amount.",
                 finalPending: "The customer sent the final payment. Confirm it to continue.",
                 confirmFinal: "Confirm final payment",
                 finalOk: "Final payment confirmed.",
+                viewFinalReceipt: "View final receipt",
                 workspace: "Design, documents and suppliers",
                 designFiles: "Design files and versions",
                 otherDocs: "Other order documents",
@@ -425,6 +525,12 @@ export default {
                 uploadHandover: "Upload handover report",
                 components: "Design components and pricing",
                 extra: "Customer change",
+                linePrice: "Price",
+                componentsSum: "Components price",
+                swap: "Swap",
+                swapped: "Swapped",
+                addedFlag: "Added",
+                swapDelta: "Price difference",
                 category: "Category",
                 categoryOf: "Category",
                 nameAr: "Arabic name",
@@ -442,6 +548,7 @@ export default {
                 manualAlt: "Manual alternative",
                 removeComponent: "Remove component",
                 loadItems: "Load sub-package items",
+                undoLoad: "Undo load",
                 addComponent: "Add component",
                 saveComponents: "Save components",
                 sendDesign: "Send design to customer",
@@ -454,7 +561,21 @@ export default {
                 cost: "Cost",
                 addSupplier: "Add supplier",
                 assign: "Assign and notify",
-                thread: "Order discussion",
+                thread: "Order chat",
+                chatHint: "Each order has its own conversation. Messages stay with this order.",
+                startChat: "Start your conversation with the customer",
+                newMessages: "New messages",
+                chatScope: "This order only",
+                chatEmpty: "No messages on this order yet.",
+                chatClose: "Close",
+                chatImage: "Photo",
+                chatVideo: "Video",
+                chatVoice: "Hold to record",
+                mediaImage: "Photo",
+                mediaVideo: "Video",
+                mediaAudio: "Voice message",
+                mediaPdf: "PDF",
+                releaseToSend: "Release to send",
                 noMessages: "No messages yet.",
                 threadClosed: "Discussion is closed. The log stays available.",
                 note: "Note",
@@ -518,10 +639,11 @@ export default {
                 customerPlan: "المخطط الذي رفعه العميل",
                 noPlan: "لم يرفع العميل مخططاً.",
                 confirmFirst: "أكّد الدفع أولاً قبل متابعة باقي الإجراءات.",
-                finalWait: "أكّد استلام السداد النهائي قبل نقل الطلب.",
+                finalWaitCustomer: "بانتظار دفع العميل للمبلغ النهائي.",
                 finalPending: "العميل أرسل السداد النهائي. أكّده للمتابعة.",
                 confirmFinal: "تأكيد السداد النهائي",
                 finalOk: "تم تأكيد السداد النهائي.",
+                viewFinalReceipt: "عرض إيصال السداد النهائي",
                 workspace: "التصميم والمستندات والموردون",
                 designFiles: "ملفات التصميم ونسخه",
                 otherDocs: "مستندات الطلب الأخرى",
@@ -531,6 +653,12 @@ export default {
                 uploadHandover: "رفع محضر الاستلام",
                 components: "مكوّنات التصميم وتسعيرها",
                 extra: "تعديل العميل",
+                linePrice: "السعر",
+                componentsSum: "مجموع تسعير المكوّنات",
+                swap: "تبديل",
+                swapped: "تم التبديل",
+                addedFlag: "تمت الإضافة",
+                swapDelta: "فرق السعر",
                 category: "التصنيف",
                 categoryOf: "التصنيف",
                 nameAr: "الاسم بالعربية",
@@ -548,6 +676,7 @@ export default {
                 manualAlt: "بديل يدوي",
                 removeComponent: "حذف المكوّن",
                 loadItems: "تحميل عناصر الباقة الفرعية",
+                undoLoad: "العودة عن التحميل",
                 addComponent: "إضافة مكوّن",
                 saveComponents: "حفظ المكوّنات",
                 sendDesign: "إرسال التصميم للعميل",
@@ -560,7 +689,21 @@ export default {
                 cost: "التكلفة",
                 addSupplier: "إضافة مورد",
                 assign: "إسناد وإرسال تنبيه",
-                thread: "مناقشة الطلب",
+                thread: "محادثة الطلب",
+                chatHint: "لكل طلب محادثة خاصة، وتُحفظ رسائلها مع هذا الطلب فقط.",
+                startChat: "ابدأ محادثتك مع العميل",
+                newMessages: "رسائل جديدة",
+                chatScope: "هذا الطلب فقط",
+                chatEmpty: "لا رسائل في هذا الطلب بعد.",
+                chatClose: "إغلاق",
+                chatImage: "صورة",
+                chatVideo: "فيديو",
+                chatVoice: "اضغط مطولاً للتسجيل",
+                mediaImage: "صورة",
+                mediaVideo: "فيديو",
+                mediaAudio: "رسالة صوتية",
+                mediaPdf: "PDF",
+                releaseToSend: "أفلت للإرسال",
                 noMessages: "لا توجد رسائل بعد.",
                 threadClosed: "أُغلقت المناقشة. السجل يبقى متاحاً للاطلاع.",
                 note: "ملاحظة",
@@ -577,6 +720,32 @@ export default {
                 none: "لا يوجد بعد.",
                 admin: "الإدارة",
             };
+        },
+        draftPrice() {
+            return this.drafts.reduce((sum, item) => sum + this.linePrice(item), 0);
+        },
+        editorCharge() {
+            if (this.loadedFromPackage) return this.draftPrice;
+            return this.drafts.reduce((sum, item) => sum + this.charge(item), 0);
+        },
+        billAddons() {
+            if (this.order?.status !== "design_preparation" || !this.editorOpen) {
+                return Number(this.order?.addons_total || 0);
+            }
+            if (this.loadedFromPackage) return this.draftPrice;
+            const saved = this.order?.components || [];
+            const draftIds = new Set(this.drafts.filter((item) => item.id).map((item) => item.id));
+            const hidden = saved.filter((item) => !draftIds.has(item.id)).reduce((sum, item) => sum + this.charge(item), 0);
+            return hidden + this.editorCharge;
+        },
+        billFinal() {
+            return Number(this.order?.price_incl || 0) + Number(this.billAddons);
+        },
+        billRemaining() {
+            const paid = this.order?.final_payment_status === "approved"
+                ? this.billFinal
+                : (this.order?.deposit_paid ? Number(this.order.deposit_amount || 0) : 0);
+            return Math.max(0, this.billFinal - paid);
         },
         filtered() {
             const q = this.query.trim().toLowerCase();
@@ -598,6 +767,9 @@ export default {
         receipts() {
             return (this.order?.files || []).filter((file) => file.kind === "receipt");
         },
+        finalReceipts() {
+            return (this.order?.files || []).filter((file) => file.kind === "final_receipt");
+        },
         canUpload() {
             return this.order && !["deposit_pending", "closed"].includes(this.order.status);
         },
@@ -607,6 +779,71 @@ export default {
         latestReceipt() {
             const files = this.receipts;
             return files.length ? files[files.length - 1] : null;
+        },
+        latestFinalReceipt() {
+            const files = this.finalReceipts;
+            return files.length ? files[files.length - 1] : null;
+        },
+        paymentEntries() {
+            if (!this.order) return [];
+            const rows = [];
+            if (this.order.payment_method) {
+                if (!this.receipts.length) {
+                    rows.push({
+                        id: "deposit-meta",
+                        label: this.locale === "en" ? "Deposit" : "عربون",
+                        ref: this.order.payment_method === "visa" ? "Visa" : this.order.number,
+                        amount: this.order.deposit_amount,
+                        method: this.methodLabel,
+                        status: this.payStateLabel,
+                        at: this.order.created_at,
+                        url: null,
+                    });
+                }
+                this.receipts.forEach((file) => {
+                    rows.push({
+                        id: "receipt-" + file.id,
+                        label: this.locale === "en" ? "Deposit" : "عربون",
+                        ref: file.name,
+                        amount: this.order.deposit_amount,
+                        method: this.locale === "en" ? "Receipt" : "رفع إيصال",
+                        status: this.payStateLabel,
+                        at: file.created_at,
+                        url: file.url,
+                    });
+                });
+            }
+            if (["pending", "approved"].includes(this.order.final_payment_status)) {
+                const due = Math.max(0, Number(this.billFinal || 0) - Number(this.order.deposit_amount || 0));
+                const finalStatus = this.order.final_payment_status === "approved"
+                    ? (this.locale === "en" ? "Confirmed" : "مؤكد")
+                    : (this.locale === "en" ? "Pending" : "بانتظار التأكيد");
+                if (!this.finalReceipts.length) {
+                    rows.push({
+                        id: "final-meta",
+                        label: this.locale === "en" ? "Final payment" : "السداد النهائي",
+                        ref: "FINAL-" + this.order.number,
+                        amount: due,
+                        method: this.locale === "en" ? "Demo pay" : "دفع تجريبي",
+                        status: finalStatus,
+                        at: this.order.created_at,
+                        url: null,
+                    });
+                }
+                this.finalReceipts.forEach((file) => {
+                    rows.push({
+                        id: "final-" + file.id,
+                        label: this.locale === "en" ? "Final payment" : "السداد النهائي",
+                        ref: file.name,
+                        amount: due,
+                        method: this.locale === "en" ? "Receipt" : "رفع إيصال",
+                        status: finalStatus,
+                        at: file.created_at,
+                        url: file.url,
+                    });
+                });
+            }
+            return rows;
         },
         methodLabel() {
             if (this.order?.payment_method === "visa") return this.locale === "en" ? "Visa" : "فيزا";
@@ -627,6 +864,10 @@ export default {
         threadClosed() {
             return this.order && (this.order.status === "closed" || this.order.design_status === "approved");
         },
+        chatInitial() {
+            const name = (this.order?.customer_name || "").trim();
+            return name ? name.slice(0, 1) : "؟";
+        },
         designLabel() {
             const map = {
                 none: this.locale === "en" ? "Not sent" : "لم يُرسل",
@@ -642,7 +883,7 @@ export default {
                 admin_review: "راجع الطلب والمخطط والإيصال، ثم انقل الطلب لإعداد التصميم.",
                 design_preparation: "ارفع نسخة التصميم، حمّل عناصر الباقة، سعّرها ثم أرسلها للعميل.",
                 design_review: "التصميم عند العميل. ناقشه هنا، وبعد الاعتماد انقل الطلب للسداد النهائي.",
-                final_payment: "بانتظار السداد النهائي. المتبقي ظاهر في الملخص المالي.",
+                final_payment: "بانتظار السداد النهائي من العميل. بعد إرساله يظهر زر التأكيد ثم تنتقل للموافقة النهائية.",
                 final_approval: "أسند الموردين ونطاق عمل كل واحد، ثم انقل الطلب للتنفيذ.",
                 in_supply: "تابع التوريد، سجّل تاريخ التسليم، وارفع محضر الاستلام.",
                 supplied: "تم التوريد. راجع المحضر ثم أغلق الطلب.",
@@ -653,7 +894,7 @@ export default {
                 admin_review: "Review the order, plan and receipt, then move it to design preparation.",
                 design_preparation: "Upload a design version, load the sub-package items, price them, then send them to the customer.",
                 design_review: "The design is with the customer. Discuss it here, then move the order to final payment after approval.",
-                final_payment: "Waiting for the final payment. The balance is in the financial summary.",
+                final_payment: "Waiting for the customer’s final payment. After they send it, confirm it, then move to final approval.",
                 final_approval: "Assign suppliers and the scope of each, then move the order into production.",
                 in_supply: "Track delivery, record the delivered date, and upload the handover report.",
                 supplied: "The order has been supplied. Review the handover, then close it.",
@@ -669,6 +910,10 @@ export default {
     },
     created() {
         this.load();
+        this.noticeTimer = setInterval(() => this.refreshUnread(), 8000);
+    },
+    beforeUnmount() {
+        clearInterval(this.noticeTimer);
     },
     methods: {
         label(item) {
@@ -686,6 +931,162 @@ export default {
             if (!value) return "—";
             return new Date(value).toLocaleDateString(this.locale === "en" ? "en-GB" : "ar-EG", { day: "numeric", month: "long", year: "numeric" });
         },
+        chatTime(value) {
+            if (!value) return "";
+            return new Date(value).toLocaleString(this.locale === "en" ? "en-GB" : "ar-EG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+        },
+        mediaCaption(message) {
+            const labels = { image: this.t.mediaImage, video: this.t.mediaVideo, audio: this.t.mediaAudio, pdf: this.t.mediaPdf };
+            return labels[message.kind] || "";
+        },
+        async openChat() {
+            this.chatSeen = Number(this.order?.unread || 0);
+            this.chatOpen = true;
+            this.scrollChat();
+            try {
+                const response = await axios.post("KaheelOrders/readMessages", { id: this.order.id });
+                this.order.messages = response.data.items.messages;
+                this.order.unread = 0;
+                this.scrollChat();
+            } catch (error) {}
+        },
+        async refreshUnread() {
+            try {
+                if (this.order && this.chatOpen) {
+                    const response = await axios.post("KaheelOrders/readMessages", { id: this.order.id });
+                    this.order.messages = response.data.items.messages;
+                    this.order.unread = 0;
+                    return;
+                }
+                const response = await axios.get("KaheelOrders/notices");
+                const map = {};
+                ((response.data.items || {}).orders || []).forEach((row) => { map[row.id] = row.unread; });
+                if (this.order) {
+                    this.order.unread = map[this.order.id] || 0;
+                } else {
+                    this.rows = this.rows.map((row) => ({ ...row, unread: map[row.id] || 0 }));
+                }
+            } catch (error) {}
+        },
+        voiceLength(seconds) {
+            const total = Math.max(0, Number(seconds) || 0);
+            const minutes = Math.floor(total / 60);
+            const rest = total % 60;
+            return `${minutes}:${String(rest).padStart(2, "0")}`;
+        },
+        pressMedia(message) {
+            clearTimeout(this.mediaTimer);
+            this.mediaTimer = setTimeout(() => this.openPreview(message), 450);
+        },
+        releaseMedia() {
+            clearTimeout(this.mediaTimer);
+        },
+        openPreview(message) {
+            if (!message?.url || !["image", "video"].includes(message.kind)) return;
+            this.previewKind = message.kind;
+            this.previewUrl = message.url;
+        },
+        async sendPicked(event, kind) {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (file) await this.sendMedia(file, kind);
+        },
+        async beginRecord(event) {
+            if (this.saving || this.recording) return;
+            this.holdRecording = true;
+            this.recordStartX = event.clientX;
+            this.cancelRecord = false;
+            try {
+                event.currentTarget.setPointerCapture(event.pointerId);
+            } catch (error) {}
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null);
+            if (!this.holdRecording) {
+                stream?.getTracks().forEach((track) => track.stop());
+                return;
+            }
+            if (!stream) {
+                this.error = this.locale === "en" ? "Allow the microphone to record a voice message." : "اسمح للميكروفون لتسجيل رسالة صوتية.";
+                return;
+            }
+            const mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
+            this.recordChunks = [];
+            this.recordMime = mime;
+            this.recordStream = stream;
+            this.recordStartedAt = Date.now();
+            this.recordSeconds = 0;
+            this.recorder = new MediaRecorder(stream, { mimeType: mime });
+            this.recorder.ondataavailable = (item) => {
+                if (item.data && item.data.size) this.recordChunks.push(item.data);
+            };
+            this.recorder.start();
+            this.recording = true;
+            this.recordClock = setInterval(() => {
+                this.recordSeconds = Math.floor((Date.now() - this.recordStartedAt) / 1000);
+            }, 200);
+        },
+        finishRecord(event) {
+            this.holdRecording = false;
+            if (!this.recording) return;
+            const moved = event && event.clientX != null && Math.abs(event.clientX - this.recordStartX) > 90;
+            const cancelled = event === true || moved;
+            const seconds = Math.floor((Date.now() - this.recordStartedAt) / 1000);
+            this.stopRecorder(cancelled || seconds < 1, seconds);
+        },
+        stopRecorder(cancelled, seconds) {
+            clearInterval(this.recordClock);
+            this.recording = false;
+            this.recordSeconds = 0;
+            const recorder = this.recorder;
+            const chunks = this.recordChunks || [];
+            const mime = this.recordMime || "audio/webm";
+            const stream = this.recordStream;
+            this.recorder = null;
+            if (!recorder) {
+                stream?.getTracks().forEach((track) => track.stop());
+                return;
+            }
+            recorder.onstop = async () => {
+                stream?.getTracks().forEach((track) => track.stop());
+                if (cancelled || !chunks.length) return;
+                const extension = mime.includes("mp4") ? "m4a" : "webm";
+                const file = new File(chunks, `voice.${extension}`, { type: mime });
+                await this.sendMedia(file, "audio", seconds);
+            };
+            if (recorder.state !== "inactive") recorder.stop();
+            else stream?.getTracks().forEach((track) => track.stop());
+        },
+        async sendMedia(file, kind, duration = 0) {
+            if (file.size > 25 * 1024 * 1024) {
+                this.error = this.locale === "en" ? "Each file must be 25 MB or less." : "كل ملف يجب أن يكون 25 ميغابايت أو أقل.";
+                return;
+            }
+            this.saving = true;
+            this.error = "";
+            try {
+                const body = new FormData();
+                body.append("id", this.order.id);
+                body.append("kind", kind);
+                body.append("file", file);
+                if (duration) body.append("duration", String(duration));
+                const response = await axios.post("KaheelOrders/message", body);
+                if (response.data.status === false) {
+                    this.error = response.data.message;
+                    return;
+                }
+                this.apply(response);
+                this.scrollChat();
+            } catch (error) {
+                this.error = error.response?.data?.message || (this.locale === "en" ? "The file was not sent." : "لم تُرسل الرسالة.");
+            } finally {
+                this.saving = false;
+            }
+        },
+        scrollChat() {
+            this.$nextTick(() => {
+                const log = this.$refs.chatLog;
+                if (log) log.scrollTop = log.scrollHeight;
+            });
+        },
         open(id) {
             this.$router.push(`/${this.locale}/dashboard/orders/${id}`);
         },
@@ -699,8 +1100,14 @@ export default {
                 if (this.orderId) {
                     const response = await axios.get("KaheelOrders/show", { params: { id: this.orderId } });
                     this.order = response.data.items;
-                    this.drafts = (this.order.components || []).map((item) => ({ ...item, options: item.options ? item.options.map((option) => ({ ...option })) : [] }));
+                    this.chatOpen = false;
+                    const visible = this.visibleDrafts(this.order.components);
+                    this.drafts = visible;
+                    this.editorOpen = visible.length > 0;
+                    this.loadedFromPackage = false;
+                    this.draftsBeforeLoad = null;
                     this.supplierDrafts = [];
+                    if (String(this.$route.query.chat || "") === "1") this.openChat();
                 } else {
                     const response = await axios.get("KaheelOrders/getAllItems");
                     this.rows = response.data.items || [];
@@ -714,7 +1121,6 @@ export default {
         },
         apply(response) {
             this.order = response.data.items;
-            this.drafts = (this.order.components || []).map((item) => ({ ...item, options: item.options ? item.options.map((option) => ({ ...option })) : [] }));
         },
         async post(url, payload) {
             this.saving = true;
@@ -723,9 +1129,10 @@ export default {
                 const response = await axios.post(url, payload);
                 if (response.data.status === false) {
                     this.error = response.data.message;
-                    return;
+                    return false;
                 }
                 this.apply(response);
+                return true;
             } catch (error) {
                 this.error = error.response?.data?.message || (this.locale === "en" ? "The action failed." : "تعذر تنفيذ الإجراء.");
             } finally {
@@ -757,19 +1164,48 @@ export default {
                     this.error = this.locale === "en" ? "No items defined in this order's sub-package." : "لا توجد عناصر معرّفة في الباقة الفرعية لهذا الطلب.";
                     return;
                 }
-                this.drafts = items.map((item) => ({
-                    ...blankComponent(),
-                    ...item,
-                    options: item.allow_alternatives ? this.altsFor(item.category).map((alt) => ({ name_ar: alt.name_ar, name_en: alt.name_en, price_delta: Number(alt.price_delta) })) : [],
-                }));
+                if (!this.loadedFromPackage) {
+                    this.draftsBeforeLoad = {
+                        editorOpen: this.editorOpen,
+                        drafts: this.cloneDrafts(this.drafts),
+                    };
+                }
+                const kept = this.cloneDrafts(this.drafts.filter((item) => item.added));
+                this.editorOpen = true;
+                this.loadedFromPackage = true;
+                this.drafts = [
+                    ...items.map((item) => ({
+                        ...blankComponent(),
+                        ...item,
+                        options: item.allow_alternatives ? this.altsFor(item.category).map((alt) => ({ name_ar: alt.name_ar, name_en: alt.name_en, price_delta: Number(alt.price_delta) })) : [],
+                    })),
+                    ...kept,
+                ];
             } catch (error) {
                 this.error = error.response?.data?.message || "";
             } finally {
                 this.saving = false;
             }
         },
+        cloneDrafts(rows) {
+            return (rows || []).map((item) => ({
+                ...item,
+                options: item.options ? item.options.map((option) => ({ ...option })) : [],
+            }));
+        },
+        undoLoad() {
+            const previous = this.draftsBeforeLoad;
+            this.loadedFromPackage = false;
+            this.draftsBeforeLoad = null;
+            this.drafts = previous ? this.cloneDrafts(previous.drafts) : [];
+            this.editorOpen = Boolean(previous && previous.editorOpen);
+        },
+        visibleDrafts(components) {
+            return this.cloneDrafts((components || []).filter((item) => item.added || item.selected_key));
+        },
         addDraft() {
-            this.drafts.push(blankComponent());
+            this.editorOpen = true;
+            this.drafts.push({ ...blankComponent(), added: true });
         },
         unitOf(item) {
             return this.locale === "en" ? item.unit_label_en : item.unit_label_ar;
@@ -780,6 +1216,11 @@ export default {
             return this.locale === "en" ? item.en : item.ar;
         },
         setCategory(item, code) {
+            if (item.category !== code) {
+                item.options = [];
+                item.selected_key = "";
+                item.extra_cost = 0;
+            }
             item.category = code;
             const cat = categories.find((row) => row.code === code);
             if (!cat) return;
@@ -797,10 +1238,84 @@ export default {
         insertAlt(event, item) {
             const alt = (this.order.alternatives || []).find((row) => String(row.id) === event.target.value);
             event.target.value = "";
-            if (alt) item.options.push({ name_ar: alt.name_ar, name_en: alt.name_en, price_delta: Number(alt.price_delta) });
+            if (!alt || alt.category !== item.category) return;
+            item.options.push({ name_ar: alt.name_ar, name_en: alt.name_en, price_delta: Number(alt.price_delta) });
         },
-        saveComponents() {
-            this.post("KaheelOrders/saveComponents", { id: this.order.id, components: this.drafts });
+        linePrice(item) {
+            return Number(item.base_qty || 0) * Number(item.price_per_unit || 0) + Number(item.extra_cost || 0);
+        },
+        charge(item) {
+            if (item.added || item.priced) return this.linePrice(item);
+            return item.selected_key ? Number(item.extra_cost || 0) : 0;
+        },
+        shownPrice(item) {
+            if (this.loadedFromPackage || item.added || item.priced) return this.linePrice(item);
+            return item.selected_key ? Number(item.extra_cost || 0) : this.linePrice(item);
+        },
+        componentsPayload() {
+            if (this.loadedFromPackage) {
+                return this.drafts.map((item) => ({
+                    ...item,
+                    added: !!item.added,
+                    priced: item.added ? !!item.priced : true,
+                }));
+            }
+            const map = new Map();
+            (this.order.components || []).forEach((item) => {
+                if (item.id) map.set(item.id, { ...item, options: item.options ? item.options.map((option) => ({ ...option })) : [] });
+            });
+            this.drafts.forEach((item, index) => {
+                const next = {
+                    ...item,
+                    added: item.id ? !!item.added : true,
+                    options: item.options ? item.options.map((option) => ({ ...option })) : [],
+                };
+                if (!item.id) {
+                    map.set(`new-${index}-${item.name_ar}`, next);
+                    return;
+                }
+                map.set(item.id, { ...(map.get(item.id) || {}), ...next });
+            });
+            (this.order.components || []).forEach((item) => {
+                if (item.id && (item.added || item.selected_key) && !this.drafts.some((draft) => draft.id === item.id)) {
+                    map.delete(item.id);
+                }
+            });
+            return [...map.values()];
+        },
+        altKey(option) {
+            return `${option.name_ar}|${option.name_en}`;
+        },
+        swapAlt(item, option) {
+            const key = this.altKey(option);
+            if (item.selected_key === key) {
+                item.selected_key = "";
+                item.extra_cost = 0;
+                return;
+            }
+            item.selected_key = key;
+            item.extra_cost = Number(option.price_delta || 0);
+        },
+        syncAlt(item, option) {
+            if (item.selected_key === this.altKey(option)) item.extra_cost = Number(option.price_delta || 0);
+        },
+        removeOption(item, index) {
+            const option = item.options[index];
+            if (option && item.selected_key === this.altKey(option)) {
+                item.selected_key = "";
+                item.extra_cost = 0;
+            }
+            item.options.splice(index, 1);
+        },
+        async saveComponents() {
+            const wasLoaded = this.loadedFromPackage;
+            const saved = await this.post("KaheelOrders/saveComponents", { id: this.order.id, components: this.componentsPayload() });
+            if (!saved) return;
+            this.loadedFromPackage = false;
+            this.draftsBeforeLoad = null;
+            const rows = this.cloneDrafts(this.order.components || []);
+            this.drafts = wasLoaded ? rows : rows.filter((item) => item.added || item.selected_key);
+            this.editorOpen = this.drafts.length > 0;
         },
         sendDesign() {
             this.post("KaheelOrders/sendDesign", { id: this.order.id });
@@ -813,11 +1328,12 @@ export default {
         markDelivered(id, date) {
             if (date) this.post("KaheelOrders/markDelivered", { id: this.order.id, assignment_id: id, delivered_at: date });
         },
-        sendMessage() {
+        async sendMessage() {
             const body = this.messageBody.trim();
             if (!body) return;
             this.messageBody = "";
-            this.post("KaheelOrders/message", { id: this.order.id, body });
+            await this.post("KaheelOrders/message", { id: this.order.id, body });
+            this.scrollChat();
         },
         async upload(event, kind) {
             const selected = Array.from(event.target.files || []).slice(0, 10);

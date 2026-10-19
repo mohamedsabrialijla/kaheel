@@ -16,7 +16,7 @@ class KaheelOrder extends Model
         'compound_id', 'compound_name', 'compound_meta', 'compound_snapshot',
         'unit_id', 'unit_no', 'bedrooms_number', 'squar_meters', 'unit_snapshot',
         'price_excl', 'price_incl', 'deposit_percent', 'deposit_amount', 'addons_total',
-        'contract_body', 'signature', 'design_components', 'supplier_assignments',
+        'contract_body', 'signature', 'design_components', 'design_signature', 'design_signed_at', 'supplier_assignments',
         'status', 'design_status', 'payment_method', 'payment_status', 'payment_note', 'final_payment_status',
     ];
 
@@ -32,6 +32,7 @@ class KaheelOrder extends Model
         'deposit_amount' => 'float',
         'addons_total' => 'float',
         'design_components' => 'array',
+        'design_signed_at' => 'datetime',
         'supplier_assignments' => 'array',
     ];
 

@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\KaheelOrder;
 use App\Models\KaheelOrderEvent;
 use App\Models\KaheelOrderFile;
+use App\Models\KaheelOrderMessage;
 use App\Models\KaheelPackage;
 use App\Models\KaheelSetting;
+use App\Services\KaheelOrderChat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -186,7 +188,22 @@ class OrderController extends Controller
             return redirect(url(app()->getLocale().'/orders'));
         }
 
-        return view('kaheel.order-pay', ['order' => $order]);
+        $mode = $order->status === 'final_payment' ? 'final' : 'deposit';
+        if ($mode === 'final' && !in_array($order->final_payment_status, [null, '', 'rejected'], true)) {
+            // still allow viewing the confirmation screen when pending/approved
+        } elseif ($mode === 'deposit' && $order->status !== 'deposit_pending' && $order->payment_status !== 'pending') {
+            // deposit page also used after submit while awaiting admin
+        }
+
+        $amount = $mode === 'final'
+            ? max(0, (float) $order->price_incl + (float) $order->addons_total - (float) $order->deposit_amount)
+            : (float) $order->deposit_amount;
+
+        return view('kaheel.order-pay', [
+            'order' => $order,
+            'mode' => $mode,
+            'amount' => $amount,
+        ]);
     }
 
     public function storePayment(Request $request, KaheelOrder $order)
@@ -195,17 +212,29 @@ class OrderController extends Controller
         if (!$this->owns($order)) {
             return redirect(url(app()->getLocale().'/orders'));
         }
-        if ($order->status !== 'deposit_pending') {
+
+        $isFinal = $order->status === 'final_payment';
+        if ($isFinal) {
+            if ($order->final_payment_status === 'approved' || $order->final_payment_status === 'pending') {
+                return redirect(url(app()->getLocale().'/orders/'.$order->id.'/pay'));
+            }
+        } elseif ($order->status !== 'deposit_pending') {
             return redirect(url(app()->getLocale().'/orders/'.$order->id.'/pay'));
         }
 
         $method = (string) $request->input('method');
         if ($method === 'visa') {
-            $order->payment_method = 'visa';
-            $order->payment_status = 'pending';
-            $order->payment_note = null;
-            $order->status = 'admin_review';
-            $order->save();
+            if ($isFinal) {
+                $order->final_payment_status = 'pending';
+                $order->save();
+                $this->customerEvent($order, $order->status, $order->status, 'أرسل العميل السداد النهائي (فيزا)');
+            } else {
+                $order->payment_method = 'visa';
+                $order->payment_status = 'pending';
+                $order->payment_note = null;
+                $order->status = 'admin_review';
+                $order->save();
+            }
 
             return redirect(url(app()->getLocale().'/orders/'.$order->id.'/pay'));
         }
@@ -220,21 +249,30 @@ class OrderController extends Controller
             return back()->with('pay_error', $isAr ? 'أرفق صورة الإيصال أو ملف PDF بحجم 20 ميغابايت أو أقل. الطلب نفسه ما زال محفوظاً.' : 'Attach a receipt image or PDF of 20 MB or less. The order itself is still saved.');
         }
 
-        DB::transaction(function () use ($order, $file) {
+        DB::transaction(function () use ($order, $file, $isFinal) {
             KaheelOrderFile::query()->create([
                 'order_id' => $order->id,
-                'kind' => 'receipt',
+                'kind' => $isFinal ? 'final_receipt' : 'receipt',
                 'original_name' => $file->getClientOriginalName(),
                 'path' => $file->store('kaheel-orders/'.$order->id),
                 'mime' => $file->getMimeType(),
                 'size' => $file->getSize(),
             ]);
-            $order->payment_method = 'receipt';
-            $order->payment_status = 'pending';
-            $order->payment_note = null;
-            $order->status = 'admin_review';
-            $order->save();
+            if ($isFinal) {
+                $order->final_payment_status = 'pending';
+                $order->save();
+            } else {
+                $order->payment_method = 'receipt';
+                $order->payment_status = 'pending';
+                $order->payment_note = null;
+                $order->status = 'admin_review';
+                $order->save();
+            }
         });
+
+        if ($isFinal) {
+            $this->customerEvent($order, $order->status, $order->status, 'أرسل العميل السداد النهائي (إيصال)');
+        }
 
         return redirect(url(app()->getLocale().'/orders/'.$order->id.'/pay'));
     }
@@ -248,6 +286,9 @@ class OrderController extends Controller
 
         $orders = KaheelOrder::query()
             ->where('bricks_user_id', $customer->bricks_user_id)
+            ->withCount(['messages as unread_count' => function ($query) {
+                $query->where('sender_role', 'admin')->whereNull('customer_seen_at');
+            }])
             ->orderByDesc('id')
             ->get();
 
@@ -267,50 +308,334 @@ class OrderController extends Controller
 
         return view('kaheel.order-show', [
             'order' => $order,
+            'unread' => $this->unreadCount($order),
             'deliveryAr' => "مدة التنفيذ {$days} يوم عمل من تاريخ الدفع (عدا الجمعة والسبت).",
             'deliveryEn' => "Delivery is {$days} working days from payment date (Friday and Saturday excluded).",
+        ]);
+    }
+
+    public function notices()
+    {
+        $customer = kaheel_customer();
+        if (!$customer) {
+            abort(403);
+        }
+
+        $orders = KaheelOrder::query()
+            ->where('bricks_user_id', $customer->bricks_user_id)
+            ->get(['id', 'number']);
+        $ids = $orders->pluck('id');
+        $counts = KaheelOrderMessage::query()
+            ->selectRaw('order_id, count(*) as unread')
+            ->whereIn('order_id', $ids)
+            ->where('sender_role', 'admin')
+            ->whereNull('customer_seen_at')
+            ->groupBy('order_id')
+            ->pluck('unread', 'order_id');
+        $latest = KaheelOrderMessage::query()
+            ->whereIn('order_id', $ids)
+            ->where('sender_role', 'admin')
+            ->whereNull('customer_seen_at')
+            ->orderByDesc('id')
+            ->limit(8)
+            ->get();
+        $byId = $orders->keyBy('id');
+
+        return response()->json([
+            'ok' => true,
+            'total' => (int) $counts->sum(),
+            'items' => $latest->map(function (KaheelOrderMessage $message) use ($byId) {
+                return [
+                    'id' => $message->id,
+                    'order_id' => $message->order_id,
+                    'number' => $byId->get($message->order_id)->number ?? '',
+                    'name' => $message->sender_name,
+                    'kind' => $message->kind ?: 'text',
+                    'body' => trim((string) $message->body),
+                    'created_at' => optional($message->created_at)->toIso8601String(),
+                ];
+            })->values(),
+        ]);
+    }
+
+    public function messages(KaheelOrder $order)
+    {
+        if (!$this->owns($order)) {
+            abort(403);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'unread' => $this->unreadCount($order),
+            'messages' => $this->customerThread($order),
+        ]);
+    }
+
+    public function readMessages(KaheelOrder $order)
+    {
+        if (!$this->owns($order)) {
+            abort(403);
+        }
+
+        $order->messages()
+            ->where('sender_role', 'admin')
+            ->whereNull('customer_seen_at')
+            ->update(['customer_seen_at' => now()]);
+
+        return response()->json([
+            'ok' => true,
+            'unread' => 0,
+            'messages' => $this->customerThread($order),
+        ]);
+    }
+
+    public function storeMessage(Request $request, KaheelOrder $order)
+    {
+        if (!$this->owns($order)) {
+            abort(403);
+        }
+
+        $customer = kaheel_customer();
+        $body = trim((string) $request->input('body', ''));
+        $file = $request->file('file');
+        $isAr = app()->getLocale() !== 'en';
+        if ($this->customerChatLocked($order)) {
+            return response()->json([
+                'ok' => false,
+                'error' => $isAr
+                    ? 'تم اعتماد التصميم وأُقفلت المناقشة. يمكنك الاطلاع على المحادثة فقط.'
+                    : 'The design is approved and the discussion is locked. You can view the chat only.',
+            ], 422);
+        }
+        $tooBig = $file && (in_array($file->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) || ($file->isValid() && $file->getSize() > 25 * 1024 * 1024));
+        if ($tooBig) {
+            return response()->json(['ok' => false, 'error' => $isAr ? 'كل ملف يجب أن يكون 25 ميغابايت أو أقل.' : 'Each file must be 25MB or less.'], 422);
+        }
+
+        $kind = 'text';
+        $path = null;
+        $mime = null;
+        $name = null;
+        if ($file) {
+            if (!$file->isValid()) {
+                return response()->json(['ok' => false, 'error' => $isAr ? 'تعذر رفع الملف.' : 'The file could not be uploaded.'], 422);
+            }
+            $kind = $this->customerChatKind((string) $file->getMimeType(), (string) $file->getClientMimeType());
+            if (!$kind) {
+                return response()->json(['ok' => false, 'error' => $isAr ? 'الملف يجب أن يكون صورة أو فيديو أو PDF.' : 'The file must be an image, video, or PDF.'], 422);
+            }
+            $path = $file->store('kaheel-orders/'.$order->id.'/chat');
+            $mime = $file->getMimeType() ?: $file->getClientMimeType();
+            $name = $file->getClientOriginalName();
+        } elseif ($body === '') {
+            return response()->json(['ok' => false, 'error' => $isAr ? 'اكتب رسالة أولاً.' : 'Write a message first.'], 422);
+        }
+
+        $message = KaheelOrderMessage::query()->create([
+            'order_id' => $order->id,
+            'sender_role' => 'customer',
+            'sender_name' => $customer->name ?: $customer->username,
+            'kind' => $kind,
+            'body' => $body,
+            'media_path' => $path,
+            'media_mime' => $mime,
+            'media_name' => $name,
+            'customer_seen_at' => now(),
+        ]);
+        app(KaheelOrderChat::class)->publish($message);
+
+        return response()->json([
+            'ok' => true,
+            'unread' => $this->unreadCount($order),
+            'messages' => $this->customerThread($order->fresh()),
+        ]);
+    }
+
+    public function messageMedia(KaheelOrder $order, KaheelOrderMessage $message)
+    {
+        if (!$this->owns($order) || (int) $message->order_id !== (int) $order->id || !$message->media_path) {
+            abort(404);
+        }
+        if (!in_array($message->kind, ['image', 'video', 'audio', 'pdf'], true)) {
+            abort(404);
+        }
+
+        $path = Storage::disk('local')->path($message->media_path);
+        if (!is_file($path)) {
+            abort(404);
+        }
+
+        return response()->file($path, [
+            'Content-Type' => $message->media_mime ?: 'application/octet-stream',
+            'X-Content-Type-Options' => 'nosniff',
+            'Accept-Ranges' => 'bytes',
+        ]);
+    }
+
+    public function saveDesignSelections(Request $request, KaheelOrder $order)
+    {
+        $isAr = app()->getLocale() !== 'en';
+        if (!$this->owns($order) || $order->status !== 'design_review' || $order->design_status === 'approved' || $order->design_signed_at) {
+            return response()->json([
+                'ok' => false,
+                'error' => $isAr ? 'لا يمكن حفظ التعديلات في هذه المرحلة.' : 'Changes cannot be saved at this stage.',
+            ], 422);
+        }
+
+        $selections = $request->input('selections', []);
+        if (!is_array($selections)) {
+            $selections = [];
+        }
+
+        $this->applyDesignSelections($order, $selections);
+        $order->save();
+
+        return response()->json([
+            'ok' => true,
+            'message' => $isAr ? 'تم حفظ التعديلات.' : 'Changes saved.',
+            'addons_total' => (float) $order->addons_total,
+            'components' => $order->design_components ?? [],
         ]);
     }
 
     public function confirmDesign(Request $request, KaheelOrder $order)
     {
         if (!$this->owns($order) || $order->status !== 'design_review') {
+            if ($request->expectsJson()) {
+                return response()->json(['ok' => false, 'error' => 'forbidden'], 403);
+            }
+
             return redirect(url(app()->getLocale().'/orders/'.$order->id));
         }
 
         $from = $order->status;
-        if ($request->input('decision') === 'approve') {
+        $decision = $request->input('decision');
+
+        if ($decision === 'approve') {
+            $signature = (string) $request->input('signature', '');
+            $isAr = app()->getLocale() !== 'en';
+            if (!str_starts_with($signature, 'data:image/png;base64,') || strlen($signature) < 80 || strlen($signature) > 500000 || !$this->signatureHasInk($signature)) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'ok' => false,
+                        'error' => $isAr ? 'ارسم توقيعك أولاً لاعتماد التصميم.' : 'Draw your signature before approving the design.',
+                    ], 422);
+                }
+
+                return redirect(url(app()->getLocale().'/orders/'.$order->id));
+            }
+
+            if ($request->filled('selections')) {
+                $this->applyDesignSelections($order, $request->input('selections', []));
+            }
+
             $order->design_status = 'approved';
+            $order->design_signature = $signature;
+            $order->design_signed_at = now();
+            $order->status = 'final_payment';
             $order->save();
-            $this->customerEvent($order, $from, $order->status, 'وافق العميل على التصميم');
+            $this->customerEvent($order, $from, 'final_payment', 'وافق العميل على التصميم ووقّع');
         } else {
             $order->design_status = 'rejected';
             $order->status = 'design_preparation';
+            $order->design_signature = null;
+            $order->design_signed_at = null;
             $order->save();
             $this->customerEvent($order, $from, 'design_preparation', 'رفض العميل للتصميم');
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'status' => $order->status,
+                'design_status' => $order->design_status,
+            ]);
         }
 
         return redirect(url(app()->getLocale().'/orders/'.$order->id));
     }
 
+    private function applyDesignSelections(KaheelOrder $order, array $selections): void
+    {
+        $byId = [];
+        foreach ($selections as $row) {
+            $id = (string) ($row['componentId'] ?? $row['id'] ?? '');
+            if ($id === '') {
+                continue;
+            }
+            $byId[$id] = [
+                'extra_qty' => max(0, (float) ($row['extraQty'] ?? $row['extra_qty'] ?? 0)),
+                'option_key' => (string) ($row['optionKey'] ?? $row['option_key'] ?? $row['optionId'] ?? ''),
+            ];
+        }
+
+        $components = collect($order->design_components ?? [])->map(function ($row) use ($byId) {
+            $id = (string) ($row['id'] ?? '');
+            $pick = $byId[$id] ?? null;
+            if ($pick === null) {
+                return $row;
+            }
+
+            $row['extra_qty'] = $pick['extra_qty'];
+            $options = collect($row['options'] ?? []);
+            $selected = $options->first(function ($option) use ($pick) {
+                $key = trim((string) ($option['name_ar'] ?? '')).'|'.trim((string) ($option['name_en'] ?? ''));
+
+                return $key !== '|' && $key === $pick['option_key'];
+            });
+
+            if ($selected) {
+                $row['selected_key'] = trim((string) ($selected['name_ar'] ?? '')).'|'.trim((string) ($selected['name_en'] ?? ''));
+                $row['extra_cost'] = (float) ($selected['price_delta'] ?? 0);
+            } else {
+                $row['selected_key'] = '';
+                $row['extra_cost'] = 0;
+            }
+
+            return $row;
+        })->values()->all();
+
+        $order->design_components = $components;
+        $order->addons_total = round($this->customerAddonsPreVat($components) * 1.15, 2);
+    }
+
+    private function customerAddonsPreVat(array $components): float
+    {
+        return (float) collect($components)->sum(function ($row) {
+            $extra = max(0, (float) ($row['extra_qty'] ?? 0)) * (float) ($row['price_per_unit'] ?? 0);
+            $delta = ($row['selected_key'] ?? '') !== '' ? (float) ($row['extra_cost'] ?? 0) : 0.0;
+
+            return $extra + $delta;
+        });
+    }
+
     public function submitFinalPayment(KaheelOrder $order)
     {
-        if (!$this->owns($order) || $order->status !== 'final_payment' || $order->final_payment_status === 'approved') {
+        if (!$this->owns($order) || $order->status !== 'final_payment' || in_array($order->final_payment_status, ['pending', 'approved'], true)) {
             return redirect(url(app()->getLocale().'/orders/'.$order->id));
         }
 
         $order->final_payment_status = 'pending';
         $order->save();
-        $this->customerEvent($order, $order->status, $order->status, 'أرسل العميل السداد النهائي');
+        $this->customerEvent($order, $order->status, $order->status, 'تم السداد النهائي');
 
         return redirect(url(app()->getLocale().'/orders/'.$order->id));
+    }
+
+    private function customerChatLocked(KaheelOrder $order): bool
+    {
+        if ($order->design_status === 'approved' || $order->design_signed_at) {
+            return true;
+        }
+
+        return in_array($order->status, ['final_payment', 'final_approval', 'in_supply', 'supplied', 'closed'], true);
     }
 
     public function file(KaheelOrder $order, KaheelOrderFile $file)
     {
         $mime = (string) $file->mime;
         $allowed = str_starts_with($mime, 'image/') || $mime === 'application/pdf';
-        if (!$this->owns($order) || (int) $file->order_id !== (int) $order->id || !in_array($file->kind, ['plan', 'design', null, ''], true) || !$allowed) {
+        if (!$this->owns($order) || (int) $file->order_id !== (int) $order->id || !in_array($file->kind, ['plan', 'design', 'receipt', 'final_receipt', null, ''], true) || !$allowed) {
             abort(404);
         }
 
@@ -373,6 +698,47 @@ class OrderController extends Controller
         imagedestroy($image);
 
         return false;
+    }
+
+    private function unreadCount(KaheelOrder $order): int
+    {
+        return $order->messages()->where('sender_role', 'admin')->whereNull('customer_seen_at')->count();
+    }
+
+    private function customerThread(KaheelOrder $order): array
+    {
+        $locale = app()->getLocale();
+
+        return $order->messages()->orderBy('id')->get()->map(function (KaheelOrderMessage $message) use ($locale, $order) {
+            return [
+                'id' => $message->id,
+                'role' => $message->sender_role,
+                'name' => $message->sender_name,
+                'kind' => $message->kind ?: 'text',
+                'body' => $message->body,
+                'file_name' => $message->media_name,
+                'url' => $message->media_path ? url($locale.'/orders/'.$order->id.'/messages/'.$message->id.'/media') : null,
+                'created_at' => optional($message->created_at)->toIso8601String(),
+            ];
+        })->all();
+    }
+
+    private function customerChatKind(string $mime, string $clientMime): ?string
+    {
+        $mime = strtolower(trim(explode(';', $mime)[0]));
+        $clientMime = strtolower(trim(explode(';', $clientMime)[0]));
+        $map = [
+            'image/jpeg' => 'image',
+            'image/png' => 'image',
+            'image/webp' => 'image',
+            'image/gif' => 'image',
+            'video/mp4' => 'video',
+            'video/webm' => 'video',
+            'video/quicktime' => 'video',
+            'application/pdf' => 'pdf',
+        ];
+
+        return $map[$mime] ?? $map[$clientMime] ?? null;
     }
 
     private function owns(KaheelOrder $order): bool

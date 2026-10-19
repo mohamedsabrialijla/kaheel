@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=21" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=30" rel="stylesheet">
 </head>
 <body>
     @include('kaheel.partials.public-header')

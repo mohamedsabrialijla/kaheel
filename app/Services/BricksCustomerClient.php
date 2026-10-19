@@ -36,6 +36,32 @@ class BricksCustomerClient
         ];
     }
 
+    public function changePassword(string $login, string $password): array
+    {
+        $path = trim((string) config('services.bricks.password_path', ''));
+        if ($path === '') {
+            return ['ok' => false, 'missing' => true];
+        }
+
+        try {
+            $response = $this->http()->post($this->url($path), [
+                'login' => $login,
+                'password' => $password,
+                'password_confirmation' => $password,
+            ]);
+        } catch (ConnectionException $e) {
+            report($e);
+
+            return ['ok' => false, 'down' => true];
+        }
+
+        if ($response->status() === 404) {
+            return ['ok' => false, 'missing' => true];
+        }
+
+        return ['ok' => $response->successful()];
+    }
+
     public function units(string $token): array
     {
         try {

@@ -104,14 +104,18 @@ Route::get('/test-signed', function () {
 
     Route::get('/', [App\Http\Controllers\Kaheel\SiteController::class, 'home']);
 
-    Route::get('/auth', function () {
-        return view('kaheel.auth');
-    });
+    Route::get('/auth/csrf', [App\Http\Controllers\Kaheel\AuthController::class, 'csrf']);
+    Route::get('/auth', [App\Http\Controllers\Kaheel\AuthController::class, 'show'])->defaults('screen', 'login');
+    Route::get('/auth/code', [App\Http\Controllers\Kaheel\AuthController::class, 'show'])->defaults('screen', 'code');
+    Route::get('/auth/forgot', [App\Http\Controllers\Kaheel\AuthController::class, 'show'])->defaults('screen', 'forgot');
+    Route::get('/auth/reset', [App\Http\Controllers\Kaheel\AuthController::class, 'show'])->defaults('screen', 'reset');
 
     Route::post('/auth/session', [App\Http\Controllers\Kaheel\AuthController::class, 'login'])->middleware('throttle:8,1');
+    Route::post('/auth/code', [App\Http\Controllers\Kaheel\AuthController::class, 'verifyCode'])->middleware('throttle:8,1');
     Route::post('/auth/signup', [App\Http\Controllers\Kaheel\AuthController::class, 'signup']);
     Route::post('/auth/sms', [App\Http\Controllers\Kaheel\AuthController::class, 'sendSmsCode'])->middleware('throttle:8,1');
     Route::post('/auth/sms/verify', [App\Http\Controllers\Kaheel\AuthController::class, 'verifySmsLogin'])->middleware('throttle:8,1');
+    Route::post('/auth/password/forgot', [App\Http\Controllers\Kaheel\AuthController::class, 'startReset'])->middleware('throttle:8,1');
     Route::post('/auth/password/reset', [App\Http\Controllers\Kaheel\AuthController::class, 'resetPassword'])->middleware('throttle:8,1');
     Route::post('/auth/logout', [App\Http\Controllers\Kaheel\AuthController::class, 'logout']);
     Route::get('/auth/google/callback', [App\Http\Controllers\Kaheel\AuthController::class, 'googleCallback']);
@@ -134,10 +138,16 @@ Route::get('/test-signed', function () {
     Route::get('/order', [App\Http\Controllers\Kaheel\OrderController::class, 'create']);
     Route::post('/order', [App\Http\Controllers\Kaheel\OrderController::class, 'store']);
     Route::get('/orders', [App\Http\Controllers\Kaheel\OrderController::class, 'index']);
+    Route::get('/orders/notices', [App\Http\Controllers\Kaheel\OrderController::class, 'notices']);
+    Route::get('/orders/{order}/messages', [App\Http\Controllers\Kaheel\OrderController::class, 'messages']);
+    Route::post('/orders/{order}/messages', [App\Http\Controllers\Kaheel\OrderController::class, 'storeMessage']);
+    Route::post('/orders/{order}/messages/read', [App\Http\Controllers\Kaheel\OrderController::class, 'readMessages']);
+    Route::get('/orders/{order}/messages/{message}/media', [App\Http\Controllers\Kaheel\OrderController::class, 'messageMedia']);
     Route::get('/orders/{order}/files/{file}', [App\Http\Controllers\Kaheel\OrderController::class, 'file']);
     Route::get('/orders/{order}/pay', [App\Http\Controllers\Kaheel\OrderController::class, 'pay']);
     Route::post('/orders/{order}/pay', [App\Http\Controllers\Kaheel\OrderController::class, 'storePayment']);
     Route::post('/orders/{order}/design', [App\Http\Controllers\Kaheel\OrderController::class, 'confirmDesign']);
+    Route::post('/orders/{order}/design/selections', [App\Http\Controllers\Kaheel\OrderController::class, 'saveDesignSelections']);
     Route::post('/orders/{order}/final', [App\Http\Controllers\Kaheel\OrderController::class, 'submitFinalPayment']);
     Route::get('/orders/{order}', [App\Http\Controllers\Kaheel\OrderController::class, 'show']);
 
@@ -524,6 +534,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('KaheelStaff/createItem', [App\Http\Controllers\Kaheel\StaffController::class, 'store']);
         Route::post('KaheelStaff/save', [App\Http\Controllers\Kaheel\StaffController::class, 'save']);
 
+        Route::get('KaheelOrders/notices', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'notices']);
+        Route::post('KaheelOrders/readMessages', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'readMessages']);
         Route::get('KaheelOrders/getAllItems', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'index']);
         Route::get('KaheelOrders/show', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'show']);
         Route::get('KaheelOrders/packageItems', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'packageItems']);
@@ -536,6 +548,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('KaheelOrders/assignSuppliers', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'assignSuppliers']);
         Route::post('KaheelOrders/markDelivered', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'markDelivered']);
         Route::post('KaheelOrders/message', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'message']);
+        Route::get('KaheelOrders/messageMedia/{message}', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'messageMedia']);
         Route::post('KaheelOrders/upload', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'upload']);
 
         Route::get('KaheelAlternatives/getAllItems', [App\Http\Controllers\Kaheel\AlternativeController::class, 'index']);

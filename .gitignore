@@ -9,6 +9,7 @@
 .env
 .env.backup
 .env.production
+/storage/app/firebase/*.json
 .phpactor.json
 .phpunit.result.cache
 Homestead.json

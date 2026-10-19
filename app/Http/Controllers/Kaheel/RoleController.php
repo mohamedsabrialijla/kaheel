@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Kaheel;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Support\KaheelPermissions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -21,7 +22,11 @@ class RoleController extends Controller
         $roleId = $request->input('id');
         $nameAr = trim((string) $request->input('name_ar'));
         $nameEn = trim((string) $request->input('name_en'));
-        $codes = array_values(array_unique(array_filter((array) $request->input('permissions', []))));
+        $allowed = KaheelPermissions::codes();
+        $codes = array_values(array_unique(array_filter(
+            (array) $request->input('permissions', []),
+            fn ($code) => in_array($code, $allowed, true)
+        )));
 
         if ($nameAr === '' || $nameEn === '') {
             return mainResponse(false, 'Name is required', null, 422, 'items', '');
@@ -29,8 +34,6 @@ class RoleController extends Controller
 
         $permissionIds = DB::table('permissions')
             ->where('guard_name', 'admin')
-            ->whereNotNull('category')
-            ->where('category', '!=', 'supplier')
             ->whereIn('name', $codes)
             ->pluck('id', 'name');
 
@@ -110,26 +113,11 @@ class RoleController extends Controller
         }
 
         $roleId = $request->input('role_id') ?: null;
-        if ($roleId && !DB::table('roles')->where('id', $roleId)->whereNotNull('name_ar')->exists()) {
+        if ($roleId && !DB::table('roles')->where('id', $roleId)->whereNotNull('name_ar')->where('is_active', true)->exists()) {
             return mainResponse(false, 'Role not found', null, 404, 'items', '');
         }
 
-        DB::table('model_has_roles')
-            ->where('model_id', $admin->id)
-            ->where('model_type', Admin::class)
-            ->delete();
-
-        if ($roleId) {
-            DB::table('model_has_roles')->insert([
-                'role_id' => $roleId,
-                'model_type' => Admin::class,
-                'model_id' => $admin->id,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
-
-        DB::table('admins')->where('id', $admin->id)->update(['role_id' => $roleId]);
+        $this->syncRole((int) $admin->id, $roleId ? (int) $roleId : null);
         $this->forget();
 
         return mainResponse(true, 'Success', $this->payload(), 200, 'items', '');
@@ -137,20 +125,21 @@ class RoleController extends Controller
 
     private function payload(): array
     {
-        $catalog = DB::table('permissions')
+        $permissionRows = DB::table('permissions')
             ->where('guard_name', 'admin')
-            ->whereNotNull('category')
-            ->where('category', '!=', 'supplier')
+            ->whereIn('name', KaheelPermissions::codes())
             ->orderBy('sort_order')
             ->orderBy('id')
-            ->get(['id', 'name', 'display_name', 'label_en', 'category', 'sort_order'])
-            ->map(fn ($row) => [
-                'id' => $row->id,
-                'code' => $row->name,
-                'label_ar' => $row->display_name,
-                'label_en' => $row->label_en,
-            ])
-            ->values();
+            ->get(['id', 'name', 'display_name', 'label_en', 'category', 'sort_order']);
+
+        $modules = KaheelPermissions::groupedCatalog($permissionRows);
+        $catalog = collect($modules)->flatMap(fn ($module) => collect($module['permissions'])->map(fn ($perm) => [
+            'code' => $perm['code'],
+            'label_ar' => $module['label_ar'].' — '.$perm['label_ar'],
+            'label_en' => $module['label_en'].' — '.$perm['label_en'],
+            'module' => $module['code'],
+            'action' => $perm['action'],
+        ]))->values();
 
         $codesByRole = DB::table('role_has_permissions')
             ->join('permissions', 'permissions.id', '=', 'role_has_permissions.permission_id')
@@ -179,29 +168,31 @@ class RoleController extends Controller
             ])
             ->values();
 
-        $assigned = DB::table('model_has_roles')
-            ->where('model_type', Admin::class)
-            ->pluck('role_id', 'model_id');
-
-        $staff = DB::table('admins')
-            ->whereNotNull('staff_sort')
-            ->whereNull('deleted_at')
-            ->orderBy('staff_sort')
-            ->get(['id', 'name', 'email', 'account_role'])
-            ->map(fn ($admin) => [
-                'id' => $admin->id,
-                'name' => $admin->name,
-                'email' => $admin->email,
-                'role_id' => $assigned[$admin->id] ?? null,
-                'locked' => $admin->account_role === 'admin',
-            ])
-            ->values();
-
         return [
             'roles' => $roles,
+            'modules' => $modules,
             'catalog' => $catalog,
-            'staff' => $staff,
         ];
+    }
+
+    private function syncRole(int $adminId, ?int $roleId): void
+    {
+        DB::table('model_has_roles')
+            ->where('model_id', $adminId)
+            ->where('model_type', Admin::class)
+            ->delete();
+
+        if ($roleId) {
+            DB::table('model_has_roles')->insert([
+                'role_id' => $roleId,
+                'model_type' => Admin::class,
+                'model_id' => $adminId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        DB::table('admins')->where('id', $adminId)->update(['role_id' => $roleId]);
     }
 
     private function uniqueSlug(string $name, $ignoreId): string

@@ -18,29 +18,22 @@
                     <tr>
                         <th>{{ t.employee }}</th>
                         <th>{{ t.role }}</th>
-                        <th>{{ t.permissions }}</th>
                         <th>{{ t.status }}</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-if="loading"><td colspan="5">…</td></tr>
+                    <tr v-if="loading"><td colspan="4">…</td></tr>
                     <tr v-for="person in staff" :key="person.id">
                         <td>
                             <p class="ka-staff-name">{{ person.name }}</p>
                             <p class="ka-sup-muted">{{ person.email }}</p>
                         </td>
-                        <td>{{ roleLabel(person.account_role) }}</td>
-                        <td>
-                            <span class="ka-staff-count">
-                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
-                                {{ person.locked ? t.full : person.permissions.length }}
-                            </span>
-                        </td>
+                        <td>{{ person.locked ? t.full : roleName(person) }}</td>
                         <td><span :class="person.is_active ? 'is-on' : 'is-off'">{{ person.is_active ? t.active : t.inactive }}</span></td>
                         <td>
                             <div class="ka-role-actions">
-                                <button type="button" class="ka-btn ka-btn-outline ka-btn-inline" :disabled="person.locked" @click="openEdit(person)">{{ t.permissions }}</button>
+                                <button type="button" class="ka-btn ka-btn-outline ka-btn-inline" :disabled="person.locked" @click="openEdit(person)">{{ t.edit }}</button>
                                 <button type="button" class="ka-btn ka-btn-ghost ka-btn-inline" :disabled="person.locked || saving" @click="toggle(person)">{{ person.is_active ? t.disable : t.enable }}</button>
                             </div>
                         </td>
@@ -62,24 +55,16 @@
                     <label class="ka-field"><span>{{ t.phone }}</span><input v-model="form.phone"></label>
                     <label class="ka-field"><span>{{ t.job }}</span><input v-model="form.job_title"></label>
                     <label class="ka-field"><span>{{ t.department }}</span><input v-model="form.department"></label>
-                    <label class="ka-field">
+                    <label class="ka-field ka-staff-role">
                         <span>{{ t.role }}</span>
-                        <select v-model="form.account_role">
-                            <option value="admin_staff">{{ roleLabel('admin_staff') }}</option>
-                            <option value="admin">{{ roleLabel('admin') }}</option>
+                        <select v-model="form.role_id" required>
+                            <option disabled value="">{{ t.pickRole }}</option>
+                            <option v-for="role in roles" :key="role.id" :value="String(role.id)">{{ locale === "ar" ? role.name_ar : role.name_en }}</option>
                         </select>
                     </label>
-                    <div class="ka-staff-grant">
-                        <p>{{ t.granted }}</p>
-                        <div class="ka-role-perms">
-                            <label v-for="perm in catalog" :key="perm.code" class="ka-role-perm">
-                                <input type="checkbox" :checked="form.permissions.includes(perm.code)" @change="toggleCode(form, perm.code, $event.target.checked)">
-                                {{ locale === "ar" ? perm.label_ar : perm.label_en }}
-                            </label>
-                        </div>
-                    </div>
+                    <p v-if="!roles.length" class="ka-set-error">{{ t.needRole }}</p>
                     <p v-if="formError" class="ka-set-error">{{ formError }}</p>
-                    <button type="submit" class="ka-btn ka-btn-primary ka-sup-submit" :disabled="saving">{{ saving ? "…" : t.create }}</button>
+                    <button type="submit" class="ka-btn ka-btn-primary ka-sup-submit" :disabled="saving || !roles.length">{{ saving ? "…" : t.create }}</button>
                 </form>
             </div>
         </div>
@@ -90,21 +75,14 @@
                 <h2>{{ t.editTitle }}</h2>
                 <p class="ka-sup-muted">{{ t.editLead }}</p>
                 <div class="ka-role-form">
-                    <label class="ka-field">
+                    <label class="ka-field ka-staff-role">
                         <span>{{ t.role }}</span>
-                        <select v-model="edit.account_role">
-                            <option value="admin_staff">{{ roleLabel('admin_staff') }}</option>
-                            <option value="admin">{{ roleLabel('admin') }}</option>
+                        <select v-model="edit.role_id">
+                            <option value="">{{ t.none }}</option>
+                            <option v-for="role in roles" :key="'e-' + role.id" :value="String(role.id)">{{ locale === "ar" ? role.name_ar : role.name_en }}</option>
                         </select>
                     </label>
-                    <div class="ka-staff-grant">
-                        <div class="ka-role-perms">
-                            <label v-for="perm in catalog" :key="'e-' + perm.code" class="ka-role-perm">
-                                <input type="checkbox" :checked="edit.permissions.includes(perm.code)" @change="toggleCode(edit, perm.code, $event.target.checked)">
-                                {{ locale === "ar" ? perm.label_ar : perm.label_en }}
-                            </label>
-                        </div>
-                    </div>
+                    <label class="ka-check ka-role-active"><input v-model="edit.is_active" type="checkbox">{{ t.active }}</label>
                     <p v-if="formError" class="ka-set-error">{{ formError }}</p>
                     <button type="button" class="ka-btn ka-btn-primary ka-sup-submit" :disabled="saving" @click="saveEdit">{{ saving ? "…" : t.save }}</button>
                 </div>
@@ -123,21 +101,20 @@ const blank = () => ({
     phone: "",
     job_title: "",
     department: "",
-    account_role: "admin_staff",
-    permissions: [],
+    role_id: "",
 });
 
 export default {
     data() {
         return {
             staff: [],
-            catalog: [],
+            roles: [],
             loading: true,
             saving: false,
             createDialog: false,
             editDialog: false,
             form: blank(),
-            edit: { id: null, account_role: "admin_staff", is_active: true, permissions: [] },
+            edit: { id: null, role_id: "", is_active: true },
             error: "",
             formError: "",
         };
@@ -149,59 +126,63 @@ export default {
         t() {
             if (this.locale === "en") {
                 return {
-                    title: "Staff & permissions",
-                    lead: "Each employee only sees and performs explicitly granted actions.",
+                    title: "Staff",
+                    lead: "Create employees and assign exactly one role from the list.",
                     newEmployee: "New employee",
                     employee: "Employee",
                     role: "Role",
-                    permissions: "Permissions",
                     status: "Status",
                     active: "Active",
                     inactive: "Inactive",
-                    full: "Full",
+                    full: "System administrator",
                     disable: "Disable",
                     enable: "Enable",
+                    edit: "Edit",
                     createTitle: "Create employee account",
-                    createLead: "Choose the role and exact permissions. They can be changed later.",
+                    createLead: "Pick one role. The role permissions control what this employee can open.",
                     fullName: "Full name",
                     email: "Email",
                     password: "Temporary password",
                     phone: "Phone",
                     job: "Job title",
                     department: "Department",
-                    granted: "Granted permissions",
+                    pickRole: "Select a role",
+                    none: "No role",
+                    needRole: "Create a role first from Roles and permissions.",
                     create: "Create employee",
-                    editTitle: "Edit role and permissions",
-                    editLead: "Changes apply immediately and are audit logged.",
-                    save: "Save permissions",
+                    editTitle: "Edit employee role",
+                    editLead: "Change the assigned role. Only one role is allowed.",
+                    save: "Save",
                 };
             }
             return {
-                title: "الموظفون والصلاحيات",
-                lead: "كل موظف يرى وينفّذ فقط ما يمنحه مدير النظام.",
+                title: "الموظفون",
+                lead: "أنشئ موظفاً وأسند له دوراً واحداً فقط من القائمة.",
                 newEmployee: "موظف جديد",
                 employee: "الموظف",
                 role: "الدور",
-                permissions: "الصلاحيات",
                 status: "الحالة",
                 active: "نشط",
                 inactive: "موقوف",
-                full: "كامل",
+                full: "مدير النظام",
                 disable: "إيقاف",
                 enable: "تفعيل",
+                edit: "تعديل",
                 createTitle: "إنشاء حساب موظف",
-                createLead: "حدّد الدور والصلاحيات بدقة. يمكن تعديلها لاحقاً.",
+                createLead: "اختر دوراً واحداً. صلاحيات الدور تحدد ما يراه الموظف في القائمة.",
                 fullName: "الاسم الكامل",
                 email: "البريد الإلكتروني",
                 password: "كلمة المرور المؤقتة",
                 phone: "الجوال",
                 job: "المسمى الوظيفي",
                 department: "القسم",
-                granted: "الصلاحيات الممنوحة",
+                pickRole: "اختر دوراً",
+                none: "بدون دور",
+                needRole: "أنشئ دوراً أولاً من صفحة الأدوار والصلاحيات.",
                 create: "إنشاء الموظف",
-                editTitle: "تعديل الدور والصلاحيات",
-                editLead: "تطبق التغييرات فور الحفظ وتسجل باسم مدير النظام.",
-                save: "حفظ الصلاحيات",
+                editTitle: "تعديل دور الموظف",
+                editLead: "غيّر الدور المسند. دور واحد فقط لكل موظف.",
+                save: "حفظ",
             };
         },
     },
@@ -210,8 +191,8 @@ export default {
             immediate: true,
             handler() {
                 document.title = this.locale === "ar"
-                    ? "الموظفون والصلاحيات | FORMA BY AZURE"
-                    : "Staff & permissions | FORMA BY AZURE";
+                    ? "الموظفون | FORMA BY AZURE"
+                    : "Staff | FORMA BY AZURE";
             },
         },
     },
@@ -219,16 +200,13 @@ export default {
         this.load();
     },
     methods: {
-        roleLabel(role) {
-            const labels = {
-                admin: this.locale === "ar" ? "مدير النظام" : "System administrator",
-                admin_staff: this.locale === "ar" ? "موظف إدارة" : "Admin staff",
-            };
-            return labels[role] || role;
+        roleName(person) {
+            if (!person.role_id) return this.t.none;
+            return this.locale === "ar" ? (person.role_name_ar || this.t.none) : (person.role_name_en || this.t.none);
         },
         apply(data) {
             this.staff = data.staff || [];
-            this.catalog = data.catalog || [];
+            this.roles = data.roles || [];
         },
         async load() {
             this.loading = true;
@@ -251,24 +229,19 @@ export default {
             this.formError = "";
             this.edit = {
                 id: person.id,
-                account_role: person.account_role,
+                role_id: person.role_id ? String(person.role_id) : "",
                 is_active: person.is_active,
-                permissions: [...person.permissions],
             };
             this.editDialog = true;
-        },
-        toggleCode(target, code, checked) {
-            if (checked) {
-                if (!target.permissions.includes(code)) target.permissions.push(code);
-                return;
-            }
-            target.permissions = target.permissions.filter((item) => item !== code);
         },
         async create() {
             this.saving = true;
             this.formError = "";
             try {
-                const response = await axios.post("KaheelStaff/createItem", this.form);
+                const response = await axios.post("KaheelStaff/createItem", {
+                    ...this.form,
+                    role_id: this.form.role_id || null,
+                });
                 if (!response.data.status) {
                     this.formError = response.data.message || (this.locale === "ar" ? "تعذر الإنشاء." : "Could not create.");
                     return;
@@ -285,7 +258,11 @@ export default {
             this.saving = true;
             this.formError = "";
             try {
-                const response = await axios.post("KaheelStaff/save", this.edit);
+                const response = await axios.post("KaheelStaff/save", {
+                    id: this.edit.id,
+                    role_id: this.edit.role_id || null,
+                    is_active: this.edit.is_active,
+                });
                 if (!response.data.status) {
                     this.formError = response.data.message || (this.locale === "ar" ? "تعذر الحفظ." : "Could not save.");
                     return;
@@ -304,9 +281,8 @@ export default {
             try {
                 const response = await axios.post("KaheelStaff/save", {
                     id: person.id,
-                    account_role: person.account_role,
+                    role_id: person.role_id || null,
                     is_active: !person.is_active,
-                    permissions: person.permissions,
                 });
                 if (!response.data.status) {
                     this.error = response.data.message || (this.locale === "ar" ? "تعذر التحديث." : "Could not update.");
