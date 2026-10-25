@@ -35,7 +35,7 @@
         <?php endif; ?>
         <link href="<?php echo e(url('assets/css/styleCustom.css')); ?>" rel="stylesheet" type="text/css" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Instrument+Serif&family=Work+Sans:wght@400;500;600;700&display=swap">
-        <link href="<?php echo e(asset('kaheel/admin.css')); ?>?v=37" rel="stylesheet" type="text/css" />
+        <link href="<?php echo e(asset('kaheel/admin.css')); ?>?v=49" rel="stylesheet" type="text/css" />
 
         <!--end::Global Stylesheets Bundle-->
         <script>// Frame-busting to prevent site from being loaded within a frame without permission (click-jacking) if (window.top != window.self) { window.top.location.replace(window.self.location.href); }</script>
@@ -118,6 +118,7 @@
 
         <!--end::Custom Javascript-->
         <!--end::Javascript-->
+        <?php echo $__env->make('kaheel.partials.native-validation', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         </body>
     <!--end::Body-->
 </html>

@@ -3,18 +3,24 @@
 namespace App\Http\Controllers\Kaheel;
 
 use App\Http\Controllers\Controller;
+use App\Models\KaheelCategory;
 use App\Models\KaheelPackage;
 use App\Models\KaheelSetting;
+use Illuminate\Support\Collection;
 
 class SiteController extends Controller
 {
     public function home()
     {
         $packages = $this->visiblePackages();
+        $catalog = collect(KaheelCategory::catalog())->keyBy('code');
 
         return view('kaheel.home', array_merge($this->publicSettings(), [
             'packages' => $packages,
-            'outline' => $packages->first()?->outline ?? collect(),
+            'highlights' => $packages->mapWithKeys(fn (KaheelPackage $package) => [
+                $package->id => $this->highlightLines($package, $catalog),
+            ]),
+            'outline' => $this->contentLines($packages, $catalog),
         ]));
     }
 
@@ -59,10 +65,57 @@ class SiteController extends Controller
             ->with([
                 'outline',
                 'tiers' => function ($query) {
-                    $query->where('is_active', true)->orderBy('sort_order');
+                    $query->where('is_active', true)->orderBy('sort_order')->with('items');
                 },
             ])
             ->get();
+    }
+
+    private function uniqueCategories(Collection $items, Collection $catalog): Collection
+    {
+        $order = $catalog->keys()->flip();
+
+        return $items->unique('category')->sortBy(fn ($item) => $order[$item->category] ?? 999)->values();
+    }
+
+    private function highlightLines(KaheelPackage $package, Collection $catalog): array
+    {
+        $items = $this->uniqueCategories($package->tiers->flatMap->items, $catalog);
+        if ($items->isNotEmpty()) {
+            return $items->take(3)->map(function ($item) use ($catalog) {
+                $cat = $catalog->get($item->category) ?: [];
+
+                return [
+                    'ar' => $cat['ar'] ?? $item->name_ar,
+                    'en' => $cat['en'] ?? $item->name_en,
+                ];
+            })->all();
+        }
+
+        return $package->outline->take(3)->map(fn ($item) => [
+            'ar' => $item->name_ar,
+            'en' => $item->name_en,
+        ])->all();
+    }
+
+    private function contentLines(Collection $packages, Collection $catalog): Collection
+    {
+        $items = $this->uniqueCategories(
+            $packages->flatMap(fn (KaheelPackage $package) => $package->tiers->flatMap->items),
+            $catalog
+        );
+        if ($items->isNotEmpty()) {
+            return $items->map(function ($item) use ($catalog) {
+                $cat = $catalog->get($item->category) ?: [];
+
+                return (object) [
+                    'name_ar' => $cat['ar'] ?? $item->name_ar,
+                    'name_en' => $cat['en'] ?? $item->name_en,
+                ];
+            });
+        }
+
+        return $packages->first()?->outline ?? collect();
     }
 
     private function gallery(string $code): array

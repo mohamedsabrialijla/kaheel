@@ -2,24 +2,42 @@
 
 namespace App\Http\Controllers\Kaheel;
 
-use App\Http\Controllers\Controller;
+use App\Models\KaheelOrder;
 use App\Models\KaheelPackage;
 use App\Models\KaheelPackageItem;
 use App\Models\KaheelPackageTier;
+use App\Support\KaheelPermissions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
-class PackageController extends Controller
+class PackageController extends KaheelAdminController
 {
+    protected function kaheelPermissionFor(string $method, $request): ?string
+    {
+        return match ($method) {
+            'index' => $this->canBrowsePackages() ? null : 'packages.view',
+            'savePackage', 'saveTier' => $request->filled('id') ? 'packages.edit' : 'packages.create',
+            'togglePackage', 'copyItems', 'saveItems' => 'packages.edit',
+            'deletePackage', 'deleteTier' => 'packages.delete',
+            default => null,
+        };
+    }
+
     public function index()
     {
+        $stats = KaheelOrder::query()
+            ->selectRaw('package_code, count(*) as orders_count, coalesce(sum(price_incl + addons_total), 0) as sales')
+            ->groupBy('package_code')
+            ->get()
+            ->keyBy('package_code');
+
         $rows = KaheelPackage::query()
             ->with(['tiers.items'])
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get()
-            ->map(fn (KaheelPackage $package) => $this->present($package));
+            ->map(fn (KaheelPackage $package) => $this->present($package, $stats->get($package->code)));
 
         return mainResponse(true, 'Success', $rows, 200, 'items', '');
     }
@@ -162,30 +180,48 @@ class PackageController extends Controller
         }
 
         $items = $request->input('items', []);
+        $isAr = app()->getLocale() !== 'en';
         if (!is_array($items)) {
-            return mainResponse(false, app()->getLocale() === 'ar' ? 'العناصر غير صالحة' : 'Invalid items', null, 422, 'items', '');
+            return mainResponse(false, $isAr ? 'العناصر غير صالحة' : 'Invalid items', null, 422, 'items', '');
+        }
+
+        $required = ['category', 'name_ar', 'name_en', 'product_name_ar', 'product_name_en', 'detail_ar', 'detail_en', 'unit_label_ar', 'unit_label_en'];
+        foreach (array_values($items) as $index => $item) {
+            if (!is_array($item)) {
+                return mainResponse(false, $isAr ? 'العناصر غير صالحة' : 'Invalid items', null, 422, 'items', '');
+            }
+            foreach ($required as $key) {
+                if (trim((string) ($item[$key] ?? '')) === '') {
+                    return mainResponse(false, $isAr
+                        ? 'جميع حقول العنصر إلزامية، أكمل العنصر رقم '.($index + 1).'.'
+                        : 'Every item field is required. Complete item '.($index + 1).'.', null, 422, 'items', '');
+                }
+            }
+            if (!is_numeric($item['quantity'] ?? null) || (float) $item['quantity'] <= 0) {
+                return mainResponse(false, $isAr ? 'العدد يجب أن يكون أكبر من صفر.' : 'Quantity must be greater than zero.', null, 422, 'items', '');
+            }
+            if (!is_numeric($item['price_per_unit'] ?? null) || (float) $item['price_per_unit'] < 0) {
+                return mainResponse(false, $isAr ? 'سعر الوحدة الإضافية إلزامي.' : 'Extra unit price is required.', null, 422, 'items', '');
+            }
         }
 
         DB::transaction(function () use ($tier, $items) {
             KaheelPackageItem::query()->where('tier_id', $tier->id)->delete();
             foreach (array_values($items) as $index => $item) {
-                if (!is_array($item) || trim((string) ($item['name_ar'] ?? '')) === '' || trim((string) ($item['name_en'] ?? '')) === '') {
-                    continue;
-                }
                 KaheelPackageItem::query()->create([
                     'package_id' => $tier->package_id,
                     'tier_id' => $tier->id,
-                    'category' => $item['category'] ?? 'general',
-                    'name_ar' => $item['name_ar'],
-                    'name_en' => $item['name_en'],
-                    'product_name_ar' => $item['product_name_ar'] ?: null,
-                    'product_name_en' => $item['product_name_en'] ?: null,
-                    'detail_ar' => trim((string) ($item['detail_ar'] ?? '')) ?: null,
-                    'detail_en' => trim((string) ($item['detail_en'] ?? '')) ?: null,
-                    'quantity' => $item['quantity'] ?? 1,
-                    'unit_label_ar' => $item['unit_label_ar'] ?: 'قطعة',
-                    'unit_label_en' => $item['unit_label_en'] ?: 'piece',
-                    'price_per_unit' => $item['price_per_unit'] ?? 0,
+                    'category' => $item['category'],
+                    'name_ar' => trim((string) $item['name_ar']),
+                    'name_en' => trim((string) $item['name_en']),
+                    'product_name_ar' => trim((string) $item['product_name_ar']),
+                    'product_name_en' => trim((string) $item['product_name_en']),
+                    'detail_ar' => trim((string) $item['detail_ar']),
+                    'detail_en' => trim((string) $item['detail_en']),
+                    'quantity' => $item['quantity'],
+                    'unit_label_ar' => trim((string) $item['unit_label_ar']),
+                    'unit_label_en' => trim((string) $item['unit_label_en']),
+                    'price_per_unit' => $item['price_per_unit'],
                     'allow_alternatives' => (bool) ($item['allow_alternatives'] ?? false),
                     'sort_order' => $index + 1,
                 ]);
@@ -195,7 +231,15 @@ class PackageController extends Controller
         return mainResponse(true, 'Success', null, 200, 'items', '');
     }
 
-    private function present(KaheelPackage $package): array
+    private function canBrowsePackages(): bool
+    {
+        $admin = auth('admin')->user();
+
+        return KaheelPermissions::allows($admin, 'packages.view')
+            || KaheelPermissions::allows($admin, 'overview.view');
+    }
+
+    private function present(KaheelPackage $package, $stats = null): array
     {
         $package->loadMissing('tiers.items');
 
@@ -208,7 +252,8 @@ class PackageController extends Controller
             'tagline_en' => $package->tagline_en,
             'sort_order' => $package->sort_order,
             'is_active' => $package->is_active,
-            'ordersCount' => 0,
+            'ordersCount' => (int) ($stats->orders_count ?? 0),
+            'sales' => round((float) ($stats->sales ?? 0), 2),
             'tiers' => $package->tiers->map(function (KaheelPackageTier $tier) {
                 return [
                     'id' => $tier->id,

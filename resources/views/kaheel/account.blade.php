@@ -97,5 +97,6 @@
             document.getElementById("lang-toggle").click();
         }
     </script>
+    @include('kaheel.partials.native-validation')
 </body>
 </html>

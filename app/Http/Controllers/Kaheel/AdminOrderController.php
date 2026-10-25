@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Kaheel;
 
-use App\Http\Controllers\Controller;
 use App\Models\KaheelAlternative;
+use App\Support\KaheelPermissions;
+use App\Models\KaheelCategory;
 use App\Models\KaheelOrder;
 use App\Models\KaheelOrderEvent;
 use App\Models\KaheelOrderFile;
@@ -15,8 +16,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class AdminOrderController extends Controller
+class AdminOrderController extends KaheelAdminController
 {
+    protected function kaheelPermissionFor(string $method, $request): ?string
+    {
+        return match ($method) {
+            'index', 'show', 'packageItems', 'file', 'messageMedia' => 'orders.view',
+            'reviewPayment', 'confirmFinal', 'advance', 'saveComponents', 'sendDesign',
+            'assignSuppliers', 'markDelivered', 'message', 'upload' => 'orders.edit',
+            'readMessages' => 'orders.view',
+            default => null,
+        };
+    }
+
     public function index()
     {
         $orders = KaheelOrder::query()
@@ -25,6 +37,7 @@ class AdminOrderController extends Controller
             }])
             ->orderByDesc('id')
             ->get()
+            ->each(fn (KaheelOrder $order) => $order->promoteApprovedFinalPayment())
             ->map(fn (KaheelOrder $order) => [
             'id' => $order->id,
             'number' => $order->number,
@@ -32,7 +45,7 @@ class AdminOrderController extends Controller
             'unit_no' => $order->unit_no,
             'compound_name' => $order->compound_name,
             'amount' => round((float) $order->price_incl + (float) $order->addons_total, 2),
-            'status' => $order->status === 'awaiting_approval' ? 'admin_review' : $order->status,
+            'status' => $order->listedStatus(),
             'status_ar' => $order->statusCopy()['ar'],
             'status_en' => $order->statusCopy()['en'],
             'step' => $order->progressStep(),
@@ -53,6 +66,11 @@ class AdminOrderController extends Controller
 
     public function notices()
     {
+        if (!KaheelPermissions::allows(auth('admin')->user(), 'orders.view')) {
+            return mainResponse(true, 'Success', ['total' => 0, 'orders' => [], 'items' => []], 200, 'items', '');
+        }
+
+        $isAr = app()->getLocale() !== 'en';
         $counts = KaheelOrderMessage::query()
             ->selectRaw('order_id, count(*) as unread')
             ->where('sender_role', 'customer')
@@ -67,18 +85,44 @@ class AdminOrderController extends Controller
             ->limit(8)
             ->get();
 
+        $chatItems = $latest->map(fn (KaheelOrderMessage $message) => [
+            'id' => 'chat-'.$message->id,
+            'order_id' => $message->order_id,
+            'number' => $message->order->number ?? '',
+            'name' => $message->sender_name,
+            'kind' => $message->kind ?: 'text',
+            'body' => trim((string) $message->body) ?: ($isAr ? 'رسالة جديدة من العميل' : 'New customer message'),
+            'created_at' => optional($message->created_at)->toIso8601String(),
+            'chat' => true,
+        ]);
+
+        $alerts = collect();
+        $pushAlert = function (KaheelOrder $order, string $id, string $kind, string $ar, string $en) use ($alerts, $isAr) {
+            $alerts->push([
+                'id' => $id,
+                'order_id' => $order->id,
+                'number' => $order->number,
+                'name' => $order->customer_name ?: $order->username,
+                'kind' => $kind,
+                'body' => $isAr ? $ar : $en,
+                'created_at' => optional($order->updated_at)->toIso8601String(),
+                'chat' => false,
+            ]);
+        };
+
+        KaheelOrder::query()->where('payment_status', 'pending')->orderByDesc('updated_at')->limit(8)->get()
+            ->each(fn (KaheelOrder $order) => $pushAlert($order, 'pay-'.$order->id, 'payment', 'دفعة بانتظار التأكيد', 'Payment awaiting confirmation'));
+        KaheelOrder::query()->where('final_payment_status', 'pending')->orderByDesc('updated_at')->limit(8)->get()
+            ->each(fn (KaheelOrder $order) => $pushAlert($order, 'final-'.$order->id, 'final', 'سداد نهائي بانتظار التأكيد', 'Final payment awaiting confirmation'));
+        KaheelOrder::query()->where('status', 'admin_review')->where('payment_status', 'approved')->orderByDesc('updated_at')->limit(8)->get()
+            ->each(fn (KaheelOrder $order) => $pushAlert($order, 'review-'.$order->id, 'order', 'طلب جديد جاهز للمراجعة', 'New order ready for review'));
+
+        $items = $chatItems->concat($alerts)->sortByDesc('created_at')->take(12)->values();
+
         return mainResponse(true, 'Success', [
-            'total' => (int) $counts->sum(),
+            'total' => (int) $counts->sum() + $alerts->count(),
             'orders' => $counts->map(fn ($unread, $id) => ['id' => (int) $id, 'unread' => (int) $unread])->values(),
-            'items' => $latest->map(fn (KaheelOrderMessage $message) => [
-                'id' => $message->id,
-                'order_id' => $message->order_id,
-                'number' => $message->order->number ?? '',
-                'name' => $message->sender_name,
-                'kind' => $message->kind ?: 'text',
-                'body' => trim((string) $message->body),
-                'created_at' => optional($message->created_at)->toIso8601String(),
-            ])->values(),
+            'items' => $items,
         ], 200, 'items', '');
     }
 
@@ -139,13 +183,33 @@ class AdminOrderController extends Controller
             return mainResponse(false, 'لا يمكن تغيير المرحلة قبل تأكيد الدفع.', null, 422, 'items', '');
         }
 
+        $decision = (string) $request->input('decision', 'approved');
+        if ($decision === 'rejected') {
+            if ($order->final_payment_status !== 'pending') {
+                return mainResponse(false, 'رفض السداد النهائي متاح بعد أن يرسل العميل الدفع.', null, 422, 'items', '');
+            }
+            $note = trim((string) $request->input('note'));
+            if ($note === '') {
+                return mainResponse(false, 'اكتب ملاحظة الرفض لتظهر للعميل.', null, 422, 'items', '');
+            }
+            $order->final_payment_status = 'rejected';
+            $order->final_payment_note = $note;
+            $order->save();
+            $this->event($order, $order->status, $order->status, 'تم رفض السداد النهائي: '.$note);
+
+            return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
+        }
+
         if ($order->final_payment_status !== 'pending') {
             return mainResponse(false, 'لا يظهر تأكيد السداد النهائي قبل أن يرسل العميل الدفع.', null, 422, 'items', '');
         }
 
+        $from = $order->status;
         $order->final_payment_status = 'approved';
+        $order->final_payment_note = null;
+        $order->status = 'final_approval';
         $order->save();
-        $this->event($order, $order->status, $order->status, 'تم تأكيد السداد النهائي');
+        $this->event($order, $from, $order->status, 'تم تأكيد السداد النهائي');
 
         return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
     }
@@ -162,6 +226,9 @@ class AdminOrderController extends Controller
         }
 
         $from = $order->status;
+        if ($next === 'closed' && !$this->hasHandover($order)) {
+            return mainResponse(false, kaheel_msg('ارفع محضر الاستلام قبل إغلاق الطلب.', 'Upload the handover report before closing the order.'), null, 422, 'items', '');
+        }
         if ($next === 'design_review') {
             $order->design_status = 'sent';
         }
@@ -261,13 +328,9 @@ class AdminOrderController extends Controller
 
         $from = $order->status;
         $order->design_status = 'sent';
-        if ($order->status === 'design_preparation') {
-            $order->status = 'design_review';
-        }
+        $order->status = 'design_review';
         $order->save();
-        if ($from !== $order->status) {
-            $this->event($order, $from, $order->status, 'تم إرسال التصميم للعميل');
-        }
+        $this->event($order, $from, $order->status, $from === 'design_review' ? 'تم إعادة إرسال التصميم للعميل' : 'تم إرسال التصميم للعميل');
 
         return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
     }
@@ -361,8 +424,8 @@ class AdminOrderController extends Controller
         if ($tooBig) {
             return mainResponse(false, 'كل ملف يجب أن يكون 25 ميغابايت أو أقل.', null, 422, 'items', '');
         }
-        if (!$file || !$file->isValid() || !$this->chatMimeAllowed($kind, (string) $file->getMimeType(), (string) $file->getClientMimeType())) {
-            return mainResponse(false, 'صيغة الملف غير مدعومة في المحادثة.', null, 422, 'items', '');
+        if (!$file || !$file->isValid() || !$this->chatMimeAllowed($kind, $file)) {
+            return mainResponse(false, 'صيغة الملف غير مدعومة. الصور: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF. الفيديو: MP4 و WEBM و MOV.', null, 422, 'items', '');
         }
 
         $message = KaheelOrderMessage::query()->create([
@@ -372,7 +435,7 @@ class AdminOrderController extends Controller
             'kind' => $kind,
             'body' => $body,
             'media_path' => $file->store('kaheel-orders/'.$order->id.'/chat'),
-            'media_mime' => $file->getMimeType() ?: $file->getClientMimeType(),
+            'media_mime' => $kind === 'image' ? kaheel_stored_mime($file) : ($file->getMimeType() ?: $file->getClientMimeType()),
             'media_name' => $file->getClientOriginalName(),
             'duration' => $kind === 'audio' ? max(0, (int) $request->input('duration', 0)) : null,
             'admin_seen_at' => now(),
@@ -411,13 +474,12 @@ class AdminOrderController extends Controller
         }
 
         $file = $request->file('file');
-        $allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
         $tooBig = $file && (in_array($file->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) || ($file->isValid() && $file->getSize() > 25 * 1024 * 1024));
         if ($tooBig) {
             return mainResponse(false, 'كل ملف يجب أن يكون 25 ميغابايت أو أقل.', null, 422, 'items', '');
         }
-        if (!$file || !$file->isValid() || !in_array($file->getMimeType(), $allowed, true)) {
-            return mainResponse(false, 'الملف يجب أن يكون صورة أو PDF.', null, 422, 'items', '');
+        if (!$file || !$file->isValid() || !kaheel_document_allowed($file)) {
+            return mainResponse(false, 'الصيغ المقبولة: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF.', null, 422, 'items', '');
         }
 
         KaheelOrderFile::query()->create([
@@ -425,7 +487,7 @@ class AdminOrderController extends Controller
             'kind' => $kind,
             'original_name' => $file->getClientOriginalName(),
             'path' => $file->store('kaheel-orders/'.$order->id),
-            'mime' => $file->getMimeType(),
+            'mime' => kaheel_stored_mime($file),
             'size' => $file->getSize(),
         ]);
 
@@ -440,7 +502,7 @@ class AdminOrderController extends Controller
     public function file(KaheelOrderFile $file)
     {
         $mime = (string) $file->mime;
-        $allowed = str_starts_with($mime, 'image/') || $mime === 'application/pdf';
+        $allowed = (str_starts_with($mime, 'image/') && !str_contains($mime, 'svg')) || $mime === 'application/pdf';
         $path = Storage::disk('local')->path($file->path);
         if (!$allowed || !is_file($path)) {
             abort(404);
@@ -456,7 +518,10 @@ class AdminOrderController extends Controller
 
     private function order(int $id): KaheelOrder
     {
-        return KaheelOrder::query()->with(['files', 'events', 'messages'])->findOrFail($id);
+        $order = KaheelOrder::query()->with(['files', 'events', 'messages'])->findOrFail($id);
+        $order->promoteApprovedFinalPayment();
+
+        return $order->fresh(['files', 'events', 'messages']);
     }
 
     private function detail(KaheelOrder $order): array
@@ -476,7 +541,7 @@ class AdminOrderController extends Controller
         return [
             'id' => $order->id,
             'number' => $order->number,
-            'status' => $order->status === 'awaiting_approval' ? 'admin_review' : $order->status,
+            'status' => $order->listedStatus(),
             'status_ar' => $copy['ar'],
             'status_en' => $copy['en'],
             'step' => $order->progressStep(),
@@ -513,6 +578,8 @@ class AdminOrderController extends Controller
             'payment_status' => $order->payment_status,
             'payment_note' => $order->payment_note,
             'final_payment_status' => $order->final_payment_status,
+            'final_payment_method' => $order->final_payment_method,
+            'final_payment_note' => $order->final_payment_note,
             'contract_body' => $order->contract_body,
             'components' => $order->design_components ?? [],
             'assignments' => $order->supplier_assignments ?? [],
@@ -520,6 +587,7 @@ class AdminOrderController extends Controller
                 'id' => $file->id,
                 'kind' => $file->kind,
                 'name' => $file->original_name,
+                'mime' => $file->mime,
                 'url' => url($locale.'/web/KaheelOrders/file/'.$file->id),
                 'created_at' => optional($file->created_at)->toIso8601String(),
             ])->values(),
@@ -544,22 +612,28 @@ class AdminOrderController extends Controller
                 'created_at' => optional($message->created_at)->toIso8601String(),
             ]),
             'alternatives' => KaheelAlternative::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'category', 'name_ar', 'name_en', 'price_delta']),
+            'categories' => KaheelCategory::catalog(),
             'suppliers' => KaheelSupplier::query()->orderBy('name_ar')->get(['id', 'name_ar', 'name_en']),
         ];
     }
 
-    private function chatMimeAllowed(string $kind, string $mime, string $clientMime): bool
+    private function chatMimeAllowed(string $kind, $file): bool
     {
-        $mime = strtolower(trim(explode(';', $mime)[0]));
-        $clientMime = strtolower(trim(explode(';', $clientMime)[0]));
-        $allowed = [
-            'image' => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-            'video' => ['video/mp4', 'video/webm', 'video/quicktime'],
-            'audio' => ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'video/webm'],
-        ];
-        $list = $allowed[$kind] ?? [];
+        [$mime, $client, $ext] = kaheel_upload_parts($file);
+        if (kaheel_upload_blocked($mime, $client, $ext)) {
+            return false;
+        }
+        if ($kind === 'image') {
+            return kaheel_file_is_image($mime, $client, $ext);
+        }
+        if ($kind === 'video') {
+            $video = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v'];
 
-        return in_array($mime, $list, true) || in_array($clientMime, $list, true);
+            return in_array($mime, $video, true) || (kaheel_detected_weak($mime) && (in_array($client, $video, true) || in_array($ext, ['mp4', 'webm', 'mov', 'm4v'], true)));
+        }
+        $audio = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'video/webm'];
+
+        return in_array($mime, $audio, true) || in_array($client, $audio, true);
     }
 
     private function event(KaheelOrder $order, ?string $from, string $to, ?string $note): void
@@ -612,6 +686,10 @@ class AdminOrderController extends Controller
                 'ar' => 'سجّل تاريخ توريد أو ارفع محضر الاستلام قبل تأكيد التوريد.',
                 'en' => 'Record a delivery date or upload the handover report before confirming supply.',
             ],
+            'supplied' => $this->hasHandover($order) ? null : [
+                'ar' => 'ارفع محضر الاستلام قبل إغلاق الطلب.',
+                'en' => 'Upload the handover report before closing the order.',
+            ],
             'closed' => ['ar' => 'اكتملت دورة هذا الطلب.', 'en' => 'This order workflow is complete.'],
             default => null,
         };
@@ -619,17 +697,16 @@ class AdminOrderController extends Controller
 
     private function hasFreshDesign(KaheelOrder $order): bool
     {
-        $order->loadMissing('files', 'events');
-        $files = $order->files->where('kind', 'design');
-        if ($order->design_status !== 'rejected') {
-            return $files->isNotEmpty();
-        }
+        $order->loadMissing('files');
 
-        $rejectedAt = $order->events->sortByDesc('id')->first(fn ($event) => str_contains((string) $event->note, 'رفض العميل'))?->created_at;
+        return $order->files->contains('kind', 'design');
+    }
 
-        return $rejectedAt
-            ? $files->contains(fn ($file) => $file->created_at && $file->created_at->greaterThan($rejectedAt))
-            : false;
+    private function hasHandover(KaheelOrder $order): bool
+    {
+        $order->loadMissing('files');
+
+        return $order->files->contains('kind', 'handover');
     }
 
     private function needsPaymentApproval(KaheelOrder $order)

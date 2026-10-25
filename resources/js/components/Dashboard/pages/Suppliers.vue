@@ -6,7 +6,7 @@
                 <h1>{{ t.title }}</h1>
                 <p class="ka-sup-lead">{{ t.lead }}</p>
             </div>
-            <button type="button" class="ka-btn ka-btn-primary" @click="openCreate">
+            <button v-if="can('suppliers.create')" type="button" class="ka-btn ka-btn-primary" @click="openCreate">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 {{ t.create }}
             </button>
@@ -32,7 +32,7 @@
                     <p>{{ row.email || "—" }}</p>
                     <p class="ka-sup-muted">{{ row.phone || "—" }}</p>
                 </div>
-                <button type="button" class="ka-btn ka-btn-outline" @click="openEdit(row)">
+                <button v-if="can('suppliers.edit')" type="button" class="ka-btn ka-btn-outline" @click="openEdit(row)">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
                         <path d="m15 5 4 4"/>

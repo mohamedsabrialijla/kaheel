@@ -182,5 +182,6 @@
 
         applyLang(lang);
     </script>
+    @include('kaheel.partials.native-validation')
 </body>
 </html>

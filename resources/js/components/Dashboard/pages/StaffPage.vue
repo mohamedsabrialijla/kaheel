@@ -6,7 +6,7 @@
                 <h1>{{ t.title }}</h1>
                 <p class="ka-sup-lead">{{ t.lead }}</p>
             </div>
-            <button type="button" class="ka-btn ka-btn-primary" @click="openCreate">
+            <button v-if="can('staff.create')" type="button" class="ka-btn ka-btn-primary" @click="openCreate">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 {{ t.newEmployee }}
             </button>
@@ -19,7 +19,7 @@
                         <th>{{ t.employee }}</th>
                         <th>{{ t.role }}</th>
                         <th>{{ t.status }}</th>
-                        <th></th>
+                        <th v-if="can('staff.edit')"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -28,10 +28,11 @@
                         <td>
                             <p class="ka-staff-name">{{ person.name }}</p>
                             <p class="ka-sup-muted">{{ person.email }}</p>
+                            <p v-if="person.job_title" class="ka-sup-muted">{{ person.job_title }}<template v-if="person.department"> · {{ person.department }}</template></p>
                         </td>
                         <td>{{ person.locked ? t.full : roleName(person) }}</td>
                         <td><span :class="person.is_active ? 'is-on' : 'is-off'">{{ person.is_active ? t.active : t.inactive }}</span></td>
-                        <td>
+                        <td v-if="can('staff.edit')">
                             <div class="ka-role-actions">
                                 <button type="button" class="ka-btn ka-btn-outline ka-btn-inline" :disabled="person.locked" @click="openEdit(person)">{{ t.edit }}</button>
                                 <button type="button" class="ka-btn ka-btn-ghost ka-btn-inline" :disabled="person.locked || saving" @click="toggle(person)">{{ person.is_active ? t.disable : t.enable }}</button>
@@ -74,7 +75,13 @@
                 <button type="button" class="ka-sup-x" aria-label="Close" @click="editDialog = false"><svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
                 <h2>{{ t.editTitle }}</h2>
                 <p class="ka-sup-muted">{{ t.editLead }}</p>
-                <div class="ka-role-form">
+                <form class="ka-role-form" @submit.prevent="saveEdit">
+                    <label class="ka-field"><span>{{ t.fullName }}</span><input v-model="edit.name" required></label>
+                    <label class="ka-field"><span>{{ t.email }}</span><input v-model="edit.email" type="email" required></label>
+                    <label class="ka-field"><span>{{ t.passwordEdit }}</span><input v-model="edit.password" type="password" autocomplete="new-password"></label>
+                    <label class="ka-field"><span>{{ t.phone }}</span><input v-model="edit.phone"></label>
+                    <label class="ka-field"><span>{{ t.job }}</span><input v-model="edit.job_title"></label>
+                    <label class="ka-field"><span>{{ t.department }}</span><input v-model="edit.department"></label>
                     <label class="ka-field ka-staff-role">
                         <span>{{ t.role }}</span>
                         <select v-model="edit.role_id">
@@ -84,8 +91,8 @@
                     </label>
                     <label class="ka-check ka-role-active"><input v-model="edit.is_active" type="checkbox">{{ t.active }}</label>
                     <p v-if="formError" class="ka-set-error">{{ formError }}</p>
-                    <button type="button" class="ka-btn ka-btn-primary ka-sup-submit" :disabled="saving" @click="saveEdit">{{ saving ? "…" : t.save }}</button>
-                </div>
+                    <button type="submit" class="ka-btn ka-btn-primary ka-sup-submit" :disabled="saving">{{ saving ? "…" : t.save }}</button>
+                </form>
             </div>
         </div>
     </div>
@@ -114,7 +121,7 @@ export default {
             createDialog: false,
             editDialog: false,
             form: blank(),
-            edit: { id: null, role_id: "", is_active: true },
+            edit: { id: null, name: "", email: "", password: "", phone: "", job_title: "", department: "", role_id: "", is_active: true },
             error: "",
             formError: "",
         };
@@ -143,6 +150,7 @@ export default {
                     fullName: "Full name",
                     email: "Email",
                     password: "Temporary password",
+                    passwordEdit: "New password (leave empty to keep current)",
                     phone: "Phone",
                     job: "Job title",
                     department: "Department",
@@ -150,8 +158,8 @@ export default {
                     none: "No role",
                     needRole: "Create a role first from Roles and permissions.",
                     create: "Create employee",
-                    editTitle: "Edit employee role",
-                    editLead: "Change the assigned role. Only one role is allowed.",
+                    editTitle: "Edit employee",
+                    editLead: "Update the employee details, job title, role and password.",
                     save: "Save",
                 };
             }
@@ -172,17 +180,18 @@ export default {
                 createLead: "اختر دوراً واحداً. صلاحيات الدور تحدد ما يراه الموظف في القائمة.",
                 fullName: "الاسم الكامل",
                 email: "البريد الإلكتروني",
-                password: "كلمة المرور المؤقتة",
-                phone: "الجوال",
-                job: "المسمى الوظيفي",
-                department: "القسم",
-                pickRole: "اختر دوراً",
-                none: "بدون دور",
-                needRole: "أنشئ دوراً أولاً من صفحة الأدوار والصلاحيات.",
-                create: "إنشاء الموظف",
-                editTitle: "تعديل دور الموظف",
-                editLead: "غيّر الدور المسند. دور واحد فقط لكل موظف.",
-                save: "حفظ",
+                    password: "كلمة المرور المؤقتة",
+                    passwordEdit: "كلمة مرور جديدة (اتركها فارغة للإبقاء على الحالية)",
+                    phone: "الجوال",
+                    job: "المسمى الوظيفي",
+                    department: "القسم",
+                    pickRole: "اختر دوراً",
+                    none: "بدون دور",
+                    needRole: "أنشئ دوراً أولاً من صفحة الأدوار والصلاحيات.",
+                    create: "إنشاء الموظف",
+                    editTitle: "تعديل الموظف",
+                    editLead: "عدّل الاسم والبريد والمسمى الوظيفي والدور وكلمة المرور.",
+                    save: "حفظ",
             };
         },
     },
@@ -221,14 +230,22 @@ export default {
             }
         },
         openCreate() {
+            if (!this.can("staff.create")) return;
             this.form = blank();
             this.formError = "";
             this.createDialog = true;
         },
         openEdit(person) {
+            if (!this.can("staff.edit")) return;
             this.formError = "";
             this.edit = {
                 id: person.id,
+                name: person.name || "",
+                email: person.email || "",
+                password: "",
+                phone: person.phone || "",
+                job_title: person.job_title || "",
+                department: person.department || "",
                 role_id: person.role_id ? String(person.role_id) : "",
                 is_active: person.is_active,
             };
@@ -260,6 +277,12 @@ export default {
             try {
                 const response = await axios.post("KaheelStaff/save", {
                     id: this.edit.id,
+                    name: this.edit.name,
+                    email: this.edit.email,
+                    password: this.edit.password,
+                    phone: this.edit.phone,
+                    job_title: this.edit.job_title,
+                    department: this.edit.department,
                     role_id: this.edit.role_id || null,
                     is_active: this.edit.is_active,
                 });
@@ -281,6 +304,11 @@ export default {
             try {
                 const response = await axios.post("KaheelStaff/save", {
                     id: person.id,
+                    name: person.name,
+                    email: person.email,
+                    phone: person.phone,
+                    job_title: person.job_title,
+                    department: person.department,
                     role_id: person.role_id || null,
                     is_active: !person.is_active,
                 });

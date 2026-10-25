@@ -336,5 +336,6 @@
 
         applyLang(localStorage.getItem("forma-lang") === "en" ? "en" : "ar");
     </script>
+    @include('kaheel.partials.native-validation')
 </body>
 </html>

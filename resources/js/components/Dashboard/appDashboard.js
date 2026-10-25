@@ -8,6 +8,7 @@ import store from "../../store.js";
 // import Select2 from 'vue3-select2-component';
 // import { createI18n } from "vue-i18n";
 import AppDashboard from "./layout/AppDashboard.vue";
+import { kaheelCanMixin } from "../../utils/kaheelCan";
 // import en from "../../../locales/en.json";
 // import ar from "../../../locales/ar.json";
 
@@ -21,6 +22,7 @@ import AppDashboard from "./layout/AppDashboard.vue";
 //     messages: { en, ar },
 // });
 const dashboardApp = createApp(AppDashboard);
+dashboardApp.mixin(kaheelCanMixin);
 
 // dashboardApp.component('v-runtime-template', VRuntimeTemplate);
 

@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="<?php echo e(asset('kaheel/home.css')); ?>?v=12" rel="stylesheet">
+    <link href="<?php echo e(asset('kaheel/home.css')); ?>?v=35" rel="stylesheet">
 </head>
 <body>
     <header class="site-header">
@@ -26,6 +26,7 @@
             <nav class="nav" aria-label="main">
                 <a class="btn btn-sm nav-home" href="<?php echo e($home); ?>" data-ar="الرئيسية" data-en="Home">الرئيسية</a>
                 <?php echo $__env->make('kaheel.partials.role-links', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+                <?php echo $__env->make('kaheel.partials.notice-bell', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                 <button class="btn btn-sm" type="button" id="lang-toggle" aria-label="language">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="m5 8 6 6"/>
@@ -58,7 +59,7 @@
 
         <section class="pkg-prices">
             <h2 data-ar="جدول الأسعار" data-en="Price list">جدول الأسعار</h2>
-            <div class="tier-grid">
+            <div class="tier-grid" style="--tier-count: <?php echo e(max(1, $package->tiers->count())); ?>">
                 <?php $__currentLoopData = $package->tiers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $tier): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <div class="tier-card">
                         <p class="tier-name" data-ar="<?php echo e($tier->name_ar); ?>" data-en="<?php echo e($tier->name_en); ?>"><?php echo e($tier->name_ar); ?></p>
@@ -88,7 +89,7 @@
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </div>
             <p class="pkg-note" data-ar="<?php echo e($deliveryAr); ?>" data-en="<?php echo e($deliveryEn); ?>"><?php echo e($deliveryAr); ?></p>
-            <a class="btn btn-lg btn-primary pkg-order" href="<?php echo e(url(app()->getLocale().'/auth?pkg='.$package->code.'&redirect=/order')); ?>" data-ar="اطلب الآن" data-en="Order now">اطلب الآن</a>
+            <a class="btn btn-lg btn-primary pkg-order" href="<?php echo e(kaheel_order_start_url($package->code)); ?>" data-ar="اطلب الآن" data-en="Order now">اطلب الآن</a>
         </section>
     </main>
 
@@ -115,6 +116,7 @@
             applyLang(root.lang === "ar" ? "en" : "ar");
         });
     </script>
+    <?php echo $__env->make('kaheel.partials.native-validation', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 </body>
 </html>
 <?php /**PATH E:\kaheel\resources\views/kaheel/package.blade.php ENDPATH**/ ?>

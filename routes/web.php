@@ -554,6 +554,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('KaheelAlternatives/getAllItems', [App\Http\Controllers\Kaheel\AlternativeController::class, 'index']);
         Route::post('KaheelAlternatives/save', [App\Http\Controllers\Kaheel\AlternativeController::class, 'save']);
 
+        Route::get('KaheelCategories/getAllItems', [App\Http\Controllers\Kaheel\CategoryController::class, 'index']);
+        Route::post('KaheelCategories/save', [App\Http\Controllers\Kaheel\CategoryController::class, 'save']);
+        Route::post('KaheelCategories/delete', [App\Http\Controllers\Kaheel\CategoryController::class, 'delete']);
+
 
 
 

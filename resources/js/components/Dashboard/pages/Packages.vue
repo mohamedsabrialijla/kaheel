@@ -6,7 +6,7 @@
                 <h1>{{ t.title }}</h1>
                 <p class="ka-sup-lead">{{ t.lead }}</p>
             </div>
-            <button type="button" class="ka-btn ka-btn-primary" @click="openPackage(null)">
+            <button v-if="can('packages.create')" type="button" class="ka-btn ka-btn-primary" @click="openPackage(null)">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 {{ t.newPackage }}
             </button>
@@ -29,7 +29,7 @@
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>
                         {{ t.subs }}
                     </p>
-                    <button type="button" class="ka-btn ka-btn-outline ka-btn-inline" @click="openTier(pkg, null)">
+                    <button v-if="can('packages.create')" type="button" class="ka-btn ka-btn-outline ka-btn-inline" @click="openTier(pkg, null)">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                         {{ t.newTier }}
                     </button>
@@ -55,15 +55,15 @@
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h13"/><path d="M13 12h8"/><path d="M13 19h8"/><path d="M3 10a2 2 0 0 0 2 2h3"/><path d="M3 5v12a2 2 0 0 0 2 2h3"/></svg>
                                 {{ t.items }} ({{ tier.items.length }})
                             </button>
-                            <button type="button" class="ka-btn ka-btn-ghost" @click="openTier(pkg, tier)">
+                            <button v-if="can('packages.edit')" type="button" class="ka-btn ka-btn-ghost" @click="openTier(pkg, tier)">
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
                                 {{ t.edit }}
                             </button>
-                            <select v-if="pkg.tiers.length > 1" class="ka-pkg-copy" @change="copyItems($event, tier)">
+                            <select v-if="can('packages.edit') && pkg.tiers.length > 1" class="ka-pkg-copy" @change="copyItems($event, tier)">
                                 <option value="">{{ t.copyFrom }}</option>
                                 <option v-for="other in pkg.tiers.filter(row => row.id !== tier.id)" :key="other.id" :value="other.id">{{ nameOf(other) }}</option>
                             </select>
-                            <button type="button" class="ka-btn ka-btn-ghost is-danger" @click="removeTier(tier)">
+                            <button v-if="can('packages.delete')" type="button" class="ka-btn ka-btn-ghost is-danger" @click="removeTier(tier)">
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                                 {{ t.remove }}
                             </button>
@@ -72,16 +72,16 @@
                 </ul>
 
                 <p class="ka-pkg-orders">{{ t.orders }}: {{ pkg.ordersCount }}</p>
-                <div class="ka-pkg-actions">
-                    <button type="button" class="ka-btn ka-btn-outline ka-btn-inline" @click="openPackage(pkg)">
+                <div v-if="can('packages.edit') || can('packages.delete')" class="ka-pkg-actions">
+                    <button v-if="can('packages.edit')" type="button" class="ka-btn ka-btn-outline ka-btn-inline" @click="openPackage(pkg)">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
                         {{ t.editPackage }}
                     </button>
-                    <button type="button" class="ka-btn ka-btn-ghost" @click="togglePackage(pkg)">
+                    <button v-if="can('packages.edit')" type="button" class="ka-btn ka-btn-ghost" @click="togglePackage(pkg)">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg>
                         {{ pkg.is_active ? t.disable : t.enable }}
                     </button>
-                    <button type="button" class="ka-btn ka-btn-ghost is-danger" @click="removePackage(pkg)">
+                    <button v-if="can('packages.delete')" type="button" class="ka-btn ka-btn-ghost is-danger" @click="removePackage(pkg)">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         {{ t.remove }}
                     </button>
@@ -134,38 +134,42 @@
                 <button type="button" class="ka-sup-x" aria-label="Close" @click="itemsDialog = false"><svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
                 <h2>{{ t.itemsOf }} — {{ nameOf(itemsTier) }}</h2>
                 <p class="ka-sup-muted">{{ t.itemsLead }}</p>
+                <form class="ka-items-form" @submit.prevent="saveItems">
+                <fieldset :disabled="!can('packages.edit')">
                 <div class="ka-item" v-for="(item, index) in itemRows" :key="index">
                     <div class="ka-item-grid">
                         <label class="ka-field"><span>{{ t.category }}</span>
-                            <select v-model="item.category">
+                            <select v-model="item.category" required>
                                 <option v-for="cat in categories" :key="cat.code" :value="cat.code">{{ locale === "ar" ? cat.ar : cat.en }}</option>
                             </select>
                         </label>
-                        <label class="ka-field"><span>{{ t.itemAr }}</span><input v-model="item.name_ar"></label>
-                        <label class="ka-field"><span>{{ t.itemEn }}</span><input v-model="item.name_en"></label>
-                        <label class="ka-field"><span>{{ t.product }}</span><input v-model="item.product_name_ar" @input="item.product_name_en = item.product_name_ar"></label>
+                        <label class="ka-field"><span>{{ t.itemAr }}</span><input v-model="item.name_ar" required></label>
+                        <label class="ka-field"><span>{{ t.itemEn }}</span><input v-model="item.name_en" required></label>
+                        <label class="ka-field"><span>{{ t.product }}</span><input v-model="item.product_name_ar" required @input="item.product_name_en = item.product_name_ar"></label>
                         <div class="ka-item-split">
-                            <label class="ka-field"><span>{{ t.detailAr }}</span><textarea v-model="item.detail_ar" rows="2"></textarea></label>
-                            <label class="ka-field"><span>{{ t.detailEn }}</span><textarea v-model="item.detail_en" rows="2"></textarea></label>
+                            <label class="ka-field"><span>{{ t.detailAr }}</span><textarea v-model="item.detail_ar" rows="2" required></textarea></label>
+                            <label class="ka-field"><span>{{ t.detailEn }}</span><textarea v-model="item.detail_en" rows="2" required></textarea></label>
                         </div>
-                        <label class="ka-field"><span>{{ t.qty }}</span><input v-model="item.quantity" type="number" step="0.01"></label>
-                        <label class="ka-field"><span>{{ t.unitAr }}</span><input v-model="item.unit_label_ar"></label>
-                        <label class="ka-field"><span>{{ t.unitEn }}</span><input v-model="item.unit_label_en"></label>
-                        <label class="ka-field"><span>{{ t.extraPrice }}</span><input v-model="item.price_per_unit" type="number" step="0.01"></label>
+                        <label class="ka-field"><span>{{ t.qty }}</span><input v-model="item.quantity" type="number" step="0.01" min="0.01" required></label>
+                        <label class="ka-field"><span>{{ t.unitAr }}</span><input v-model="item.unit_label_ar" required></label>
+                        <label class="ka-field"><span>{{ t.unitEn }}</span><input v-model="item.unit_label_en" required></label>
+                        <label class="ka-field"><span>{{ t.extraPrice }}</span><input v-model="item.price_per_unit" type="number" step="0.01" min="0" required></label>
                     </div>
                     <div class="ka-item-foot">
-                        <label class="ka-check"><input v-model="item.allow_alternatives" type="checkbox">{{ t.swap }}</label>
-                        <div>
+                        <label class="ka-check"><input v-model="item.allow_alternatives" type="checkbox" :disabled="!can('packages.edit')">{{ t.swap }}</label>
+                        <div v-if="can('packages.edit')">
                             <button type="button" class="ka-btn ka-btn-ghost" @click="duplicateItem(index)">{{ t.duplicate }}</button>
                             <button type="button" class="ka-btn ka-btn-ghost is-danger" @click="itemRows.splice(index, 1)">{{ t.remove }}</button>
                         </div>
                     </div>
                 </div>
-                <div class="ka-pkg-actions">
+                <div v-if="can('packages.edit')" class="ka-pkg-actions">
                     <button type="button" class="ka-btn ka-btn-outline ka-btn-inline" @click="itemRows.push(blankItem())">{{ t.addItem }}</button>
-                    <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="saveItems">{{ saving ? "…" : t.saveItems }}</button>
+                    <button type="submit" class="ka-btn ka-btn-primary" :disabled="saving">{{ saving ? "…" : t.saveItems }}</button>
                 </div>
                 <p v-if="formError" class="ka-sup-error">{{ formError }}</p>
+                </fieldset>
+                </form>
             </div>
         </div>
     </div>
@@ -174,7 +178,7 @@
 <script>
 import axios from "axios";
 
-const categories = [
+const fallbackCategories = [
     { code: "furniture", ar: "أثاث", en: "Furniture" },
     { code: "kitchen", ar: "مطبخ", en: "Kitchen" },
     { code: "wardrobe", ar: "دواليب", en: "Wardrobes" },
@@ -216,7 +220,7 @@ export default {
             tierPackageId: null,
             itemsTier: {},
             itemRows: [],
-            categories,
+            categories: fallbackCategories,
         };
     },
     computed: {
@@ -256,7 +260,8 @@ export default {
                 costField: "Supplier cost",
                 saveTier: "Save sub-package",
                 itemsOf: "Items of",
-                itemsLead: "Define each item: category, name, product, quantity and unit. The unit price is used when the customer requests extra quantity.",
+                itemsLead: "All item fields are required: category, names, product, details, quantity and unit. The unit price is used when the customer requests extra quantity.",
+                itemsRequired: "Fill every field in each item before saving.",
                 category: "Category",
                 itemAr: "Item name (AR)",
                 itemEn: "Item name (EN)",
@@ -303,7 +308,8 @@ export default {
                 costField: "تكلفة المورد",
                 saveTier: "حفظ الباقة الفرعية",
                 itemsOf: "عناصر",
-                itemsLead: "حدّد كل عنصر داخل الباقة الفرعية: الفئة، الاسم، المنتج، العدد، ووحدة القياس. سعر الوحدة الإضافية يُستخدم عند طلب العميل زيادة الكمية.",
+                itemsLead: "جميع حقول العنصر إلزامية: الفئة، الاسم، المنتج، التفاصيل، العدد، ووحدة القياس. سعر الوحدة الإضافية يُستخدم عند طلب العميل زيادة الكمية.",
+                itemsRequired: "أكمل كل الحقول في كل عنصر قبل الحفظ.",
                 category: "الفئة",
                 itemAr: "اسم العنصر (عربي)",
                 itemEn: "اسم العنصر (إنجليزي)",
@@ -352,8 +358,12 @@ export default {
         async load() {
             this.loading = true;
             try {
-                const response = await axios.get("KaheelPackages/getAllItems");
-                this.rows = response.data.items || [];
+                const [packages, cats] = await Promise.all([
+                    axios.get("KaheelPackages/getAllItems"),
+                    axios.get("KaheelCategories/getAllItems"),
+                ]);
+                this.rows = packages.data.items || [];
+                if (cats.data.items?.length) this.categories = cats.data.items;
             } finally {
                 this.loading = false;
             }
@@ -416,14 +426,29 @@ export default {
                 this.saving = false;
             }
         },
+        itemComplete(item) {
+            const text = ["category", "name_ar", "name_en", "product_name_ar", "detail_ar", "detail_en", "unit_label_ar", "unit_label_en"];
+            return text.every((key) => String(item[key] || "").trim() !== "")
+                && Number(item.quantity) > 0
+                && item.price_per_unit !== "" && item.price_per_unit !== null && Number(item.price_per_unit) >= 0;
+        },
         async saveItems() {
             this.saving = true;
             this.formError = "";
+            const items = this.itemRows.map((item) => ({
+                ...item,
+                product_name_en: String(item.product_name_en || item.product_name_ar || "").trim(),
+            }));
+            if (items.some((item) => !this.itemComplete(item))) {
+                this.formError = this.t.itemsRequired;
+                this.saving = false;
+                return;
+            }
             try {
                 await axios.post("KaheelPackages/saveItems", {
                     tier_id: this.itemsTier.id,
                     package_id: this.tierPackageId,
-                    items: this.itemRows,
+                    items,
                 });
                 this.itemsDialog = false;
                 await this.load();

@@ -104,18 +104,22 @@
                 <table class="ka-table mid">
                     <thead>
                         <tr>
-                            <th v-for="col in savingCols" :key="col">{{ col }}</th>
+                            <th>{{ t.unitType }}</th>
+                            <th>{{ t.beds }}</th>
+                            <th v-for="pack in catalog" :key="'h-' + pack.id">{{ packName(pack) }}</th>
+                            <th>{{ t.customerSaving }}</th>
+                            <th>{{ t.choiceImpact }}</th>
                         </tr>
                     </thead>
                     <tbody>
+                        <tr v-if="!catalog.length">
+                            <td class="ka-empty" :colspan="4">{{ t.noData }}</td>
+                        </tr>
                         <tr v-for="row in units" :key="row.type">
                             <td>{{ row.type }}</td>
                             <td>{{ row.beds }}</td>
-                            <td>{{ num(row.vip) }}</td>
-                            <td>{{ num(row.classic) }}</td>
-                            <td class="ka-primary">{{ num(row.vip - row.classic) }}</td>
-                            <td>—</td>
-                            <td>—</td>
+                            <td v-for="pack in catalog" :key="pack.id + '-' + row.type">{{ priceCell(pack, row.type) }}</td>
+                            <td class="ka-primary">{{ savingCell(row.type) }}</td>
                             <td>—</td>
                         </tr>
                     </tbody>
@@ -125,12 +129,13 @@
 
         <section class="ka-panel">
             <h2 class="ka-section-title">{{ t.packagesTitle }}</h2>
-            <div class="ka-mix">
-                <article v-for="pack in packages" :key="pack">
-                    <h3>{{ pack }}</h3>
-                    <p class="muted">{{ t.ordersLabel }}: 0</p>
-                    <p>{{ t.revenueLabel }}: {{ money(0) }}</p>
-                    <p class="muted">{{ t.costLabel }}: {{ money(0) }}</p>
+            <p v-if="!catalog.length" class="muted">{{ t.noData }}</p>
+            <div v-else class="ka-mix">
+                <article v-for="pack in catalog" :key="pack.id">
+                    <h3>{{ packName(pack) }}</h3>
+                    <p class="muted">{{ t.ordersLabel }}: {{ pack.ordersCount || 0 }}</p>
+                    <p>{{ t.revenueLabel }}: {{ money(pack.sales || 0) }}</p>
+                    <p class="muted">{{ t.costLabel }}: {{ money(pack.cost || 0) }}</p>
                 </article>
             </div>
         </section>
@@ -138,9 +143,16 @@
 </template>
 
 <script>
+import axios from "axios";
+
 const icon = (inner) => `<svg viewBox="0 0 24 24" aria-hidden="true">${inner}</svg>`;
 
 export default {
+    data() {
+        return {
+            catalog: [],
+        };
+    },
     computed: {
         locale() {
             return this.$route.params.locale === "en" ? "en" : "ar";
@@ -191,6 +203,10 @@ export default {
                     deviation: "متوسط الانحراف —",
                     late: "طلبات متأخرة",
                     ready: "جاهزة للتسليم 0",
+                    unitType: "نوع الوحدة",
+                    beds: "غرف",
+                    customerSaving: "توفير العميل",
+                    choiceImpact: "أثر الاختيار",
                 };
             }
             return {
@@ -227,6 +243,10 @@ export default {
                 deviation: "Avg deviation —",
                 late: "Late orders",
                 ready: "0 ready",
+                unitType: "Unit type",
+                beds: "Bedrooms",
+                customerSaving: "Customer saving",
+                choiceImpact: "Profit impact",
             };
         },
         kpis() {
@@ -276,26 +296,56 @@ export default {
                 ? ["المورد", "الطلبات", "المبيعات", "التكلفة", "النسبة", "العمولة", "الالتزام", "الانحراف", "متأخرة"]
                 : ["Supplier", "Orders", "Revenue", "Cost", "Rate", "Commission", "On-time", "Deviation", "Late"];
         },
-        savingCols() {
-            return this.ar
-                ? ["نوع الوحدة", "غرف", "VIP", "CLASSIC", "توفير العميل", "ربح VIP", "ربح CLASSIC", "أثر الاختيار"]
-                : ["Unit type", "Bedrooms", "VIP", "CLASSIC", "Customer saving", "VIP profit", "CLASSIC profit", "Profit impact"];
-        },
-        packages() {
-            return this.ar ? ["باقة VIP", "باقة Classic"] : ["VIP Package", "Classic Package"];
-        },
         units() {
             return [
-                { type: "A", beds: 1, vip: 119135.48, classic: 98974.09 },
-                { type: "B", beds: 2, vip: 173061.89, classic: 148583.74 },
-                { type: "C", beds: 2, vip: 173061.89, classic: 148583.74 },
-                { type: "G", beds: 2, vip: 173061.89, classic: 148583.74 },
-                { type: "D", beds: 3, vip: 191196.59, classic: 165042.11 },
-                { type: "F", beds: 3, vip: 191196.59, classic: 165042.11 },
+                { type: "A", beds: 1 },
+                { type: "B", beds: 2 },
+                { type: "C", beds: 2 },
+                { type: "G", beds: 2 },
+                { type: "D", beds: 3 },
+                { type: "F", beds: 3 },
             ];
         },
     },
+    mounted() {
+        this.loadPackages();
+    },
     methods: {
+        packName(pack) {
+            return this.ar ? (pack.name_ar || pack.code) : (pack.name_en || pack.code);
+        },
+        unitPrice(pack, type) {
+            const letter = String(type || "").toUpperCase();
+            const tiers = pack.tiers || [];
+            const match = tiers.find((tier) => {
+                const hay = `${tier.name_ar || ""} ${tier.name_en || ""}`.toUpperCase();
+                return hay.includes("نوع " + letter)
+                    || hay.includes("TYPE " + letter)
+                    || hay.includes("TYPES " + letter)
+                    || hay.includes("· " + letter)
+                    || hay.includes(" " + letter + " ")
+                    || hay.includes(" " + letter + "·")
+                    || hay.endsWith(" " + letter);
+            });
+            return match ? Number(match.price_incl_vat || 0) : null;
+        },
+        priceCell(pack, type) {
+            const price = this.unitPrice(pack, type);
+            return price == null ? "—" : this.num(price);
+        },
+        savingCell(type) {
+            const prices = this.catalog.map((pack) => this.unitPrice(pack, type)).filter((value) => value != null);
+            if (prices.length < 2) return "—";
+            return this.num(Math.max(...prices) - Math.min(...prices));
+        },
+        async loadPackages() {
+            try {
+                const response = await axios.get("KaheelPackages/getAllItems");
+                this.catalog = response.data.items || [];
+            } catch (error) {
+                this.catalog = [];
+            }
+        },
         num(value) {
             return Number(value || 0).toLocaleString("en-US", {
                 minimumFractionDigits: 2,

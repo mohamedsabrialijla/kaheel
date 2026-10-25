@@ -6,7 +6,7 @@
                 <h1>{{ t.title }}</h1>
                 <p class="ka-sup-lead">{{ t.lead }}</p>
             </div>
-            <button type="button" class="ka-btn ka-btn-primary" @click="openRole(null)">
+            <button v-if="can('roles.create')" type="button" class="ka-btn ka-btn-primary" @click="openRole(null)">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 {{ t.newRole }}
             </button>
@@ -23,12 +23,12 @@
                 <ul class="ka-role-tags">
                     <li v-for="code in role.permissions.slice(0, 6)" :key="code">{{ labelOf(code) }}</li>
                 </ul>
-                <div class="ka-role-actions">
-                    <button type="button" class="ka-btn ka-btn-outline ka-btn-inline" @click="openRole(role)">
+                <div v-if="can('roles.edit') || can('roles.delete')" class="ka-role-actions">
+                    <button v-if="can('roles.edit')" type="button" class="ka-btn ka-btn-outline ka-btn-inline" @click="openRole(role)">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
                         {{ t.edit }}
                     </button>
-                    <button type="button" class="ka-btn ka-btn-ghost ka-btn-inline is-danger" @click="remove(role)">
+                    <button v-if="can('roles.delete')" type="button" class="ka-btn ka-btn-ghost ka-btn-inline is-danger" @click="remove(role)">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         {{ t.remove }}
                     </button>

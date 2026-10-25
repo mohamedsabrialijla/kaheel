@@ -17,7 +17,8 @@ class KaheelOrder extends Model
         'unit_id', 'unit_no', 'bedrooms_number', 'squar_meters', 'unit_snapshot',
         'price_excl', 'price_incl', 'deposit_percent', 'deposit_amount', 'addons_total',
         'contract_body', 'signature', 'design_components', 'design_signature', 'design_signed_at', 'supplier_assignments',
-        'status', 'design_status', 'payment_method', 'payment_status', 'payment_note', 'final_payment_status',
+        'status', 'design_status', 'payment_method', 'payment_status', 'payment_note',
+        'final_payment_status', 'final_payment_method', 'final_payment_note',
     ];
 
     protected $casts = [
@@ -71,7 +72,7 @@ class KaheelOrder extends Model
             return 0;
         }
 
-        $status = $this->status === 'awaiting_approval' ? 'admin_review' : $this->status;
+        $status = $this->listedStatus();
         $index = array_search($status, self::workflow(), true);
 
         return $index === false ? 0 : $index + 1;
@@ -91,6 +92,15 @@ class KaheelOrder extends Model
             return ['ar' => 'الدفع مرفوض', 'en' => 'Payment rejected'];
         }
 
+        if ($this->status === 'final_payment') {
+            if ($this->final_payment_status === 'pending') {
+                return ['ar' => 'بانتظار تأكيد السداد النهائي', 'en' => 'Final payment under review'];
+            }
+            if ($this->final_payment_status === 'rejected') {
+                return ['ar' => 'السداد النهائي مرفوض', 'en' => 'Final payment rejected'];
+            }
+        }
+
         $step = $this->progressStep();
         if ($step === 0) {
             return ['ar' => 'بانتظار العربون', 'en' => 'Awaiting deposit'];
@@ -99,9 +109,39 @@ class KaheelOrder extends Model
         return self::stageCopy()[$step - 1];
     }
 
+    public function listedStatus(): string
+    {
+        if ($this->status === 'awaiting_approval') {
+            return 'admin_review';
+        }
+        if ($this->status === 'final_payment' && $this->final_payment_status === 'approved') {
+            return 'final_approval';
+        }
+
+        return (string) $this->status;
+    }
+
+    public function promoteApprovedFinalPayment(): void
+    {
+        if ($this->status !== 'final_payment' || $this->final_payment_status !== 'approved') {
+            return;
+        }
+
+        $from = $this->status;
+        $this->status = 'final_approval';
+        $this->save();
+        $this->events()->create([
+            'order_id' => $this->id,
+            'from_status' => $from,
+            'to_status' => $this->status,
+            'note' => 'تم تأكيد السداد النهائي',
+            'actor_name' => optional($this->events()->latest('id')->first())->actor_name ?: 'admin',
+        ]);
+    }
+
     public function nextStatus(): ?string
     {
-        $index = array_search($this->status === 'awaiting_approval' ? 'admin_review' : $this->status, self::workflow(), true);
+        $index = array_search($this->listedStatus(), self::workflow(), true);
         if ($index === false) {
             return null;
         }

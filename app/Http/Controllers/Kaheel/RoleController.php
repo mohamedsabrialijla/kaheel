@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Kaheel;
 
-use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Support\KaheelPermissions;
 use Illuminate\Http\Request;
@@ -10,8 +9,19 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 
-class RoleController extends Controller
+class RoleController extends KaheelAdminController
 {
+    protected function kaheelPermissionFor(string $method, $request): ?string
+    {
+        return match ($method) {
+            'index' => 'roles.view',
+            'save' => $request->filled('id') ? 'roles.edit' : 'roles.create',
+            'delete' => 'roles.delete',
+            'assign' => 'staff.edit',
+            default => null,
+        };
+    }
+
     public function index()
     {
         return mainResponse(true, 'Success', $this->payload(), 200, 'items', '');
@@ -29,7 +39,7 @@ class RoleController extends Controller
         )));
 
         if ($nameAr === '' || $nameEn === '') {
-            return mainResponse(false, 'Name is required', null, 422, 'items', '');
+            return mainResponse(false, kaheel_msg('الاسم بالعربية والإنجليزية مطلوب.', 'Name is required.'), null, 422, 'items', '');
         }
 
         $permissionIds = DB::table('permissions')
@@ -43,7 +53,7 @@ class RoleController extends Controller
         if ($roleId) {
             $role = DB::table('roles')->where('id', $roleId)->whereNotNull('name_ar')->first();
             if (!$role) {
-                return mainResponse(false, 'Role not found', null, 404, 'items', '');
+                return mainResponse(false, kaheel_msg('الدور غير موجود.', 'Role not found.'), null, 404, 'items', '');
             }
             DB::table('roles')->where('id', $roleId)->update([
                 'name' => $slug,
@@ -88,7 +98,7 @@ class RoleController extends Controller
         $roleId = $request->input('id');
         $role = DB::table('roles')->where('id', $roleId)->whereNotNull('name_ar')->first();
         if (!$role) {
-            return mainResponse(false, 'Role not found', null, 404, 'items', '');
+            return mainResponse(false, kaheel_msg('الدور غير موجود.', 'Role not found.'), null, 404, 'items', '');
         }
 
         DB::table('role_has_permissions')->where('role_id', $roleId)->delete();
@@ -109,12 +119,12 @@ class RoleController extends Controller
             ->first();
 
         if (!$admin || $admin->account_role === 'admin') {
-            return mainResponse(false, 'This account cannot be assigned', null, 422, 'items', '');
+            return mainResponse(false, kaheel_msg('لا يمكن تعيين دور لهذا الحساب.', 'This account cannot be assigned.'), null, 422, 'items', '');
         }
 
         $roleId = $request->input('role_id') ?: null;
         if ($roleId && !DB::table('roles')->where('id', $roleId)->whereNotNull('name_ar')->where('is_active', true)->exists()) {
-            return mainResponse(false, 'Role not found', null, 404, 'items', '');
+            return mainResponse(false, kaheel_msg('الدور غير موجود.', 'Role not found.'), null, 404, 'items', '');
         }
 
         $this->syncRole((int) $admin->id, $roleId ? (int) $roleId : null);

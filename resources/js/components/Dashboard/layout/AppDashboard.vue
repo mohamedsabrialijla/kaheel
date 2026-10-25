@@ -25,7 +25,7 @@
                     </div>
                 </div>
                 <div class="ka-head-actions">
-                    <div class="ka-notice">
+                    <div v-if="can('orders.view')" class="ka-notice">
                         <button type="button" class="ka-icon-btn" :aria-label="t.notices" @click.stop="noticeOpen = !noticeOpen">
                             <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                             <span v-if="noticeTotal" class="ka-unread">{{ noticeTotal }}</span>
@@ -70,6 +70,7 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
+import { isKaheelFullAdmin, kaheelCan } from "../../../utils/kaheelCan";
 
 const svg = (inner) => `<svg viewBox="0 0 24 24" aria-hidden="true">${inner}</svg>`;
 
@@ -99,16 +100,11 @@ export default {
             return this.$route.params.locale || "ar";
         },
         isFullAdmin() {
-            const user = this.getUser || {};
-            return user.account_role === "admin" || (!user.staff_sort && user.account_role !== "admin_staff");
-        },
-        permissionCodes() {
-            const list = this.getUser?.role;
-            return Array.isArray(list) ? list : [];
+            return isKaheelFullAdmin(this.getUser);
         },
         visibleItems() {
             if (this.isFullAdmin) return this.items;
-            return this.items.filter((item) => this.permissionCodes.includes(item.key + ".view"));
+            return this.items.filter((item) => kaheelCan(this.getUser, item.key + ".view"));
         },
         t() {
             const ar = {
@@ -125,7 +121,8 @@ export default {
                 roles: "الأدوار والصلاحيات",
                 settings: "الإعدادات",
                 notices: "التنبيهات",
-                noNotices: "لا رسائل جديدة",
+                noNotices: "لا تنبيهات جديدة",
+                newMessage: "رسالة جديدة من العميل",
                 photo: "صورة",
                 video: "فيديو",
                 voice: "رسالة صوتية",
@@ -145,7 +142,8 @@ export default {
                 roles: "Roles",
                 settings: "Settings",
                 notices: "Notifications",
-                noNotices: "No new messages",
+                noNotices: "No new notifications",
+                newMessage: "New customer message",
                 photo: "Photo",
                 video: "Video",
                 voice: "Voice message",
@@ -155,6 +153,12 @@ export default {
         },
     },
     watch: {
+        getUser() {
+            this.guardPage();
+        },
+        "$route.fullPath"() {
+            this.guardPage();
+        },
         locale: {
             immediate: true,
             handler(locale) {
@@ -169,8 +173,10 @@ export default {
     },
     mounted() {
         document.body.classList.add("kaheel-admin");
-        this.fetchUser();
-        this.loadNotices();
+        this.fetchUser().then(() => {
+            this.guardPage();
+            this.loadNotices();
+        });
         this.noticeTimer = setInterval(() => this.loadNotices(), 8000);
         this._closeNotices = (event) => {
             if (!event.target.closest(".ka-notice")) this.noticeOpen = false;
@@ -183,7 +189,22 @@ export default {
     },
     methods: {
         ...mapActions(["fetchUser"]),
+        guardPage() {
+            const module = this.$route.meta.kaheel;
+            if (!module || !this.getUser) return;
+            if (this.can(module + ".view")) return;
+            const first = this.visibleItems[0];
+            const path = "/" + this.locale + (first ? first.to : "/dashboard");
+            if (this.$route.path !== path) {
+                this.$router.replace(path);
+            }
+        },
         async loadNotices() {
+            if (!this.can("orders.view")) {
+                this.noticeTotal = 0;
+                this.notices = [];
+                return;
+            }
             try {
                 const response = await axios.get("KaheelOrders/notices");
                 const data = response.data.items || {};
@@ -197,11 +218,13 @@ export default {
         },
         noticeBody(item) {
             if (item.body && String(item.body).trim()) return item.body;
-            return this.t[item.kind === "image" ? "photo" : item.kind === "audio" ? "voice" : item.kind === "pdf" ? "pdf" : item.kind === "video" ? "video" : ""] || "";
+            const kinds = { image: "photo", audio: "voice", pdf: "pdf", video: "video" };
+            return this.t[kinds[item.kind] || "newMessage"] || "";
         },
         openNotice(item) {
             this.noticeOpen = false;
-            this.$router.push({ path: "/" + this.locale + "/dashboard/orders/" + item.order_id, query: { chat: "1" } });
+            const query = item.chat === false ? {} : { chat: "1" };
+            this.$router.push({ path: "/" + this.locale + "/dashboard/orders/" + item.order_id, query });
         },
         toggleLang() {
             const next = this.locale === "ar" ? "en" : "ar";

@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=30" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=42" rel="stylesheet">
 </head>
 <body>
     @include('kaheel.partials.public-header')
@@ -26,13 +26,13 @@
         <section class="order-card">
             <h2 data-ar="الباقة المختارة" data-en="Selected package">الباقة المختارة</h2>
             <p class="order-lead" data-ar="اختر الباقة الأساسية أولاً، ثم اختر الباقة الفرعية وراجع عناصرها." data-en="Pick the main package first, then choose a sub-package and review its items.">اختر الباقة الأساسية أولاً، ثم اختر الباقة الفرعية وراجع عناصرها.</p>
-            <div class="order-grid cols-2" id="package-grid"></div>
+            <div class="order-grid" id="package-grid" style="--cols: 2"></div>
         </section>
 
         <section class="order-card" id="tier-section" hidden>
             <h2 data-ar="اختر الباقة الفرعية" data-en="Choose the sub-package">اختر الباقة الفرعية</h2>
             <p class="order-lead" data-ar="لكل باقة فرعية سعرها ومحتوياتها الخاصة." data-en="Each sub-package has its own price and contents.">لكل باقة فرعية سعرها ومحتوياتها الخاصة.</p>
-            <div class="order-grid cols-3" id="tier-grid"></div>
+            <div class="order-grid" id="tier-grid" style="--cols: 3"></div>
         </section>
 
         <section class="order-card" id="items-section" hidden>
@@ -42,22 +42,22 @@
 
         <section class="order-card">
             <h2 data-ar="اختر المشروع" data-en="Select project">اختر المشروع</h2>
-            <div class="order-grid cols-3" id="compound-grid"></div>
+            <div class="order-grid" id="compound-grid" style="--cols: 3"></div>
             <p class="order-lead" id="no-compounds" hidden data-ar="لا توجد مشاريع مرتبطة بحسابك" data-en="No projects linked to your account">لا توجد مشاريع مرتبطة بحسابك</p>
         </section>
 
         <section class="order-card" id="unit-section" hidden>
             <h2 data-ar="اختر الوحدة" data-en="Select unit">اختر الوحدة</h2>
-            <div class="order-grid cols-3" id="unit-grid"></div>
+            <div class="order-grid" id="unit-grid" style="--cols: 3"></div>
             <p class="order-lead" id="no-units" hidden data-ar="لا توجد وحدات في هذا المشروع" data-en="No units in this project">لا توجد وحدات في هذا المشروع</p>
         </section>
 
         <section class="order-card" id="review-section" hidden>
             <h2 data-ar="مراجعة الطلب" data-en="Order review">مراجعة الطلب</h2>
             <dl class="order-rows" id="review-rows"></dl>
-            <h3 data-ar="مخطط الوحدة" data-en="Unit plan">مخطط الوحدة</h3>
-            <input class="order-file" id="plans" type="file" accept="image/*,application/pdf" multiple>
-            <p class="order-lead" data-ar="حتى 5 ملفات، وكل ملف 20 ميغابايت كحد أقصى." data-en="Up to 5 files, 20 MB each.">حتى 5 ملفات، وكل ملف 20 ميغابايت كحد أقصى.</p>
+            <h3 data-ar="مخطط الوحدة (إلزامي)" data-en="Unit plan (required)">مخطط الوحدة (إلزامي)</h3>
+            <input class="order-file" id="plans" type="file" accept="image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif,.pdf,application/pdf" multiple required>
+            <p class="order-lead" data-ar="إلزامي. الصيغ المقبولة: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF. حتى 5 ملفات، 20 ميغابايت لكل ملف." data-en="Required. Accepted formats: JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC, AVIF, and PDF. Up to 5 files, 20 MB each.">إلزامي. الصيغ المقبولة: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF. حتى 5 ملفات، 20 ميغابايت لكل ملف.</p>
             <h3 data-ar="العقد" data-en="Contract">العقد</h3>
             <pre class="order-contract" id="contract"></pre>
             <label class="order-agree">
@@ -155,6 +155,7 @@
             const unit = currentUnit();
             const packageGrid = document.getElementById("package-grid");
             packageGrid.replaceChildren();
+            packageGrid.style.setProperty("--cols", String(Math.max(1, config.catalog.length)));
             config.catalog.forEach((row) => {
                 const prices = row.tiers.map((item) => Number(item.price_incl_vat));
                 const range = prices.length ? money(Math.min(...prices)) + " — " + money(Math.max(...prices)) + (lang === "ar" ? " ريال" : " SAR") : "";
@@ -171,6 +172,7 @@
             const tierGrid = document.getElementById("tier-grid");
             tierSection.hidden = !pkg;
             tierGrid.replaceChildren();
+            tierGrid.style.setProperty("--cols", String(Math.max(1, (pkg?.tiers || []).length)));
             (pkg?.tiers || []).forEach((row) => {
                 const node = button("", tier && tier.id === row.id, pick(row, "name"), [
                     pick(row, "description"),
@@ -219,6 +221,7 @@
 
             const compoundGrid = document.getElementById("compound-grid");
             compoundGrid.replaceChildren();
+            compoundGrid.style.setProperty("--cols", String(Math.min(4, Math.max(1, config.compounds.length || 3))));
             document.getElementById("no-compounds").hidden = config.compounds.length > 0;
             config.compounds.forEach((row) => {
                 const meta = [row.compound_number, row.short_name].filter(Boolean).join(" · ");
@@ -236,6 +239,7 @@
             unitSection.hidden = !compound;
             unitGrid.replaceChildren();
             const units = compound?.units || [];
+            unitGrid.style.setProperty("--cols", String(Math.min(4, Math.max(1, units.length || 3))));
             document.getElementById("no-units").hidden = !compound || units.length > 0;
             units.forEach((row) => {
                 const bits = [];
@@ -348,6 +352,9 @@
             refreshSubmit();
         });
         document.getElementById("agreed").addEventListener("change", refreshSubmit);
+        document.getElementById("plans").addEventListener("change", () => {
+            document.getElementById("plans").classList.toggle("is-missing", !document.getElementById("plans").files.length);
+        });
         function gateMessage() {
             const agreed = document.getElementById("agreed").checked;
             if (!agreed && !signed) {
@@ -383,14 +390,41 @@
                 hint.scrollIntoView({ block: "center" });
                 return;
             }
-            const files = Array.from(document.getElementById("plans").files || []);
+            const plansInput = document.getElementById("plans");
+            const files = Array.from(plansInput.files || []);
             const maxFile = 20 * 1024 * 1024;
+            const allowedFile = (file) => {
+                const name = file.name || "";
+                const type = file.type || "";
+                if (/\.(jpe?g|jfif|png|webp|gif|bmp|tiff?|heic|heif|avif|pdf)$/i.test(name)) return true;
+                if (type.startsWith("image/") && type !== "image/svg+xml") return true;
+                return type === "application/pdf" || type === "application/x-pdf";
+            };
+            if (!files.length) {
+                plansInput.classList.add("is-missing");
+                alertBox.hidden = false;
+                alertBox.className = "auth-alert is-error";
+                alertBox.textContent = lang === "ar"
+                    ? "مخطط الوحدة إلزامي. ارفع صورة أو ملف PDF للمخطط."
+                    : "The unit plan is required. Upload a plan image or PDF.";
+                plansInput.scrollIntoView({ block: "center" });
+                return;
+            }
+            plansInput.classList.remove("is-missing");
             if (files.length > 5 || files.some((file) => file.size > maxFile)) {
                 alertBox.hidden = false;
                 alertBox.className = "auth-alert is-error";
                 alertBox.textContent = lang === "ar"
                     ? "كل ملف يجب أن يكون 20 ميغابايت أو أقل، وبحد أقصى 5 ملفات. لم يُحفظ الطلب."
                     : "Each file must be 20 MB or less, with a maximum of 5 files. The order was not saved.";
+                return;
+            }
+            if (files.some((file) => !allowedFile(file))) {
+                alertBox.hidden = false;
+                alertBox.className = "auth-alert is-error";
+                alertBox.textContent = lang === "ar"
+                    ? "الصيغ المقبولة: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF."
+                    : "Accepted formats: JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC, AVIF, and PDF.";
                 return;
             }
             const body = new FormData();

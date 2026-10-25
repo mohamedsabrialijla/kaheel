@@ -94,6 +94,53 @@ class KaheelPermissions
         return $rows;
     }
 
+    public static function isFullAdmin($admin): bool
+    {
+        if (!$admin) {
+            return false;
+        }
+
+        $accountRole = $admin->account_role ?? null;
+
+        return $accountRole === 'admin'
+            || (empty($admin->staff_sort) && $accountRole !== 'admin_staff');
+    }
+
+    public static function codesFor($admin): array
+    {
+        if (!$admin) {
+            return [];
+        }
+        if (self::isFullAdmin($admin)) {
+            return self::codes();
+        }
+
+        $codes = $admin->role ?? [];
+
+        return is_array($codes) ? array_values($codes) : [];
+    }
+
+    public static function allows($admin, string $code): bool
+    {
+        if ($code === '' || !$admin) {
+            return false;
+        }
+        if (self::isFullAdmin($admin)) {
+            return true;
+        }
+
+        return in_array($code, self::codesFor($admin), true);
+    }
+
+    public static function denyUnless(string $code)
+    {
+        if (self::allows(auth('admin')->user(), $code)) {
+            return null;
+        }
+
+        return mainResponse(false, kaheel_msg('لا تملك صلاحية لهذا الإجراء.', 'You do not have permission for this action.'), null, 403, 'items', '');
+    }
+
     public static function groupedCatalog(iterable $permissions): array
     {
         $byCode = collect($permissions)->keyBy('name');

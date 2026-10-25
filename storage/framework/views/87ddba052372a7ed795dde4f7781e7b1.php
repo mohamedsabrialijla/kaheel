@@ -336,6 +336,7 @@
 
         applyLang(localStorage.getItem("forma-lang") === "en" ? "en" : "ar");
     </script>
+    <?php echo $__env->make('kaheel.partials.native-validation', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 </body>
 </html>
 <?php /**PATH E:\kaheel\resources\views/kaheel/auth.blade.php ENDPATH**/ ?>

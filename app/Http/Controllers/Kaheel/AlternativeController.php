@@ -2,13 +2,20 @@
 
 namespace App\Http\Controllers\Kaheel;
 
-use App\Http\Controllers\Controller;
 use App\Models\KaheelAlternative;
+use App\Models\KaheelCategory;
 use Illuminate\Http\Request;
 
-class AlternativeController extends Controller
+class AlternativeController extends KaheelAdminController
 {
-    public const CATEGORIES = ['furniture', 'kitchen', 'wardrobe', 'appliances', 'tv', 'curtains', 'accessories', 'soft', 'lighting'];
+    protected function kaheelPermissionFor(string $method, $request): ?string
+    {
+        return match ($method) {
+            'index' => 'alternatives.view',
+            'save' => $request->filled('id') ? 'alternatives.edit' : 'alternatives.create',
+            default => null,
+        };
+    }
 
     public function index()
     {
@@ -20,17 +27,18 @@ class AlternativeController extends Controller
         $category = (string) $request->input('category');
         $nameAr = trim((string) $request->input('name_ar'));
         $nameEn = trim((string) $request->input('name_en'));
+        $codes = KaheelCategory::codes();
 
-        if (!in_array($category, self::CATEGORIES, true) || $nameAr === '' || $nameEn === '') {
-            return mainResponse(false, 'Category and both names are required', null, 422, 'items', '');
+        if (!in_array($category, $codes, true) || $nameAr === '' || $nameEn === '') {
+            return mainResponse(false, kaheel_msg('التصنيف والاسم بالعربية والإنجليزية مطلوبة.', 'Category and both names are required.'), null, 422, 'items', '');
         }
         if (!is_numeric($request->input('price_delta'))) {
-            return mainResponse(false, 'Invalid price', null, 422, 'items', '');
+            return mainResponse(false, kaheel_msg('السعر غير صحيح.', 'Invalid price.'), null, 422, 'items', '');
         }
 
         $item = $request->filled('id') ? KaheelAlternative::query()->find($request->input('id')) : new KaheelAlternative();
         if ($request->filled('id') && !$item) {
-            return mainResponse(false, 'Alternative not found', null, 404, 'items', '');
+            return mainResponse(false, kaheel_msg('البديل غير موجود.', 'Alternative not found.'), null, 404, 'items', '');
         }
 
         $item->fill([

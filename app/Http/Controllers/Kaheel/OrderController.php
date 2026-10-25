@@ -171,7 +171,7 @@ class OrderController extends Controller
                 'kind' => 'plan',
                 'original_name' => $file->getClientOriginalName(),
                 'path' => $file->store('kaheel-orders/'.$order->id),
-                'mime' => $file->getMimeType(),
+                'mime' => kaheel_stored_mime($file),
                 'size' => $file->getSize(),
             ]);
         }
@@ -225,7 +225,9 @@ class OrderController extends Controller
         $method = (string) $request->input('method');
         if ($method === 'visa') {
             if ($isFinal) {
+                $order->final_payment_method = 'visa';
                 $order->final_payment_status = 'pending';
+                $order->final_payment_note = null;
                 $order->save();
                 $this->customerEvent($order, $order->status, $order->status, 'أرسل العميل السداد النهائي (فيزا)');
             } else {
@@ -243,10 +245,12 @@ class OrderController extends Controller
         }
 
         $file = $request->file('receipt');
-        $allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-        $tooBig = $file && in_array($file->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true);
-        if ($this->requestTooLarge($request) || $tooBig || !$file || !$file->isValid() || !in_array($file->getMimeType(), $allowed, true) || $file->getSize() > 20 * 1024 * 1024) {
-            return back()->with('pay_error', $isAr ? 'أرفق صورة الإيصال أو ملف PDF بحجم 20 ميغابايت أو أقل. الطلب نفسه ما زال محفوظاً.' : 'Attach a receipt image or PDF of 20 MB or less. The order itself is still saved.');
+        $tooBig = $file && (in_array($file->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) || ($file->isValid() && $file->getSize() > 20 * 1024 * 1024));
+        if ($this->requestTooLarge($request) || $tooBig) {
+            return back()->with('pay_error', $isAr ? 'حجم الإيصال أكبر من 20 ميغابايت. الطلب نفسه ما زال محفوظاً.' : 'The receipt is larger than 20 MB. The order itself is still saved.');
+        }
+        if (!$file || !$file->isValid() || !kaheel_document_allowed($file)) {
+            return back()->with('pay_error', $isAr ? 'الصيغ المقبولة للإيصال: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF.' : 'Accepted receipt formats: JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC, AVIF, and PDF.');
         }
 
         DB::transaction(function () use ($order, $file, $isFinal) {
@@ -255,11 +259,13 @@ class OrderController extends Controller
                 'kind' => $isFinal ? 'final_receipt' : 'receipt',
                 'original_name' => $file->getClientOriginalName(),
                 'path' => $file->store('kaheel-orders/'.$order->id),
-                'mime' => $file->getMimeType(),
+                'mime' => kaheel_stored_mime($file),
                 'size' => $file->getSize(),
             ]);
             if ($isFinal) {
+                $order->final_payment_method = 'receipt';
                 $order->final_payment_status = 'pending';
+                $order->final_payment_note = null;
                 $order->save();
             } else {
                 $order->payment_method = 'receipt';
@@ -290,7 +296,8 @@ class OrderController extends Controller
                 $query->where('sender_role', 'admin')->whereNull('customer_seen_at');
             }])
             ->orderByDesc('id')
-            ->get();
+            ->get()
+            ->each(fn (KaheelOrder $order) => $order->promoteApprovedFinalPayment());
 
         return view('kaheel.orders', ['orders' => $orders]);
     }
@@ -303,6 +310,7 @@ class OrderController extends Controller
         }
 
         $order->load('files');
+        $order->promoteApprovedFinalPayment();
         $settings = KaheelSetting::map();
         $days = $settings['delivery_working_days'] ?? '25';
 
@@ -420,12 +428,16 @@ class OrderController extends Controller
             if (!$file->isValid()) {
                 return response()->json(['ok' => false, 'error' => $isAr ? 'تعذر رفع الملف.' : 'The file could not be uploaded.'], 422);
             }
-            $kind = $this->customerChatKind((string) $file->getMimeType(), (string) $file->getClientMimeType());
+            $kind = $this->customerChatKind($file);
             if (!$kind) {
-                return response()->json(['ok' => false, 'error' => $isAr ? 'الملف يجب أن يكون صورة أو فيديو أو PDF.' : 'The file must be an image, video, or PDF.'], 422);
+                return response()->json(['ok' => false, 'error' => $isAr ? 'الصيغ المقبولة: صور (JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC, AVIF) أو فيديو (MP4, WEBM, MOV) أو PDF.' : 'Accepted formats: images (JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC, AVIF), video (MP4, WEBM, MOV), or PDF.'], 422);
             }
             $path = $file->store('kaheel-orders/'.$order->id.'/chat');
-            $mime = $file->getMimeType() ?: $file->getClientMimeType();
+            $mime = kaheel_stored_mime($file);
+            if ($kind === 'video' && !str_starts_with((string) $mime, 'video/')) {
+                $byExt = ['mp4' => 'video/mp4', 'webm' => 'video/webm', 'mov' => 'video/quicktime', 'm4v' => 'video/mp4'];
+                $mime = $byExt[strtolower((string) $file->getClientOriginalExtension())] ?? 'video/mp4';
+            }
             $name = $file->getClientOriginalName();
         } elseif ($body === '') {
             return response()->json(['ok' => false, 'error' => $isAr ? 'اكتب رسالة أولاً.' : 'Write a message first.'], 422);
@@ -615,7 +627,9 @@ class OrderController extends Controller
             return redirect(url(app()->getLocale().'/orders/'.$order->id));
         }
 
+        $order->final_payment_method = $order->final_payment_method ?: 'visa';
         $order->final_payment_status = 'pending';
+        $order->final_payment_note = null;
         $order->save();
         $this->customerEvent($order, $order->status, $order->status, 'تم السداد النهائي');
 
@@ -634,7 +648,7 @@ class OrderController extends Controller
     public function file(KaheelOrder $order, KaheelOrderFile $file)
     {
         $mime = (string) $file->mime;
-        $allowed = str_starts_with($mime, 'image/') || $mime === 'application/pdf';
+        $allowed = (str_starts_with($mime, 'image/') && !str_contains($mime, 'svg')) || $mime === 'application/pdf';
         if (!$this->owns($order) || (int) $file->order_id !== (int) $order->id || !in_array($file->kind, ['plan', 'design', 'receipt', 'final_receipt', null, ''], true) || !$allowed) {
             abort(404);
         }
@@ -723,22 +737,24 @@ class OrderController extends Controller
         })->all();
     }
 
-    private function customerChatKind(string $mime, string $clientMime): ?string
+    private function customerChatKind($file): ?string
     {
-        $mime = strtolower(trim(explode(';', $mime)[0]));
-        $clientMime = strtolower(trim(explode(';', $clientMime)[0]));
-        $map = [
-            'image/jpeg' => 'image',
-            'image/png' => 'image',
-            'image/webp' => 'image',
-            'image/gif' => 'image',
-            'video/mp4' => 'video',
-            'video/webm' => 'video',
-            'video/quicktime' => 'video',
-            'application/pdf' => 'pdf',
-        ];
+        [$mime, $client, $ext] = kaheel_upload_parts($file);
+        if (kaheel_upload_blocked($mime, $client, $ext)) {
+            return null;
+        }
+        $video = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v'];
+        if (in_array($mime, $video, true) || (kaheel_detected_weak($mime) && (in_array($client, $video, true) || in_array($ext, ['mp4', 'webm', 'mov', 'm4v'], true)))) {
+            return 'video';
+        }
+        if (kaheel_file_is_pdf($mime, $client, $ext)) {
+            return 'pdf';
+        }
+        if (kaheel_file_is_image($mime, $client, $ext)) {
+            return 'image';
+        }
 
-        return $map[$mime] ?? $map[$clientMime] ?? null;
+        return null;
     }
 
     private function owns(KaheelOrder $order): bool
@@ -757,12 +773,15 @@ class OrderController extends Controller
 
     private function fileError(array $files, bool $isAr): ?string
     {
-        if (count($files) > 5) {
+        $present = array_values(array_filter($files));
+        if ($present === []) {
+            return $isAr ? 'مخطط الوحدة إلزامي. ارفع صورة أو ملف PDF للمخطط.' : 'The unit plan is required. Upload a plan image or PDF.';
+        }
+        if (count($present) > 5) {
             return $isAr ? 'يمكن رفع 5 ملفات كحد أقصى.' : 'You can upload up to 5 files.';
         }
 
-        $allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-        foreach ($files as $file) {
+        foreach ($present as $file) {
             if (!$file) {
                 continue;
             }
@@ -770,8 +789,8 @@ class OrderController extends Controller
             if ($tooBig) {
                 return $isAr ? 'أحد الملفات أكبر من 20 ميغابايت. صغّر الملف ثم أعد الإرسال، ولن يُحفظ الطلب قبل نجاح الرفع.' : 'One file is larger than 20 MB. Reduce it and send again. The order is not saved until the upload succeeds.';
             }
-            if (!$file->isValid() || !in_array($file->getMimeType(), $allowed, true)) {
-                return $isAr ? 'الملفات المسموحة هي الصور و PDF فقط.' : 'Only images and PDF files are allowed.';
+            if (!$file->isValid() || !kaheel_document_allowed($file)) {
+                return $isAr ? 'الصيغ المقبولة: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF.' : 'Accepted formats: JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC, AVIF, and PDF.';
             }
         }
 

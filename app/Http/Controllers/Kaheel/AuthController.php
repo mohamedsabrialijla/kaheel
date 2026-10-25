@@ -22,6 +22,10 @@ class AuthController extends Controller
         $challenge = $this->challenge();
         $locale = app()->getLocale();
 
+        if (!$challenge && kaheel_customer()) {
+            return redirect($this->loggedInPath($request));
+        }
+
         if ($screen === 'code' && !$challenge) {
             return redirect(url($locale.'/auth'));
         }
@@ -352,8 +356,22 @@ class AuthController extends Controller
         $redirect = (string) ($challenge['redirect'] ?? '');
         $path = $this->safePath($redirect) ? $redirect : '/account';
         $url = url($locale.$path);
-        $pkg = strtoupper((string) ($challenge['pkg'] ?? ''));
-        if (in_array($pkg, ['VIP', 'CLASSIC'], true)) {
+        $pkg = strtoupper(trim((string) ($challenge['pkg'] ?? '')));
+        if ($pkg !== '') {
+            $url .= (str_contains($url, '?') ? '&' : '?').'pkg='.urlencode($pkg);
+        }
+
+        return $url;
+    }
+
+    protected function loggedInPath(Request $request): string
+    {
+        $locale = app()->getLocale();
+        $redirect = (string) $request->query('redirect', '/account');
+        $path = $this->safePath($redirect) ? $redirect : '/account';
+        $url = url($locale.$path);
+        $pkg = strtoupper(trim((string) $request->query('pkg', '')));
+        if ($pkg !== '') {
             $url .= (str_contains($url, '?') ? '&' : '?').'pkg='.urlencode($pkg);
         }
 

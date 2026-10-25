@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=30" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=35" rel="stylesheet">
 </head>
 <body>
     <header class="site-header">
@@ -59,7 +59,7 @@
 
         <section class="pkg-prices">
             <h2 data-ar="جدول الأسعار" data-en="Price list">جدول الأسعار</h2>
-            <div class="tier-grid">
+            <div class="tier-grid" style="--tier-count: {{ max(1, $package->tiers->count()) }}">
                 @foreach ($package->tiers as $tier)
                     <div class="tier-card">
                         <p class="tier-name" data-ar="{{ $tier->name_ar }}" data-en="{{ $tier->name_en }}">{{ $tier->name_ar }}</p>
@@ -89,7 +89,7 @@
                 @endforeach
             </div>
             <p class="pkg-note" data-ar="{{ $deliveryAr }}" data-en="{{ $deliveryEn }}">{{ $deliveryAr }}</p>
-            <a class="btn btn-lg btn-primary pkg-order" href="{{ url(app()->getLocale().'/auth?pkg='.$package->code.'&redirect=/order') }}" data-ar="اطلب الآن" data-en="Order now">اطلب الآن</a>
+            <a class="btn btn-lg btn-primary pkg-order" href="{{ kaheel_order_start_url($package->code) }}" data-ar="اطلب الآن" data-en="Order now">اطلب الآن</a>
         </section>
     </main>
 
@@ -116,5 +116,6 @@
             applyLang(root.lang === "ar" ? "en" : "ar");
         });
     </script>
+    @include('kaheel.partials.native-validation')
 </body>
 </html>

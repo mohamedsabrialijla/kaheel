@@ -185,20 +185,135 @@ function fcmPush($title,$message)
 //     return $branch_id_session;
 // }
 
+function kaheel_msg(string $ar, string $en): string
+{
+    return app()->getLocale() === 'en' ? $en : $ar;
+}
+
 function kaheel_customer(): ?\App\Models\KaheelCustomerSession
 {
     $id = session('kaheel_customer_session_id');
-    if (!$id) {
-        return null;
-    }
+    $sid = session()->getId();
 
-    $row = \App\Models\KaheelCustomerSession::query()->find($id);
-    if (!$row || $row->session_id !== session()->getId()) {
+    $row = $id
+        ? \App\Models\KaheelCustomerSession::query()->find($id)
+        : \App\Models\KaheelCustomerSession::query()->where('session_id', $sid)->latest('id')->first();
+
+    if (!$row) {
         session()->forget('kaheel_customer_session_id');
 
         return null;
     }
 
+    if ($row->session_id !== $sid) {
+        $row->session_id = $sid;
+        $row->save();
+    }
+
+    session(['kaheel_customer_session_id' => $row->id]);
+
     return $row;
+}
+
+function kaheel_upload_parts($file): array
+{
+    $mime = strtolower(trim(explode(';', (string) $file->getMimeType())[0]));
+    $client = strtolower(trim(explode(';', (string) $file->getClientMimeType())[0]));
+    $ext = strtolower((string) $file->getClientOriginalExtension());
+    if (in_array($mime, ['image/jpg', 'image/pjpeg', 'image/jfif'], true)) {
+        $mime = 'image/jpeg';
+    }
+    if (in_array($client, ['image/jpg', 'image/pjpeg', 'image/jfif'], true)) {
+        $client = 'image/jpeg';
+    }
+
+    return [$mime, $client, $ext];
+}
+
+function kaheel_detected_weak(string $mime): bool
+{
+    return in_array($mime, ['', 'application/octet-stream', 'binary/octet-stream', 'application/x-empty', 'application/x-download'], true);
+}
+
+function kaheel_upload_blocked(string $mime, string $client, string $ext): bool
+{
+    foreach (['svg', 'html', 'htm', 'php', 'js', 'xml'] as $bad) {
+        if ($ext === $bad || str_contains($mime, $bad) || str_contains($client, $bad)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function kaheel_file_is_pdf(string $mime, string $client, string $ext): bool
+{
+    $pdf = ['application/pdf', 'application/x-pdf'];
+    if (in_array($mime, $pdf, true)) {
+        return true;
+    }
+
+    return kaheel_detected_weak($mime) && (in_array($client, $pdf, true) || $ext === 'pdf');
+}
+
+function kaheel_file_is_image(string $mime, string $client, string $ext): bool
+{
+    if (str_contains($mime, 'svg') || str_contains($client, 'svg') || in_array($ext, ['svg', 'svgz'], true)) {
+        return false;
+    }
+    if (str_starts_with($mime, 'image/')) {
+        return true;
+    }
+    $extensions = ['jpg', 'jpeg', 'jpe', 'jfif', 'png', 'webp', 'gif', 'bmp', 'tif', 'tiff', 'heic', 'heif', 'avif'];
+
+    return kaheel_detected_weak($mime) && (str_starts_with($client, 'image/') || in_array($ext, $extensions, true));
+}
+
+function kaheel_document_allowed($file): bool
+{
+    if (!$file || !$file->isValid()) {
+        return false;
+    }
+    [$mime, $client, $ext] = kaheel_upload_parts($file);
+    if (kaheel_upload_blocked($mime, $client, $ext)) {
+        return false;
+    }
+
+    return kaheel_file_is_image($mime, $client, $ext) || kaheel_file_is_pdf($mime, $client, $ext);
+}
+
+function kaheel_stored_mime($file): string
+{
+    [$mime, $client, $ext] = kaheel_upload_parts($file);
+    if (kaheel_file_is_pdf($mime, $client, $ext)) {
+        return 'application/pdf';
+    }
+    if (str_starts_with($mime, 'image/') && !str_contains($mime, 'svg')) {
+        return $mime;
+    }
+    if (kaheel_detected_weak($mime) && str_starts_with($client, 'image/') && !str_contains($client, 'svg')) {
+        return $client;
+    }
+    $map = [
+        'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'jpe' => 'image/jpeg', 'jfif' => 'image/jpeg',
+        'png' => 'image/png', 'webp' => 'image/webp', 'gif' => 'image/gif', 'bmp' => 'image/bmp',
+        'tif' => 'image/tiff', 'tiff' => 'image/tiff', 'heic' => 'image/heic', 'heif' => 'image/heif',
+        'avif' => 'image/avif',
+    ];
+
+    return $map[$ext] ?? ($mime ?: 'application/octet-stream');
+}
+
+function kaheel_order_start_url(?string $pkg = null): string
+{
+    $pkg = strtoupper(trim((string) $pkg));
+    $query = $pkg !== '' ? ['pkg' => $pkg] : [];
+    if (kaheel_customer()) {
+        return url(app()->getLocale().'/order'.($query ? '?'.http_build_query($query) : ''));
+    }
+
+    $query['redirect'] = '/order';
+
+    return url(app()->getLocale().'/auth?'.http_build_query($query));
 }
 

@@ -14,13 +14,13 @@
                     </span>
                     <span class="ka-set-key">{{ row.key }}</span>
                 </span>
-                <input v-model="values[row.key]" type="text">
+                <input v-model="values[row.key]" type="text" :disabled="!can('settings.edit')">
             </label>
         </div>
 
         <p v-if="error" class="ka-set-error">{{ error }}</p>
         <p v-if="saved" class="ka-set-ok">{{ t.saved }}</p>
-        <button type="button" class="ka-btn ka-btn-primary ka-set-save" :disabled="saving || loading" @click="save">
+        <button v-if="can('settings.edit')" type="button" class="ka-btn ka-btn-primary ka-set-save" :disabled="saving || loading" @click="save">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>
             {{ saving ? "…" : t.save }}
         </button>

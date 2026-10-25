@@ -2,13 +2,21 @@
 
 namespace App\Http\Controllers\Kaheel;
 
-use App\Http\Controllers\Controller;
 use App\Models\KaheelSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-class SettingController extends Controller
+class SettingController extends KaheelAdminController
 {
+    protected function kaheelPermissionFor(string $method, $request): ?string
+    {
+        return match ($method) {
+            'index' => 'settings.view',
+            'save' => 'settings.edit',
+            default => null,
+        };
+    }
+
     public function index()
     {
         return mainResponse(true, 'Success', $this->rows(), 200, 'items', '');
@@ -35,14 +43,14 @@ class SettingController extends Controller
             $value = $row['value'] ?? '';
             if (in_array($setting->key, $numeric, true)) {
                 if (!is_numeric($value)) {
-                    return mainResponse(false, 'Invalid number', null, 422, 'items', '');
+                    return mainResponse(false, kaheel_msg('أدخل رقماً صحيحاً.', 'Invalid number.'), null, 422, 'items', '');
                 }
                 $number = (float) $value;
                 if ($setting->key === 'deposit_percent' && ($number < 0 || $number > 100)) {
-                    return mainResponse(false, 'Invalid percent', null, 422, 'items', '');
+                    return mainResponse(false, kaheel_msg('النسبة غير صحيحة.', 'Invalid percent.'), null, 422, 'items', '');
                 }
                 if ($setting->key === 'delivery_working_days' && $number < 0) {
-                    return mainResponse(false, 'Invalid days', null, 422, 'items', '');
+                    return mainResponse(false, kaheel_msg('عدد الأيام غير صحيح.', 'Invalid days.'), null, 422, 'items', '');
                 }
                 $value = rtrim(rtrim(number_format($number, 2, '.', ''), '0'), '.');
             }

@@ -5,15 +5,107 @@
     $step = $order->progressStep();
     $vat = (float) $order->price_incl - (float) $order->price_excl;
     $receipt = $order->files->firstWhere('kind', 'receipt');
+    $receiptFiles = $order->files->where('kind', 'receipt')->values();
+    $finalReceiptFiles = $order->files->where('kind', 'final_receipt')->values();
     $plans = $order->files->filter(fn ($file) => $file->kind === 'plan' || $file->kind === null);
     $designs = $order->files->where('kind', 'design');
+    $paymentRows = collect();
+    if ($order->payment_method) {
+        $statusAr = match ($order->payment_status) {
+            'approved' => 'مؤكد',
+            'pending' => 'بانتظار التأكيد',
+            'rejected' => 'مرفوض',
+            default => '—',
+        };
+        $statusEn = match ($order->payment_status) {
+            'approved' => 'Confirmed',
+            'pending' => 'Pending',
+            'rejected' => 'Rejected',
+            default => '—',
+        };
+        if ($receiptFiles->isEmpty()) {
+            $paymentRows->push([
+                'kind' => 'deposit',
+                'title_ar' => 'عربون',
+                'title_en' => 'Deposit',
+                'ref' => $order->payment_method === 'visa' ? 'Visa' : $order->number,
+                'amount' => (float) $order->deposit_amount,
+                'method_ar' => $order->payment_method === 'visa' ? 'فيزا' : 'رفع إيصال',
+                'method_en' => $order->payment_method === 'visa' ? 'Visa' : 'Receipt',
+                'status_ar' => $statusAr,
+                'status_en' => $statusEn,
+                'at' => $order->updated_at,
+                'url' => null,
+            ]);
+        }
+        foreach ($receiptFiles as $file) {
+            $paymentRows->push([
+                'kind' => 'deposit',
+                'title_ar' => 'عربون',
+                'title_en' => 'Deposit',
+                'ref' => $file->original_name,
+                'amount' => (float) $order->deposit_amount,
+                'method_ar' => 'رفع إيصال',
+                'method_en' => 'Receipt',
+                'status_ar' => $statusAr,
+                'status_en' => $statusEn,
+                'at' => $file->created_at,
+                'url' => url(app()->getLocale().'/orders/'.$order->id.'/files/'.$file->id),
+            ]);
+        }
+    }
+    if (in_array($order->final_payment_status, ['pending', 'approved', 'rejected'], true)) {
+        $finalDue = max(0, (float) $order->price_incl + (float) $order->addons_total - (float) $order->deposit_amount);
+        $finalStatusAr = match ($order->final_payment_status) {
+            'approved' => 'مؤكد',
+            'rejected' => 'مرفوض',
+            default => 'بانتظار التأكيد',
+        };
+        $finalStatusEn = match ($order->final_payment_status) {
+            'approved' => 'Confirmed',
+            'rejected' => 'Rejected',
+            default => 'Pending',
+        };
+        $finalMethodAr = $order->final_payment_method === 'receipt' ? 'رفع إيصال' : 'فيزا';
+        $finalMethodEn = $order->final_payment_method === 'receipt' ? 'Receipt' : 'Visa';
+        if ($finalReceiptFiles->isEmpty()) {
+            $paymentRows->push([
+                'kind' => 'final',
+                'title_ar' => 'السداد النهائي',
+                'title_en' => 'Final payment',
+                'ref' => $order->final_payment_method === 'visa' ? 'Visa' : 'FINAL-'.$order->number,
+                'amount' => $finalDue,
+                'method_ar' => $finalMethodAr,
+                'method_en' => $finalMethodEn,
+                'status_ar' => $finalStatusAr,
+                'status_en' => $finalStatusEn,
+                'at' => $order->updated_at,
+                'url' => null,
+            ]);
+        }
+        foreach ($finalReceiptFiles as $file) {
+            $paymentRows->push([
+                'kind' => 'final',
+                'title_ar' => 'السداد النهائي',
+                'title_en' => 'Final payment',
+                'ref' => $file->original_name,
+                'amount' => $finalDue,
+                'method_ar' => 'رفع إيصال',
+                'method_en' => 'Receipt',
+                'status_ar' => $finalStatusAr,
+                'status_en' => $finalStatusEn,
+                'at' => $file->created_at,
+                'url' => url(app()->getLocale().'/orders/'.$order->id.'/files/'.$file->id),
+            ]);
+        }
+    }
     $components = collect($order->design_components ?? [])->values();
     $designApproved = $order->design_status === 'approved' || $order->design_signed_at;
     $designRejected = $order->design_status === 'rejected';
     $designReviewOpen = $order->status === 'design_review' && !$designApproved;
     $showDesignPanel = $designs->isNotEmpty() || $order->status === 'design_review' || $designApproved || $designRejected || $components->isNotEmpty();
-    $stageDateAr = $order->updated_at->locale('ar')->isoFormat('D MMMM YYYY');
-    $stageDateEn = $order->updated_at->locale('en')->isoFormat('D MMMM YYYY');
+    $stageDateAr = $order->updated_at->locale('ar')->isoFormat('D MMMM YYYY، h:mm A');
+    $stageDateEn = $order->updated_at->locale('en')->isoFormat('D MMMM YYYY, h:mm A');
     $signedAtAr = $order->design_signed_at?->locale('ar')->isoFormat('D MMMM YYYY');
     $signedAtEn = $order->design_signed_at?->locale('en')->isoFormat('D MMMM YYYY');
 ?>
@@ -27,7 +119,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="<?php echo e(asset('kaheel/home.css')); ?>?v=33" rel="stylesheet">
+    <link href="<?php echo e(asset('kaheel/home.css')); ?>?v=41" rel="stylesheet">
 </head>
 <body>
     <?php echo $__env->make('kaheel.partials.public-header', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
@@ -67,7 +159,6 @@
             <section class="order-card">
                 <h2 data-ar="بانتظار تأكيد الدفع" data-en="Payment under review">بانتظار تأكيد الدفع</h2>
                 <p class="order-lead" data-ar="تم استلام الدفع وبانتظار تأكيد الإدارة." data-en="Your payment was received and is waiting for admin confirmation.">تم استلام الدفع وبانتظار تأكيد الإدارة.</p>
-                <p class="order-doc-meta"><?php echo e($order->payment_method === 'visa' ? 'Visa' : ($receipt?->original_name ?: $order->number)); ?> · <?php echo e($money($order->deposit_amount)); ?> <span data-ar="ريال" data-en="SAR">ريال</span></p>
             </section>
         <?php elseif($step === 0): ?>
             <section class="order-card">
@@ -78,19 +169,35 @@
                 <p class="order-pay-note" data-ar="الدفع هنا تجريبي لأغراض العرض، ويتم تسجيل رقم عملية وإيصال كما في التشغيل الفعلي." data-en="Payment here is a sandbox simulation; a transaction number and receipt are recorded as in production.">الدفع هنا تجريبي لأغراض العرض، ويتم تسجيل رقم عملية وإيصال كما في التشغيل الفعلي.</p>
                 <a class="btn btn-lg btn-primary auth-submit order-pay-submit" href="<?php echo e(url(app()->getLocale().'/orders/'.$order->id.'/pay')); ?>" data-ar="ادفع العربون — <?php echo e($money($order->deposit_amount)); ?> ريال" data-en="Pay deposit — <?php echo e($money($order->deposit_amount)); ?> SAR">ادفع العربون — <?php echo e($money($order->deposit_amount)); ?> ريال</a>
             </section>
-        <?php else: ?>
-            <?php if($step <= 2): ?>
+        <?php elseif($step <= 2): ?>
             <section class="order-card">
                 <h2><svg class="order-heading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg><span data-ar="جارٍ إعداد تصميمك" data-en="Your design is being prepared">جارٍ إعداد تصميمك</span></h2>
                 <p class="order-lead" data-ar="فريق الإدارة يراجع طلبك والمخطط ويجهّز التصميم. ستتمكن من مراجعته ومناقشته هنا فور إرساله." data-en="The admin team is reviewing your order and plan, and preparing the design. You will be able to review it here once it is sent.">فريق الإدارة يراجع طلبك والمخطط ويجهّز التصميم. ستتمكن من مراجعته ومناقشته هنا فور إرساله.</p>
             </section>
-            <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if($paymentRows->isNotEmpty()): ?>
             <section class="order-card">
-                <h2 data-ar="إيصال الدفع" data-en="Payment receipt">إيصال الدفع</h2>
-                <div class="order-doc">
-                    <p class="order-doc-title"><?php echo e($receipt?->original_name ?: ($order->payment_method === 'visa' ? 'Visa' : $order->number)); ?></p>
-                    <p class="order-doc-meta"><?php echo e($money($order->deposit_amount)); ?> <span data-ar="ريال" data-en="SAR">ريال</span></p>
-                    <p class="order-doc-meta" data-ar="<?php echo e($stageDateAr); ?>" data-en="<?php echo e($stageDateEn); ?>"><?php echo e($stageDateAr); ?></p>
+                <h2 data-ar="الإيصالات" data-en="Payments">الإيصالات</h2>
+                <div class="order-pay-list">
+                    <?php $__currentLoopData = $paymentRows; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php
+                            $rowDateAr = optional($row['at'])->locale('ar')->isoFormat('D MMMM YYYY');
+                            $rowDateEn = optional($row['at'])->locale('en')->isoFormat('D MMMM YYYY');
+                        ?>
+                        <article class="order-pay-row">
+                            <div class="order-pay-row-main">
+                                <p class="order-doc-title" data-ar="<?php echo e($row['title_ar']); ?> — <?php echo e($row['ref']); ?>" data-en="<?php echo e($row['title_en']); ?> — <?php echo e($row['ref']); ?>"><?php echo e($row['title_ar']); ?> — <?php echo e($row['ref']); ?></p>
+                                <p class="order-doc-meta" data-ar="<?php echo e($row['method_ar']); ?> · <?php echo e($row['status_ar']); ?> · <?php echo e($rowDateAr); ?>" data-en="<?php echo e($row['method_en']); ?> · <?php echo e($row['status_en']); ?> · <?php echo e($rowDateEn); ?>"><?php echo e($row['method_ar']); ?> · <?php echo e($row['status_ar']); ?> · <?php echo e($rowDateAr); ?></p>
+                            </div>
+                            <div class="order-pay-row-side">
+                                <strong><?php echo e($money($row['amount'])); ?> <span data-ar="ريال" data-en="SAR">ريال</span></strong>
+                                <?php if($row['url']): ?>
+                                    <a class="btn btn-sm btn-outline" href="<?php echo e($row['url']); ?>" target="_blank" rel="noopener noreferrer" data-ar="عرض" data-en="View">عرض</a>
+                                <?php endif; ?>
+                            </div>
+                        </article>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </div>
             </section>
         <?php endif; ?>
@@ -142,18 +249,24 @@
                 <div class="order-design-body">
                     <div class="order-design-files">
                         <h3 data-ar="ملف التصميم" data-en="Design file">ملف التصميم</h3>
-                        <?php $__empty_1 = true; $__currentLoopData = $designs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $file): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                            <a class="order-doc" href="<?php echo e(url(app()->getLocale().'/orders/'.$order->id.'/files/'.$file->id)); ?>" target="_blank" rel="noopener noreferrer">
-                                <div class="order-doc-row">
-                                    <span class="order-doc-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/></svg></span>
-                                    <div class="min-w-0">
-                                        <p class="order-doc-title"><?php echo e($file->original_name); ?></p>
-                                        <p class="order-doc-meta" data-ar="تصميم الوحدة" data-en="Unit design">تصميم الوحدة</p>
-                                    </div>
-                                </div>
-                            </a>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                        <?php if($designs->isEmpty()): ?>
                             <p class="order-lead" data-ar="لم يُرسل التصميم بعد." data-en="The design has not been sent yet.">لم يُرسل التصميم بعد.</p>
+                        <?php else: ?>
+                            <div class="order-file-grid">
+                                <?php $__currentLoopData = $designs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $file): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <?php
+                                        $href = url(app()->getLocale().'/orders/'.$order->id.'/files/'.$file->id);
+                                        $isPdf = str_contains(strtolower(($file->mime ?: '').' '.$file->original_name), 'pdf');
+                                        $isImg = (str_starts_with((string) $file->mime, 'image/') && !str_contains(strtolower((string) $file->mime), 'svg')) || preg_match('/\.(jpe?g|jfif|png|gif|webp|bmp|tiff?|heic|heif|avif)$/i', (string) $file->original_name);
+                                    ?>
+                                    <a class="order-file-tile" href="<?php echo e($href); ?>" target="_blank" rel="noopener noreferrer">
+                                        <span class="order-file-thumb <?php echo e($isPdf ? 'is-pdf' : ''); ?>" <?php if($isImg): ?> style="background-image:url('<?php echo e($href); ?>')" <?php endif; ?>>
+                                            <?php if($isPdf): ?><span class="order-file-pdf" aria-hidden="true">PDF</span><?php endif; ?>
+                                        </span>
+                                        <span class="order-file-name"><?php echo e($file->original_name); ?></span>
+                                    </a>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            </div>
                         <?php endif; ?>
                     </div>
 
@@ -253,11 +366,12 @@
                     <p class="order-lead" data-ar="تم السداد النهائي وبانتظار تأكيد الإدارة." data-en="Final payment received and waiting for admin confirmation.">تم السداد النهائي وبانتظار تأكيد الإدارة.</p>
                     <p class="order-doc-meta"><?php echo e($money($finalDue)); ?> <span data-ar="ريال" data-en="SAR">ريال</span></p>
                 <?php else: ?>
-                    <p class="order-pay-note" data-ar="الدفع هنا تجريبي لأغراض العرض، ويتم تسجيل رقم عملية وإيصال كما في التشغيل الفعلي." data-en="Payment here is a sandbox simulation; a transaction number and receipt are recorded as in production.">الدفع هنا تجريبي لأغراض العرض، ويتم تسجيل رقم عملية وإيصال كما في التشغيل الفعلي.</p>
-                    <form method="post" action="<?php echo e(url(app()->getLocale().'/orders/'.$order->id.'/final')); ?>">
-                        <?php echo csrf_field(); ?>
-                        <button class="btn btn-lg btn-primary auth-submit order-pay-submit" type="submit" data-ar="ادفع المبلغ النهائي — <?php echo e($money($finalDue)); ?> ريال" data-en="Pay final amount — <?php echo e($money($finalDue)); ?> SAR">ادفع المبلغ النهائي — <?php echo e($money($finalDue)); ?> ريال</button>
-                    </form>
+                    <p class="order-lead"><?php echo e($money($finalDue)); ?> <span data-ar="ريال" data-en="SAR">ريال</span></p>
+                    <?php if($order->final_payment_status === 'rejected' && $order->final_payment_note): ?>
+                        <p class="auth-alert is-error"><?php echo e($order->final_payment_note); ?></p>
+                    <?php endif; ?>
+                    <p class="order-lead" data-ar="اختر طريقة السداد النهائي: رفع إيصال أو فيزا." data-en="Choose a final payment method: upload a receipt or pay by Visa.">اختر طريقة السداد النهائي: رفع إيصال أو فيزا.</p>
+                    <?php echo $__env->make('kaheel.partials.payment-methods', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                 <?php endif; ?>
             </section>
         <?php endif; ?>
@@ -276,17 +390,21 @@
                     <button class="btn btn-sm order-doc-preview" type="button" id="preview-contract"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg><span data-ar="معاينة" data-en="Preview">معاينة</span></button>
                     <pre class="order-contract" id="contract-preview" hidden><?php echo e($order->contract_body); ?></pre>
                 </article>
+                <div class="order-file-grid">
                 <?php $__currentLoopData = $plans; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $file): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <a class="order-doc" href="<?php echo e(url(app()->getLocale().'/orders/'.$order->id.'/files/'.$file->id)); ?>" target="_blank" rel="noopener noreferrer">
-                        <div class="order-doc-row">
-                            <span class="order-doc-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>
-                            <div class="min-w-0">
-                                <p class="order-doc-title"><?php echo e($file->original_name); ?></p>
-                                <p class="order-doc-meta" data-ar="مخطط الوحدة" data-en="Unit plan">مخطط الوحدة</p>
-                            </div>
-                        </div>
+                    <?php
+                        $href = url(app()->getLocale().'/orders/'.$order->id.'/files/'.$file->id);
+                        $isPdf = str_contains(strtolower(($file->mime ?: '').' '.$file->original_name), 'pdf');
+                        $isImg = (str_starts_with((string) $file->mime, 'image/') && !str_contains(strtolower((string) $file->mime), 'svg')) || preg_match('/\.(jpe?g|jfif|png|gif|webp|bmp|tiff?|heic|heif|avif)$/i', (string) $file->original_name);
+                    ?>
+                    <a class="order-file-tile" href="<?php echo e($href); ?>" target="_blank" rel="noopener noreferrer">
+                        <span class="order-file-thumb <?php echo e($isPdf ? 'is-pdf' : ''); ?>" <?php if($isImg): ?> style="background-image:url('<?php echo e($href); ?>')" <?php endif; ?>>
+                            <?php if($isPdf): ?><span class="order-file-pdf" aria-hidden="true">PDF</span><?php endif; ?>
+                        </span>
+                        <span class="order-file-name"><?php echo e($file->original_name); ?></span>
                     </a>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </div>
             </div>
         </section>
 
@@ -351,13 +469,13 @@
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
                             <span data-ar="إرسال" data-en="Send">إرسال</span>
                         </button>
-                        <p class="order-chat-hint" data-ar="صور، فيديو أو PDF — حتى 25 ميجابايت للملف" data-en="Images, video, or PDF — up to 25MB per file">صور، فيديو أو PDF — حتى 25 ميجابايت للملف</p>
                         <button class="btn btn-outline" id="order-chat-attach" type="button">
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                             <span data-ar="إرفاق ملفات" data-en="Attach files">إرفاق ملفات</span>
                         </button>
                     </div>
-                    <input id="order-chat-file" type="file" hidden accept="image/*,video/mp4,video/webm,video/quicktime,application/pdf">
+                    <p class="order-chat-hint" data-ar="الصيغ المقبولة: صور (JPG, PNG, WEBP, GIF, BMP, HEIC, AVIF) أو فيديو (MP4, WEBM, MOV) أو PDF — حتى 25 ميغابايت." data-en="Accepted: images (JPG, PNG, WEBP, GIF, BMP, HEIC, AVIF), video (MP4, WEBM, MOV), or PDF — up to 25 MB.">الصيغ المقبولة: صور (JPG, PNG, WEBP, GIF, BMP, HEIC, AVIF) أو فيديو (MP4, WEBM, MOV) أو PDF — حتى 25 ميغابايت.</p>
+                    <input id="order-chat-file" type="file" hidden accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp,.heic,.heif,.avif,.pdf,video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,application/pdf">
                 </form>
             <?php endif; ?>
             <div class="order-chat-preview" id="order-chat-preview" hidden>
@@ -377,6 +495,7 @@
             document.querySelectorAll("[data-ar-placeholder]").forEach((node) => {
                 node.placeholder = en ? node.dataset.enPlaceholder : node.dataset.arPlaceholder;
             });
+            document.querySelectorAll('input[name="lang"]').forEach((node) => { node.value = en ? "en" : "ar"; });
             document.getElementById("lang-label").textContent = en ? "ع" : "EN";
             localStorage.setItem("forma-lang", en ? "en" : "ar");
             if (window.__designReviewRender) window.__designReviewRender();
@@ -968,6 +1087,7 @@
             } catch (error) {}
         }, 8000);
     </script>
+    <?php echo $__env->make('kaheel.partials.payment-methods-script', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 </body>
 </html>
 <?php /**PATH E:\kaheel\resources\views/kaheel/order-show.blade.php ENDPATH**/ ?>

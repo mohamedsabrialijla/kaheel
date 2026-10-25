@@ -2,13 +2,22 @@
 
 namespace App\Http\Controllers\Kaheel;
 
-use App\Http\Controllers\Controller;
 use App\Models\KaheelSupplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-class SupplierController extends Controller
+class SupplierController extends KaheelAdminController
 {
+    protected function kaheelPermissionFor(string $method, $request): ?string
+    {
+        return match ($method) {
+            'index' => 'suppliers.view',
+            'store' => 'suppliers.create',
+            'update' => 'suppliers.edit',
+            default => null,
+        };
+    }
+
     public function index()
     {
         $rows = KaheelSupplier::query()->orderByDesc('id')->get();

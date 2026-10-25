@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=30" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=38" rel="stylesheet">
 </head>
 <body>
     <header class="site-header">
@@ -67,13 +67,14 @@
                     <p class="packages-lead" data-t="packagesBody">تصفح الباقات ومحتوياتها بدون تسجيل دخول. سعر الباقة يعتمد على نوع الوحدة وعدد غرف النوم.</p>
                 </div>
 
+                <div class="package-rail" data-count="{{ $packages->count() }}">
                 <div class="package-grid">
                     @foreach ($packages as $package)
                         @php
                             $code = strtoupper($package->code);
                             $image = $code === 'CLASSIC' ? 'classic-living.jpg' : 'vip-living.jpg';
                             $from = $package->tiers->min('price_incl_vat');
-                            $highlights = $package->outline->take(3);
+                            $lines = $highlights[$package->id] ?? [];
                         @endphp
                         <article class="package-card {{ $code === 'VIP' ? 'is-vip' : 'is-classic' }}">
                             <a class="package-media" href="{{ url(app()->getLocale().'/packages/'.strtolower($code)) }}">
@@ -92,8 +93,8 @@
                                 </div>
                                 <p class="tagline" data-ar="{{ $package->tagline_ar }}" data-en="{{ $package->tagline_en }}">{{ $package->tagline_ar }}</p>
                                 <div class="highlights">
-                                    @foreach ($highlights as $item)
-                                        <div><span class="mark">{{ $code === 'VIP' ? '✦' : '•' }}</span><span data-ar="{{ $item->name_ar }}" data-en="{{ $item->name_en }}">{{ $item->name_ar }}</span></div>
+                                    @foreach ($lines as $item)
+                                        <div><span class="mark">{{ $code === 'VIP' ? '✦' : '•' }}</span><span data-ar="{{ $item['ar'] }}" data-en="{{ $item['en'] }}">{{ $item['ar'] }}</span></div>
                                     @endforeach
                                 </div>
                                 <div class="price-block">
@@ -101,7 +102,7 @@
                                     <p class="price">{{ number_format((float) $from, 2, '.', ',') }} <span data-t="sar">ريال</span></p>
                                     <p class="price-vat" data-t="inclVat">شامل الضريبة</p>
                                     <div class="package-actions">
-                                        <a class="btn btn-primary btn-square" href="{{ url(app()->getLocale().'/auth?pkg='.$code.'&redirect=/order') }}">
+                                        <a class="btn btn-primary btn-square" href="{{ kaheel_order_start_url($code) }}">
                                             <span data-t="orderNow">اطلب الآن</span>
                                             <svg class="icon icon-forward" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                                 <path d="m12 19-7-7 7-7"/>
@@ -114,6 +115,7 @@
                             </div>
                         </article>
                     @endforeach
+                </div>
                 </div>
 
                 <p class="section-note" data-ar="{{ $deliveryAr }}" data-en="{{ $deliveryEn }}">{{ $deliveryAr }}</p>
@@ -205,5 +207,6 @@
             applyLang(root.lang === "ar" ? "en" : "ar");
         });
     </script>
+    @include('kaheel.partials.native-validation')
 </body>
 </html>

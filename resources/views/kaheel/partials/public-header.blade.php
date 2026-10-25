@@ -26,3 +26,4 @@
         </nav>
     </div>
 </header>
+@include('kaheel.partials.native-validation')

@@ -182,6 +182,7 @@
 
         applyLang(lang);
     </script>
+    <?php echo $__env->make('kaheel.partials.native-validation', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 </body>
 </html>
 <?php /**PATH E:\kaheel\resources\views/kaheel/admin-login.blade.php ENDPATH**/ ?>

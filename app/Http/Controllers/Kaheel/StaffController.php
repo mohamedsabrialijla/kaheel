@@ -2,15 +2,24 @@
 
 namespace App\Http\Controllers\Kaheel;
 
-use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\PermissionRegistrar;
 
-class StaffController extends Controller
+class StaffController extends KaheelAdminController
 {
+    protected function kaheelPermissionFor(string $method, $request): ?string
+    {
+        return match ($method) {
+            'index' => 'staff.view',
+            'store' => 'staff.create',
+            'save' => 'staff.edit',
+            default => null,
+        };
+    }
+
     public function index()
     {
         return mainResponse(true, 'Success', [
@@ -27,13 +36,13 @@ class StaffController extends Controller
         $roleId = $request->input('role_id') ? (int) $request->input('role_id') : null;
 
         if ($name === '' || $email === '' || $password === '') {
-            return mainResponse(false, 'Name, email and password are required', null, 422, 'items', '');
+            return mainResponse(false, kaheel_msg('الاسم والبريد وكلمة المرور مطلوبة.', 'Name, email and password are required.'), null, 422, 'items', '');
         }
         if (DB::table('admins')->where('email', $email)->exists()) {
-            return mainResponse(false, 'Email already exists', null, 422, 'items', '');
+            return mainResponse(false, kaheel_msg('البريد الإلكتروني مستخدم مسبقاً.', 'Email already exists.'), null, 422, 'items', '');
         }
         if ($roleId && !$this->activeRole($roleId)) {
-            return mainResponse(false, 'Role not found', null, 422, 'items', '');
+            return mainResponse(false, kaheel_msg('الدور غير موجود.', 'Role not found.'), null, 422, 'items', '');
         }
 
         $now = now();
@@ -66,22 +75,42 @@ class StaffController extends Controller
     {
         $admin = DB::table('admins')->where('id', $request->input('id'))->whereNotNull('staff_sort')->first();
         if (!$admin) {
-            return mainResponse(false, 'Employee not found', null, 404, 'items', '');
+            return mainResponse(false, kaheel_msg('الموظف غير موجود.', 'Employee not found.'), null, 404, 'items', '');
         }
         if ($admin->account_role === 'admin') {
-            return mainResponse(false, 'The system administrator cannot be changed', null, 422, 'items', '');
+            return mainResponse(false, kaheel_msg('لا يمكن تعديل مدير النظام.', 'The system administrator cannot be changed.'), null, 422, 'items', '');
         }
 
+        $name = trim((string) $request->input('name', $admin->name));
+        $email = trim((string) $request->input('email', $admin->email));
+        $password = (string) $request->input('password', '');
         $roleId = $request->input('role_id') ? (int) $request->input('role_id') : null;
+
+        if ($name === '' || $email === '') {
+            return mainResponse(false, kaheel_msg('الاسم والبريد مطلوبان.', 'Name and email are required.'), null, 422, 'items', '');
+        }
+        if (DB::table('admins')->where('email', $email)->where('id', '!=', $admin->id)->exists()) {
+            return mainResponse(false, kaheel_msg('البريد الإلكتروني مستخدم مسبقاً.', 'Email already exists.'), null, 422, 'items', '');
+        }
         if ($roleId && !$this->activeRole($roleId)) {
-            return mainResponse(false, 'Role not found', null, 422, 'items', '');
+            return mainResponse(false, kaheel_msg('الدور غير موجود.', 'Role not found.'), null, 422, 'items', '');
         }
 
-        DB::table('admins')->where('id', $admin->id)->update([
+        $values = [
+            'name' => $name,
+            'email' => $email,
+            'mobile' => $request->has('phone') ? (string) $request->input('phone') : $admin->mobile,
+            'job_title' => $request->has('job_title') ? ($request->input('job_title') ?: null) : $admin->job_title,
+            'department' => $request->has('department') ? ($request->input('department') ?: null) : $admin->department,
             'role_id' => $roleId,
             'status' => $request->boolean('is_active') ? 'active' : 'not_active',
             'updated_at' => now(),
-        ]);
+        ];
+        if ($password !== '') {
+            $values['password'] = Hash::make($password);
+        }
+
+        DB::table('admins')->where('id', $admin->id)->update($values);
         $this->syncRole((int) $admin->id, $roleId);
         $this->forget();
 

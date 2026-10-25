@@ -4,7 +4,7 @@
     $isUser = auth()->check() || $customer;
     $ordersUrl = $customer
         ? url(app()->getLocale().'/orders')
-        : ($isAdmin ? url(app()->getLocale().'/dashboard') : url(app()->getLocale().'/auth'));
+        : ($isAdmin ? url(app()->getLocale().'/dashboard') : url(app()->getLocale().'/account'));
     $adminUrl = url(app()->getLocale().'/dashboard');
 ?>
 <?php if($isUser || $isAdmin): ?>

@@ -14,7 +14,29 @@
             <p class="ka-alt-note">{{ t.library }}</p>
         </div>
 
-        <div class="ka-alt-add">
+        <div v-if="can('alternatives.create') || can('alternatives.delete')" class="ka-alt-add">
+            <template v-if="can('alternatives.create')">
+            <p class="ka-alt-help-title">{{ t.addCategoryTitle }}</p>
+            <div class="ka-alt-form">
+                <label class="ka-field"><span>{{ t.categoryAr }}</span><input v-model="categoryForm.name_ar" :placeholder="locale === 'ar' ? 'مثل: الحمام' : 'e.g. Bathroom'"></label>
+                <label class="ka-field"><span>{{ t.categoryEn }}</span><input v-model="categoryForm.name_en" placeholder="Bathroom"></label>
+            </div>
+            <button type="button" class="ka-btn ka-btn-outline ka-alt-add-btn" :disabled="saving || !categoryForm.name_ar.trim() || !categoryForm.name_en.trim()" @click="addCategory">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                {{ saving ? "…" : t.addCategory }}
+            </button>
+            </template>
+            <ul class="ka-alt-cats" v-if="categories.length">
+                <li v-for="cat in categories" :key="cat.code">
+                    <span>{{ locale === "ar" ? cat.ar : cat.en }}</span>
+                    <button v-if="can('alternatives.delete')" type="button" class="ka-btn ka-btn-ghost ka-btn-inline is-danger" :disabled="saving" @click="removeCategory(cat)">{{ t.deleteCategory }}</button>
+                </li>
+            </ul>
+            <p v-if="categoryError" class="ka-set-error">{{ categoryError }}</p>
+            <p v-else-if="categoryOk" class="ka-ord-ok">{{ categoryOk }}</p>
+        </div>
+
+        <div v-if="can('alternatives.create')" class="ka-alt-add">
             <p class="ka-alt-help-title">{{ t.addTitle }}</p>
             <div class="ka-alt-form">
                 <label class="ka-field"><span>{{ t.category }}</span>
@@ -73,7 +95,7 @@
                             <p class="ka-alt-price" :class="priceClass(row.price_delta)">{{ money(row.price_delta) }} {{ t.sar }}</p>
                             <p class="ka-sup-muted">{{ priceNote(row.price_delta) }}</p>
                         </div>
-                        <div class="ka-alt-row-actions">
+                        <div v-if="can('alternatives.edit')" class="ka-alt-row-actions">
                             <button type="button" class="ka-btn ka-btn-outline ka-btn-inline" @click="startEdit(row)">
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
                                 {{ t.edit }}
@@ -92,7 +114,7 @@
 <script>
 import axios from "axios";
 
-const categories = [
+const fallbackCategories = [
     { code: "furniture", ar: "الأثاث", en: "Furniture" },
     { code: "kitchen", ar: "المطبخ", en: "Kitchen" },
     { code: "wardrobe", ar: "الدواليب", en: "Wardrobes" },
@@ -107,14 +129,17 @@ const categories = [
 export default {
     data() {
         return {
-            categories,
+            categories: fallbackCategories,
             rows: [],
             loading: true,
             saving: false,
             error: "",
+            categoryError: "",
+            categoryOk: "",
             filter: "all",
             editing: null,
             form: { category: "tv", name_ar: "", name_en: "", price_delta: 0 },
+            categoryForm: { name_ar: "", name_en: "" },
         };
     },
     computed: {
@@ -147,6 +172,12 @@ export default {
                     note: "Price difference is in SAR excluding VAT: positive adds cost, zero is a same-price swap, negative is a discount.",
                     library,
                     addTitle: "Add a new alternative",
+                    addCategoryTitle: "Add a new category",
+                    addCategory: "Add category",
+                    deleteCategory: "Delete",
+                    deleteCategoryAsk: "Delete this category?",
+                    categoryAr: "Category name (AR)",
+                    categoryEn: "Category name (EN)",
                     category: "Category",
                     nameAr: "Arabic name",
                     nameEn: "English name",
@@ -176,6 +207,12 @@ export default {
                 note: "فرق السعر بالريال وبدون ضريبة: موجب يعني تكلفة إضافية على العميل، صفر يعني بديل بنفس السعر، وسالب يعني خصم.",
                 library,
                 addTitle: "إضافة بديل جديد",
+                addCategoryTitle: "إضافة تصنيف جديد",
+                addCategory: "إضافة التصنيف",
+                deleteCategory: "حذف",
+                deleteCategoryAsk: "حذف هذا التصنيف؟",
+                categoryAr: "اسم التصنيف بالعربية",
+                categoryEn: "اسم التصنيف بالإنجليزية",
                 category: "التصنيف",
                 nameAr: "اسم البديل بالعربية",
                 nameEn: "اسم البديل بالإنجليزية",
@@ -236,12 +273,61 @@ export default {
         async load() {
             this.loading = true;
             try {
-                const response = await axios.get("KaheelAlternatives/getAllItems");
-                this.rows = response.data.items || [];
+                const [alts, cats] = await Promise.all([
+                    axios.get("KaheelAlternatives/getAllItems"),
+                    axios.get("KaheelCategories/getAllItems"),
+                ]);
+                this.rows = alts.data.items || [];
+                if (cats.data.items?.length) this.categories = cats.data.items;
+                if (!this.categories.some((row) => row.code === this.form.category) && this.categories[0]) {
+                    this.form.category = this.categories[0].code;
+                }
             } catch (error) {
                 this.rows = [];
             } finally {
                 this.loading = false;
+            }
+        },
+        async removeCategory(cat) {
+            if (!window.confirm(this.t.deleteCategoryAsk)) return;
+            this.saving = true;
+            this.categoryError = "";
+            this.categoryOk = "";
+            try {
+                const response = await axios.post("KaheelCategories/delete", { code: cat.code, id: cat.id });
+                if (!response.data.status) {
+                    this.categoryError = response.data.message || (this.locale === "ar" ? "تعذر حذف التصنيف." : "Could not delete the category.");
+                    return;
+                }
+                this.categories = response.data.items || [];
+                if (this.filter === cat.code) this.filter = "all";
+                if (this.form.category === cat.code && this.categories[0]) this.form.category = this.categories[0].code;
+                this.categoryOk = response.data.message || (this.locale === "ar" ? "تم حذف التصنيف." : "Category deleted.");
+            } catch (error) {
+                this.categoryError = error.response?.data?.message || (this.locale === "ar" ? "تعذر حذف التصنيف." : "Could not delete the category.");
+            } finally {
+                this.saving = false;
+            }
+        },
+        async addCategory() {
+            this.saving = true;
+            this.categoryError = "";
+            this.categoryOk = "";
+            try {
+                const response = await axios.post("KaheelCategories/save", { ...this.categoryForm });
+                if (!response.data.status) {
+                    this.categoryError = response.data.message || (this.locale === "ar" ? "تعذر إضافة التصنيف." : "Could not add the category.");
+                    return;
+                }
+                this.categories = response.data.items || this.categories;
+                const last = this.categories[this.categories.length - 1];
+                if (last) this.form.category = last.code;
+                this.categoryForm = { name_ar: "", name_en: "" };
+                this.categoryOk = response.data.message || (this.locale === "ar" ? "تم إضافة التصنيف." : "Category added.");
+            } catch (error) {
+                this.categoryError = error.response?.data?.message || (this.locale === "ar" ? "تعذر إضافة التصنيف." : "Could not add the category.");
+            } finally {
+                this.saving = false;
             }
         },
         async add() {

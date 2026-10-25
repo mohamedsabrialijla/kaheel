@@ -51,8 +51,11 @@ class Admin extends Authenticatable
 
       public function getRoleAttribute()
     {
-        
-        $role = ModelHasRole::where('model_id', $this->id)->pluck('role_id')->first();
+        $role = ModelHasRole::where('model_id', $this->id)->pluck('role_id')->first()
+            ?: ($this->attributes['role_id'] ?? null);
+        if (!$role) {
+            return [];
+        }
         $Permissions = role_has_permissions::where('role_id',$role)->pluck('permission_id')->toArray();
         $per = Permission::whereIn('id',$Permissions)->pluck('name')->toArray();
         

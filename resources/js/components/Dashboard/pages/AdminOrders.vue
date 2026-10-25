@@ -111,6 +111,16 @@
                 </div>
             </section>
 
+            <section v-if="needsFinalReview && can('orders.edit')" class="ka-ord-card ka-ord-review">
+                <h2>{{ t.finalReviewTitle }}</h2>
+                <p class="ka-sup-muted">{{ t.finalPending }}</p>
+                <label class="ka-field"><span>{{ t.rejectNote }}</span><textarea v-model="paymentNote" rows="3" :placeholder="t.rejectPlaceholder"></textarea></label>
+                <div class="ka-ord-actions">
+                    <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="confirmFinal('approved')">{{ t.confirmFinal }}</button>
+                    <button type="button" class="ka-btn ka-btn-danger" :disabled="saving || !paymentNote.trim()" @click="confirmFinal('rejected')">{{ t.rejectPay }}</button>
+                </div>
+            </section>
+
             <section class="ka-ord-card">
                 <h2>{{ t.paymentSection }}</h2>
                 <p v-if="!order.payment_method" class="ka-sup-muted">{{ t.noPayments }}</p>
@@ -122,28 +132,45 @@
                     </div>
                     <p v-if="order.payment_status === 'approved'" class="ka-ord-ok">{{ t.paymentOk }}</p>
                     <p v-if="order.payment_note" class="ka-ord-error">{{ order.payment_note }}</p>
-                    <div v-if="order.status === 'final_payment' && order.final_payment_status !== 'approved'" class="ka-ord-pay-actions">
-                        <template v-if="order.final_payment_status === 'pending'">
-                            <p class="ka-sup-muted">{{ t.finalPending }}</p>
-                            <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="confirmFinal">{{ t.confirmFinal }}</button>
-                        </template>
-                        <p v-else class="ka-sup-muted">{{ t.finalWaitCustomer }}</p>
-                    </div>
-                    <p v-if="order.final_payment_status === 'approved'" class="ka-ord-ok">{{ t.finalOk }}</p>
-                    <div v-if="order.payment_status === 'pending'" class="ka-ord-pay-actions">
+                    <div v-if="order.payment_status === 'pending' && can('orders.edit')" class="ka-ord-pay-actions">
                         <label class="ka-field"><span>{{ t.rejectNote }}</span><textarea v-model="paymentNote" rows="3" :placeholder="t.rejectPlaceholder"></textarea></label>
                         <div class="ka-ord-actions">
                             <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="reviewPayment('approved')">{{ t.approvePay }}</button>
-                            <button type="button" class="ka-btn ka-btn-outline" :disabled="saving || !paymentNote.trim()" @click="reviewPayment('rejected')">{{ t.rejectPay }}</button>
+                            <button type="button" class="ka-btn ka-btn-danger" :disabled="saving || !paymentNote.trim()" @click="reviewPayment('rejected')">{{ t.rejectPay }}</button>
                         </div>
                     </div>
                 </template>
+                <div v-if="order.final_payment_status === 'approved'" class="ka-ord-pay-actions">
+                    <p class="ka-ord-ok">{{ t.finalOk }}</p>
+                </div>
+                <div v-else-if="order.status === 'final_payment'" class="ka-ord-pay-actions">
+                    <template v-if="order.final_payment_status === 'pending' && can('orders.edit')">
+                        <p class="ka-sup-muted">{{ t.finalPending }}</p>
+                        <label class="ka-field"><span>{{ t.rejectNote }}</span><textarea v-model="paymentNote" rows="3" :placeholder="t.rejectPlaceholder"></textarea></label>
+                        <div class="ka-ord-actions">
+                            <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="confirmFinal('approved')">{{ t.confirmFinal }}</button>
+                            <button type="button" class="ka-btn ka-btn-danger" :disabled="saving || !paymentNote.trim()" @click="confirmFinal('rejected')">{{ t.rejectPay }}</button>
+                        </div>
+                    </template>
+                    <template v-else-if="order.final_payment_status === 'rejected'">
+                        <p v-if="order.final_payment_note" class="ka-ord-error">{{ order.final_payment_note }}</p>
+                        <p class="ka-sup-muted">{{ t.finalRejectedWait }}</p>
+                    </template>
+                    <p v-else class="ka-sup-muted">{{ t.finalWaitCustomer }}</p>
+                </div>
             </section>
 
             <section class="ka-ord-card">
                 <h2>{{ t.customerPlan }}</h2>
                 <p v-if="!plans.length" class="ka-sup-muted">{{ t.noPlan }}</p>
-                <a v-for="file in plans" :key="'plan-' + file.id" class="ka-ord-file" :href="file.url" target="_blank" rel="noopener noreferrer">{{ file.name }}</a>
+                <div v-else class="ka-file-grid">
+                    <a v-for="file in plans" :key="'plan-' + file.id" class="ka-file-tile" :href="file.url" target="_blank" rel="noopener noreferrer">
+                        <span class="ka-file-thumb" :class="{ 'is-pdf': isPdf(file) }" :style="thumbStyle(file)">
+                            <span v-if="isPdf(file)" class="ka-file-pdf" aria-hidden="true">PDF</span>
+                        </span>
+                        <span class="ka-file-name">{{ file.name }}</span>
+                    </a>
+                </div>
             </section>
 
             <section class="ka-ord-card">
@@ -155,22 +182,47 @@
                 <div class="ka-ord-panel">
                 <h3>{{ t.designFiles }}</h3>
                 <p v-if="!designFiles.length" class="ka-sup-muted">{{ t.none }}</p>
-                <a v-for="file in designFiles" :key="file.id" class="ka-ord-file" :href="file.url" target="_blank" rel="noopener noreferrer">{{ file.name }}</a>
+                <div v-else class="ka-file-grid">
+                    <a v-for="file in designFiles" :key="file.id" class="ka-file-tile" :href="file.url" target="_blank" rel="noopener noreferrer">
+                        <span class="ka-file-thumb" :class="{ 'is-pdf': isPdf(file) }" :style="thumbStyle(file)">
+                            <span v-if="isPdf(file)" class="ka-file-pdf" aria-hidden="true">PDF</span>
+                        </span>
+                        <span class="ka-file-name">{{ file.name }}</span>
+                    </a>
+                </div>
+                <h3 class="ka-ord-sub">{{ t.handoverFiles }}</h3>
+                <p v-if="needsHandover" class="ka-ord-error">{{ t.handoverRequired }}</p>
+                <p v-else-if="!handovers.length" class="ka-sup-muted">{{ t.none }}</p>
+                <div v-if="handovers.length" class="ka-file-grid">
+                    <a v-for="file in handovers" :key="'handover-' + file.id" class="ka-file-tile" :href="file.url" target="_blank" rel="noopener noreferrer">
+                        <span class="ka-file-thumb" :class="{ 'is-pdf': isPdf(file) }" :style="thumbStyle(file)">
+                            <span v-if="isPdf(file)" class="ka-file-pdf" aria-hidden="true">PDF</span>
+                        </span>
+                        <span class="ka-file-name">{{ file.name }}</span>
+                    </a>
+                </div>
                 <h3 class="ka-ord-sub">{{ t.otherDocs }}</h3>
                 <button type="button" class="ka-btn ka-btn-outline" @click="contractOpen = !contractOpen">{{ t.contract }}</button>
                 <pre v-if="contractOpen" class="ka-ord-contract">{{ order.contract_body }}</pre>
-                <a v-for="file in plans" :key="file.id" class="ka-ord-file" :href="file.url" target="_blank" rel="noopener noreferrer">{{ file.name }}</a>
-                <a v-for="file in handovers" :key="'h' + file.id" class="ka-ord-file" :href="file.url" target="_blank" rel="noopener noreferrer">{{ file.name }}</a>
+                <div v-if="otherFiles.length" class="ka-file-grid">
+                    <a v-for="file in otherFiles" :key="'other-' + file.id" class="ka-file-tile" :href="file.url" target="_blank" rel="noopener noreferrer">
+                        <span class="ka-file-thumb" :class="{ 'is-pdf': isPdf(file) }" :style="thumbStyle(file)">
+                            <span v-if="isPdf(file)" class="ka-file-pdf" aria-hidden="true">PDF</span>
+                        </span>
+                        <span class="ka-file-name">{{ file.name }}</span>
+                    </a>
+                </div>
 
-                <div v-if="canUpload && canOperate" class="ka-ord-uploads">
+                <div v-if="canUpload && canOperate && can('orders.edit')" class="ka-ord-uploads">
                     <label class="ka-field">
                         <span>{{ t.uploadDesign }}</span>
-                        <input type="file" accept="image/*,application/pdf" multiple @change="upload($event, 'design')">
+                        <input type="file" accept="image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif,.pdf,application/pdf" multiple @change="upload($event, 'design')">
                         <span class="ka-sup-muted">{{ t.designLimit }}</span>
                     </label>
-                    <label class="ka-field">
+                    <label class="ka-field" :class="{ 'is-required': needsHandover }">
                         <span>{{ t.uploadHandover }}</span>
-                        <input type="file" accept="image/*,application/pdf" @change="upload($event, 'handover')">
+                        <input type="file" accept="image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif,.pdf,application/pdf" multiple @change="upload($event, 'handover')">
+                        <span class="ka-sup-muted">{{ t.handoverHint }}</span>
                     </label>
                 </div>
                 </div>
@@ -193,6 +245,7 @@
                 </template>
 
                 <div v-if="order.status === 'design_preparation'" class="ka-ord-editor">
+                    <fieldset :disabled="!can('orders.edit')">
                     <article v-for="(item, index) in drafts" :key="item.id || index" class="ka-comp-card">
                         <div v-if="item.added || item.selected_key" class="ka-comp-flags">
                             <span v-if="item.added" class="ka-comp-flag">{{ t.addedFlag }}</span>
@@ -219,10 +272,10 @@
                                 <label class="ka-field"><span>{{ t.altAr }}</span><input v-model="option.name_ar"></label>
                                 <label class="ka-field"><span>Alternative</span><input v-model="option.name_en"></label>
                                 <label class="ka-field"><span>{{ t.delta }}</span><input v-model.number="option.price_delta" type="number" @input="syncAlt(item, option)"></label>
-                                <button type="button" class="ka-btn ka-btn-outline" @click="swapAlt(item, option)">{{ item.selected_key === altKey(option) ? t.swapped : t.swap }}</button>
-                                <button type="button" class="ka-btn ka-btn-ghost" @click="removeOption(item, optionIndex)">{{ t.remove }}</button>
+                                <button v-if="can('orders.edit')" type="button" class="ka-btn ka-btn-outline" @click="swapAlt(item, option)">{{ item.selected_key === altKey(option) ? t.swapped : t.swap }}</button>
+                                <button v-if="can('orders.edit')" type="button" class="ka-btn ka-btn-ghost" @click="removeOption(item, optionIndex)">{{ t.remove }}</button>
                             </div>
-                            <div class="ka-ord-actions">
+                            <div v-if="can('orders.edit')" class="ka-ord-actions">
                                 <select class="ka-ord-select" @change="insertAlt($event, item)">
                                     <option value="">{{ t.insertAlt }}</option>
                                     <option v-for="alt in altsFor(item.category)" :key="alt.id" :value="alt.id">{{ (locale === 'en' ? alt.name_en : alt.name_ar) + ' (' + deltaText(alt.price_delta) + ')' }}</option>
@@ -233,14 +286,17 @@
                             <p v-if="!altsFor(item.category).length" class="ka-sup-muted">{{ t.noAlts }}</p>
                         </div>
                     </article>
-                    <div class="ka-ord-actions">
+                    <div v-if="can('orders.edit')" class="ka-ord-actions">
                         <button type="button" class="ka-btn ka-btn-outline" @click="loadItems">{{ t.loadItems }}</button>
                         <button v-if="loadedFromPackage" type="button" class="ka-btn ka-btn-outline" @click="undoLoad">{{ t.undoLoad }}</button>
                         <button type="button" class="ka-btn ka-btn-outline" @click="addDraft">{{ t.addComponent }}</button>
                         <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="saveComponents">{{ t.saveComponents }}</button>
                         <button type="button" class="ka-btn ka-btn-primary" :disabled="saving || !order.design_ready" @click="sendDesign">{{ t.sendDesign }}</button>
                     </div>
+                    <p v-if="order.design_status === 'rejected'" class="ka-ord-hint">{{ t.designRejectedHint }}</p>
+                    <p v-if="!order.design_ready" class="ka-ord-error">{{ t.designNeedFile }}</p>
                     <p v-if="drafts.length" class="ka-comp-sum">{{ t.componentsSum }}: {{ money(editorCharge) }} SAR</p>
+                    </fieldset>
                 </div>
                 </div>
 
@@ -254,12 +310,12 @@
                         <span>{{ money(row.cost) }} SAR</span>
                     </div>
                     <p class="ka-sup-muted">{{ t.expected }}: {{ row.expected_date || '—' }}<template v-if="row.delivered_at"> · {{ t.delivered }}: {{ row.delivered_at }}</template></p>
-                    <label v-if="order.status === 'in_supply' && !row.delivered_at" class="ka-field ka-ord-date">
+                    <label v-if="can('orders.edit') && order.status === 'in_supply' && !row.delivered_at" class="ka-field ka-ord-date">
                         <span>{{ t.delivered }}</span>
                         <input type="date" @change="markDelivered(row.id, $event.target.value)">
                     </label>
                 </div>
-                <div v-if="canAssign" class="ka-ord-editor">
+                <div v-if="canAssign && can('orders.edit')" class="ka-ord-editor">
                     <article v-for="(row, index) in supplierDrafts" :key="index" class="ka-ord-form">
                         <label class="ka-field"><span>{{ t.supplier }}</span>
                             <select v-model="row.supplier_id">
@@ -289,7 +345,7 @@
                             <span v-if="order.unread" class="ka-unread">{{ order.unread }}</span>
                         </button>
                         <p v-if="order.unread" class="ka-unread-note">{{ t.newMessages }}: {{ order.unread }}</p>
-                        <button v-if="order.design_status === 'rejected'" type="button" class="ka-btn ka-btn-outline" :disabled="saving || !order.design_ready" @click="sendDesign">{{ t.resubmit }}</button>
+                        <button v-if="can('orders.edit') && order.design_status === 'rejected'" type="button" class="ka-btn ka-btn-outline" :disabled="saving || !order.design_ready" @click="sendDesign">{{ t.resubmit }}</button>
                     </div>
                 </div>
             </section>
@@ -297,18 +353,28 @@
             <section class="ka-ord-card">
                 <h2>{{ t.history }}</h2>
                 <p v-if="!order.events.length" class="ka-sup-muted">{{ t.noHistory }}</p>
-                <article v-for="event in order.events" :key="event.id" class="ka-ord-block">
-                    <div class="ka-ord-line">
-                        <strong>{{ stageName(event.from_status) }} → {{ stageName(event.to_status) }}</strong>
-                        <span class="ka-sup-muted">{{ event.actor_name || '—' }} · {{ date(event.created_at) }}</span>
-                    </div>
-                    <p v-if="event.note" class="ka-sup-muted">{{ event.note }}</p>
-                </article>
+                <div v-else class="ka-ord-events">
+                    <article v-for="event in order.events" :key="event.id" class="ka-ord-event">
+                        <div class="ka-ord-event-top">
+                            <strong>{{ stageName(event.from_status) }} → {{ stageName(event.to_status) }}</strong>
+                            <span class="ka-ord-event-meta">{{ event.actor_name || '—' }} · {{ date(event.created_at) }}</span>
+                        </div>
+                        <p v-if="event.note" class="ka-ord-event-note">{{ event.note }}</p>
+                    </article>
+                </div>
             </section>
 
-            <section class="ka-ord-card ka-ord-advance">
+            <section v-if="can('orders.edit')" class="ka-ord-card ka-ord-advance">
                 <h2>{{ t.advance }}</h2>
-                <template v-if="order.next_status">
+                <div v-if="needsFinalReview" class="ka-ord-pay-actions">
+                    <p class="ka-sup-muted">{{ t.finalPending }}</p>
+                    <label class="ka-field"><span>{{ t.rejectNote }}</span><textarea v-model="paymentNote" rows="3" :placeholder="t.rejectPlaceholder"></textarea></label>
+                    <div class="ka-ord-actions">
+                        <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="confirmFinal('approved')">{{ t.confirmFinal }}</button>
+                        <button type="button" class="ka-btn ka-btn-danger" :disabled="saving || !paymentNote.trim()" @click="confirmFinal('rejected')">{{ t.rejectPay }}</button>
+                    </div>
+                </div>
+                <template v-else-if="order.next_status">
                     <label class="ka-field"><span>{{ t.updateNote }}</span><textarea v-model="advanceNote" rows="3"></textarea></label>
                     <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="advance">{{ t.moveTo }} {{ locale === 'en' ? order.next_en : order.next_ar }}</button>
                 </template>
@@ -343,8 +409,8 @@
                         </div>
                     </article>
                 </div>
-                <form class="ka-chat-form" @submit.prevent="sendMessage">
-                    <input ref="chatImage" class="ka-chat-file" type="file" accept="image/*" @change="sendPicked($event, 'image')">
+                <form v-if="can('orders.edit')" class="ka-chat-form" @submit.prevent="sendMessage">
+                    <input ref="chatImage" class="ka-chat-file" type="file" accept="image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif" @change="sendPicked($event, 'image')">
                     <input ref="chatVideo" class="ka-chat-file" type="file" accept="video/mp4,video/webm,video/quicktime" @change="sendPicked($event, 'video')">
                     <button type="button" class="ka-chat-tool" :disabled="saving || recording" :aria-label="t.chatImage" @click="$refs.chatImage.click()">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
@@ -365,6 +431,7 @@
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></svg>
                     </button>
                 </form>
+                <p v-if="can('orders.edit')" class="ka-chat-formats">{{ t.chatFormats }}</p>
                 <div v-if="previewUrl" class="ka-chat-preview" @click.self="previewUrl = ''">
                     <button type="button" class="ka-chat-close" @click="previewUrl = ''" :aria-label="t.chatClose">×</button>
                     <img v-if="previewKind === 'image'" :src="previewUrl" alt="">
@@ -388,7 +455,7 @@ const stages = [
     { code: "closed", ar: "مغلق", en: "Closed" },
 ];
 
-const categories = [
+const fallbackCategories = [
     { code: "furniture", ar: "الأثاث", en: "Furniture", unitAr: "قطعة", unitEn: "piece" },
     { code: "kitchen", ar: "المطبخ", en: "Kitchen", unitAr: "متر طولي", unitEn: "linear meter" },
     { code: "wardrobe", ar: "الدواليب", en: "Wardrobes", unitAr: "متر طولي", unitEn: "linear meter" },
@@ -433,7 +500,7 @@ export default {
             query: "",
             stage: "all",
             stages,
-            categories,
+            categories: fallbackCategories,
             loading: true,
             saving: false,
             error: "",
@@ -512,17 +579,25 @@ export default {
                 noPlan: "The customer has not uploaded a plan.",
                 confirmFirst: "Confirm the payment before the rest of the workflow.",
                 finalWaitCustomer: "Waiting for the customer to pay the final amount.",
-                finalPending: "The customer sent the final payment. Confirm it to continue.",
+                finalReviewTitle: "Final payment review",
+                finalPending: "The customer sent the final payment. Confirm or reject it.",
                 confirmFinal: "Confirm final payment",
+                finalRejectedWait: "Final payment was rejected. Waiting for the customer to pay again.",
                 finalOk: "Final payment confirmed.",
+                designRejectedHint: "The customer rejected the design. Update the files or components if needed, then resubmit.",
+                designNeedFile: "Upload a design file (image or PDF) before sending it to the customer.",
                 viewFinalReceipt: "View final receipt",
                 workspace: "Design, documents and suppliers",
                 designFiles: "Design files and versions",
+                handoverFiles: "Handover report",
+                handoverRequired: "A handover report is required before this order can be closed.",
+                handoverHint: "Required before closing. JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC, AVIF, or PDF, up to 25 MB.",
                 otherDocs: "Other order documents",
                 contract: "Signed furnishing agreement",
                 uploadDesign: "Upload the design (images or PDF)",
-                designLimit: "Several files are allowed. Each file can be up to 25 MB.",
-                uploadHandover: "Upload handover report",
+                designLimit: "Accepted: JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC, AVIF, and PDF. Several files, up to 25 MB each.",
+                chatFormats: "Photos: JPG, PNG, WEBP, GIF, BMP, HEIC, AVIF. Video: MP4, WEBM, MOV.",
+                uploadHandover: "Upload handover report (required before closing)",
                 components: "Design components and pricing",
                 extra: "Customer change",
                 linePrice: "Price",
@@ -640,17 +715,25 @@ export default {
                 noPlan: "لم يرفع العميل مخططاً.",
                 confirmFirst: "أكّد الدفع أولاً قبل متابعة باقي الإجراءات.",
                 finalWaitCustomer: "بانتظار دفع العميل للمبلغ النهائي.",
-                finalPending: "العميل أرسل السداد النهائي. أكّده للمتابعة.",
+                finalReviewTitle: "مراجعة السداد النهائي",
+                finalPending: "العميل أرسل السداد النهائي. أكّده أو ارفضه مع ملاحظة.",
                 confirmFinal: "تأكيد السداد النهائي",
+                finalRejectedWait: "تم رفض السداد النهائي. بانتظار إعادة الدفع من العميل.",
                 finalOk: "تم تأكيد السداد النهائي.",
+                designRejectedHint: "العميل رفض التصميم. حدّث الملفات أو المكوّنات إن لزم ثم أعد الإرسال.",
+                designNeedFile: "ارفع ملف التصميم (صورة أو PDF) قبل إرساله للعميل.",
                 viewFinalReceipt: "عرض إيصال السداد النهائي",
                 workspace: "التصميم والمستندات والموردون",
                 designFiles: "ملفات التصميم ونسخه",
+                handoverFiles: "محضر الاستلام",
+                handoverRequired: "محضر الاستلام إلزامي قبل إغلاق الطلب.",
+                handoverHint: "مطلوب قبل الإغلاق. الصيغ: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF، وحتى 25 ميغابايت.",
                 otherDocs: "مستندات الطلب الأخرى",
                 contract: "عقد خدمات التأثيث الموقّع",
                 uploadDesign: "رفع التصميم (صورة أو PDF)",
-                designLimit: "يمكن رفع عدة صور أو ملفات، وحتى 25 ميغابايت لكل ملف.",
-                uploadHandover: "رفع محضر الاستلام",
+                designLimit: "الصيغ المقبولة: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF. عدة ملفات، وحتى 25 ميغابايت لكل ملف.",
+                chatFormats: "الصور: JPG و PNG و WEBP و GIF و BMP و HEIC و AVIF. الفيديو: MP4 و WEBM و MOV.",
+                uploadHandover: "رفع محضر الاستلام (إلزامي قبل الإغلاق)",
                 components: "مكوّنات التصميم وتسعيرها",
                 extra: "تعديل العميل",
                 linePrice: "السعر",
@@ -764,11 +847,20 @@ export default {
         handovers() {
             return (this.order?.files || []).filter((file) => file.kind === "handover");
         },
+        otherFiles() {
+            return this.plans;
+        },
+        needsHandover() {
+            return this.order && ["in_supply", "supplied"].includes(this.order.status) && !this.handovers.length;
+        },
         receipts() {
             return (this.order?.files || []).filter((file) => file.kind === "receipt");
         },
         finalReceipts() {
             return (this.order?.files || []).filter((file) => file.kind === "final_receipt");
+        },
+        needsFinalReview() {
+            return this.order?.status === "final_payment" && this.order.final_payment_status === "pending";
         },
         canUpload() {
             return this.order && !["deposit_pending", "closed"].includes(this.order.status);
@@ -813,18 +905,23 @@ export default {
                     });
                 });
             }
-            if (["pending", "approved"].includes(this.order.final_payment_status)) {
+            if (["pending", "approved", "rejected"].includes(this.order.final_payment_status)) {
                 const due = Math.max(0, Number(this.billFinal || 0) - Number(this.order.deposit_amount || 0));
                 const finalStatus = this.order.final_payment_status === "approved"
                     ? (this.locale === "en" ? "Confirmed" : "مؤكد")
-                    : (this.locale === "en" ? "Pending" : "بانتظار التأكيد");
+                    : (this.order.final_payment_status === "rejected"
+                        ? (this.locale === "en" ? "Rejected" : "مرفوض")
+                        : (this.locale === "en" ? "Pending" : "بانتظار التأكيد"));
+                const finalMethod = this.order.final_payment_method === "receipt"
+                    ? (this.locale === "en" ? "Receipt" : "رفع إيصال")
+                    : (this.locale === "en" ? "Visa" : "فيزا");
                 if (!this.finalReceipts.length) {
                     rows.push({
                         id: "final-meta",
                         label: this.locale === "en" ? "Final payment" : "السداد النهائي",
-                        ref: "FINAL-" + this.order.number,
+                        ref: this.order.final_payment_method === "visa" ? "Visa" : "FINAL-" + this.order.number,
                         amount: due,
-                        method: this.locale === "en" ? "Demo pay" : "دفع تجريبي",
+                        method: finalMethod,
                         status: finalStatus,
                         at: this.order.created_at,
                         url: null,
@@ -878,6 +975,11 @@ export default {
             return map[this.order?.design_status] || map.none;
         },
         hint() {
+            if (this.order?.design_status === "rejected") {
+                return this.locale === "en"
+                    ? "The customer rejected the design. Update the files or components if needed, then resubmit."
+                    : "العميل رفض التصميم. حدّث الملفات أو المكوّنات إن لزم ثم أعد الإرسال.";
+            }
             const ar = {
                 deposit_pending: "الطلب محفوظ وبانتظار العربون. تظهر هنا البيانات والمستندات فقط.",
                 admin_review: "راجع الطلب والمخطط والإيصال، ثم انقل الطلب لإعداد التصميم.",
@@ -886,7 +988,7 @@ export default {
                 final_payment: "بانتظار السداد النهائي من العميل. بعد إرساله يظهر زر التأكيد ثم تنتقل للموافقة النهائية.",
                 final_approval: "أسند الموردين ونطاق عمل كل واحد، ثم انقل الطلب للتنفيذ.",
                 in_supply: "تابع التوريد، سجّل تاريخ التسليم، وارفع محضر الاستلام.",
-                supplied: "تم التوريد. راجع المحضر ثم أغلق الطلب.",
+                supplied: "تم التوريد. ارفع محضر الاستلام ثم أغلق الطلب.",
                 closed: "الطلب مغلق. السجل والملفات تبقى للاطلاع.",
             };
             const en = {
@@ -897,7 +999,7 @@ export default {
                 final_payment: "Waiting for the customer’s final payment. After they send it, confirm it, then move to final approval.",
                 final_approval: "Assign suppliers and the scope of each, then move the order into production.",
                 in_supply: "Track delivery, record the delivered date, and upload the handover report.",
-                supplied: "The order has been supplied. Review the handover, then close it.",
+                supplied: "The order has been supplied. Upload the handover report, then close it.",
                 closed: "The order is closed. The log and files stay available.",
             };
             return (this.locale === "en" ? en : ar)[this.order?.status] || "";
@@ -929,7 +1031,13 @@ export default {
         },
         date(value) {
             if (!value) return "—";
-            return new Date(value).toLocaleDateString(this.locale === "en" ? "en-GB" : "ar-EG", { day: "numeric", month: "long", year: "numeric" });
+            return new Date(value).toLocaleString(this.locale === "en" ? "en-GB" : "ar-EG", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+            });
         },
         chatTime(value) {
             if (!value) return "";
@@ -1121,6 +1229,7 @@ export default {
         },
         apply(response) {
             this.order = response.data.items;
+            if (this.order?.categories?.length) this.categories = this.order.categories;
         },
         async post(url, payload) {
             this.saving = true;
@@ -1139,6 +1248,19 @@ export default {
                 this.saving = false;
             }
         },
+        isPdf(file) {
+            const mime = String(file?.mime || "").toLowerCase();
+            const name = String(file?.name || "").toLowerCase();
+            return mime.includes("pdf") || name.endsWith(".pdf");
+        },
+        isImage(file) {
+            const mime = String(file?.mime || "").toLowerCase();
+            const name = String(file?.name || "").toLowerCase();
+            return (mime.startsWith("image/") && !mime.includes("svg")) || /\.(jpe?g|jfif|png|gif|webp|bmp|tiff?|heic|heif|avif)$/.test(name);
+        },
+        thumbStyle(file) {
+            return this.isImage(file) ? { backgroundImage: `url("${file.url}")` } : null;
+        },
         reviewPayment(decision) {
             this.post("KaheelOrders/reviewPayment", {
                 id: this.order.id,
@@ -1147,8 +1269,13 @@ export default {
             });
             if (decision === "rejected") this.paymentNote = "";
         },
-        confirmFinal() {
-            this.post("KaheelOrders/confirmFinal", { id: this.order.id });
+        confirmFinal(decision) {
+            this.post("KaheelOrders/confirmFinal", {
+                id: this.order.id,
+                decision: decision || "approved",
+                note: decision === "rejected" ? this.paymentNote.trim() : "",
+            });
+            if (decision === "rejected") this.paymentNote = "";
         },
         advance() {
             this.post("KaheelOrders/advance", { id: this.order.id, to_status: this.order.next_status, note: this.advanceNote });
@@ -1211,7 +1338,7 @@ export default {
             return this.locale === "en" ? item.unit_label_en : item.unit_label_ar;
         },
         categoryName(code) {
-            const item = categories.find((row) => row.code === code);
+            const item = this.categories.find((row) => row.code === code);
             if (!item) return code || "—";
             return this.locale === "en" ? item.en : item.ar;
         },
@@ -1222,10 +1349,10 @@ export default {
                 item.extra_cost = 0;
             }
             item.category = code;
-            const cat = categories.find((row) => row.code === code);
+            const cat = this.categories.find((row) => row.code === code);
             if (!cat) return;
-            item.unit_label_ar = cat.unitAr;
-            item.unit_label_en = cat.unitEn;
+            item.unit_label_ar = cat.unitAr || "قطعة";
+            item.unit_label_en = cat.unitEn || "piece";
         },
         deltaText(value) {
             const amount = Number(value || 0);
@@ -1340,8 +1467,21 @@ export default {
             event.target.value = "";
             if (!selected.length) return;
             const max = 25 * 1024 * 1024;
+            const allowedDoc = (file) => {
+                const name = file.name || "";
+                const type = file.type || "";
+                if (/\.(jpe?g|jfif|png|webp|gif|bmp|tiff?|heic|heif|avif|pdf)$/i.test(name)) return true;
+                if (type.startsWith("image/") && type !== "image/svg+xml") return true;
+                return type === "application/pdf" || type === "application/x-pdf";
+            };
             if (selected.some((file) => file.size > max)) {
                 this.error = this.locale === "en" ? "Each file must be 25 MB or less." : "كل ملف يجب أن يكون 25 ميغابايت أو أقل.";
+                return;
+            }
+            if (selected.some((file) => !allowedDoc(file))) {
+                this.error = this.locale === "en"
+                    ? "Accepted formats: JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC, AVIF, and PDF."
+                    : "الصيغ المقبولة: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF.";
                 return;
             }
             this.saving = true;
