@@ -901,7 +901,7 @@ body.kaheel-admin .ka-field {
     font-size: 0.875rem;
 }
 
-body.kaheel-admin .ka-field input {
+body.kaheel-admin .ka-field input:not([type="file"]) {
     all: unset;
     box-sizing: border-box;
     height: 2.25rem;
@@ -1182,6 +1182,7 @@ body.kaheel-admin button.ka-btn.is-danger {
 }
 
 body.kaheel-admin .ka-check.ka-span,
+body.kaheel-admin .ka-field.ka-span,
 body.kaheel-admin p.ka-sup-error.ka-span {
     grid-column: 1 / -1;
 }
@@ -2298,6 +2299,16 @@ body.kaheel-admin .ka-file-name {
     white-space: nowrap;
 }
 
+body.kaheel-admin .ka-file-time {
+    display: block;
+    margin-top: 0.15rem;
+    color: var(--muted-foreground);
+    font-size: 0.65rem;
+    line-height: 1.35;
+    text-align: center;
+    white-space: normal;
+}
+
 body.kaheel-admin .ka-ord-contract {
     max-height: 16rem;
     overflow: auto;
@@ -2375,9 +2386,132 @@ body.kaheel-admin .ka-ord-uploads .ka-field.is-required {
     border-radius: 10px;
 }
 
-body.kaheel-admin .ka-orders input[type="file"] {
-    height: auto;
-    padding: 0.45rem 0.75rem;
+body.kaheel-admin .ka-field input[type="file"],
+body.kaheel-admin .ka-orders input[type="file"],
+body.kaheel-admin .ka-packages input[type="file"],
+body.kaheel-admin .ka-drop input[type="file"],
+body.kaheel-admin input.ka-drop-input {
+    display: none !important;
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    border: 0 !important;
+    opacity: 0 !important;
+}
+
+body.kaheel-admin .ka-drop {
+    position: relative;
+    display: grid;
+    gap: 0.65rem;
+}
+
+body.kaheel-admin .ka-drop.is-over .ka-drop-zone {
+    border-color: var(--primary);
+}
+
+body.kaheel-admin .ka-drop-zone {
+    display: grid;
+    justify-items: center;
+    gap: 0.35rem;
+    width: 100%;
+    border: 1px dashed var(--border);
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--muted) 55%, #fff);
+    padding: 1.1rem 0.9rem;
+    text-align: center;
+    cursor: pointer;
+}
+
+body.kaheel-admin .ka-drop-zone:hover {
+    border-color: var(--primary);
+}
+
+body.kaheel-admin .ka-drop-zone strong {
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+body.kaheel-admin .ka-drop-zone span {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-drop-list {
+    display: grid;
+    gap: 0.5rem;
+}
+
+body.kaheel-admin .ka-drop-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.7rem;
+    background: #fff;
+    padding: 0.5rem 0.65rem;
+}
+
+body.kaheel-admin .ka-drop-thumb {
+    flex: 0 0 3.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 0.45rem;
+    background: var(--muted) center / cover no-repeat;
+}
+
+body.kaheel-admin .ka-drop-thumb.is-pdf {
+    display: grid;
+    place-items: center;
+    background: #e11d48;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
+body.kaheel-admin .ka-drop-meta {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+    flex: 1;
+}
+
+body.kaheel-admin .ka-drop-meta strong {
+    overflow: hidden;
+    font-size: 0.8125rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.kaheel-admin .ka-drop-meta em {
+    color: var(--muted-foreground);
+    font-size: 0.7rem;
+    font-style: normal;
+}
+
+body.kaheel-admin .ka-drop-x {
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--muted);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+body.kaheel-admin .ka-drop-item.is-gallery .ka-drop-meta input {
+    width: 100%;
+    min-width: 0;
+    height: 1.85rem;
+    border: 1px solid var(--border);
+    border-radius: 0.4rem;
+    padding: 0 0.5rem;
+    font: inherit;
+    font-size: 0.75rem;
 }
 
 body.kaheel-admin .ka-ord-events {
@@ -2659,11 +2793,18 @@ body.kaheel-admin .ka-chat-bubble {
 body.kaheel-admin .ka-chat-row.is-mine .ka-chat-bubble {
     background: var(--primary);
     border-color: var(--primary);
-    color: var(--primary-foreground);
+    color: #fff;
+}
+
+body.kaheel-admin .ka-chat-row.is-mine .ka-chat-bubble p,
+body.kaheel-admin .ka-chat-row.is-mine .ka-chat-bubble time,
+body.kaheel-admin .ka-chat-row.is-mine .ka-chat-filelink {
+    color: #fff !important;
 }
 
 body.kaheel-admin .ka-chat-bubble p {
     margin: 0;
+    color: inherit;
     font-size: 0.875rem;
     line-height: 1.5;
     white-space: pre-wrap;
@@ -2862,6 +3003,12 @@ body.kaheel-admin .ka-ord-pay-main {
 body.kaheel-admin .ka-ord-pay-main strong {
     font-size: 0.875rem;
     font-weight: 600;
+}
+
+body.kaheel-admin .ka-pay-status.is-rejected,
+body.kaheel-admin .ka-ord-pay-row.is-rejected .ka-pay-status {
+    color: #dc2626;
+    font-weight: 700;
 }
 
 body.kaheel-admin .ka-ord-pay-side {

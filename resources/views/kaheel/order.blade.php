@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=42" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=45" rel="stylesheet">
 </head>
 <body>
     @include('kaheel.partials.public-header')
@@ -56,7 +56,14 @@
             <h2 data-ar="مراجعة الطلب" data-en="Order review">مراجعة الطلب</h2>
             <dl class="order-rows" id="review-rows"></dl>
             <h3 data-ar="مخطط الوحدة (إلزامي)" data-en="Unit plan (required)">مخطط الوحدة (إلزامي)</h3>
-            <input class="order-file" id="plans" type="file" accept="image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif,.pdf,application/pdf" multiple required>
+            <div class="ka-drop" data-ka-drop data-max="5" data-max-mb="20">
+                <div class="ka-drop-zone" data-browse>
+                    <strong data-ar="اسحب الملفات هنا أو اضغط للاختيار" data-en="Drop files here or click to browse">اسحب الملفات هنا أو اضغط للاختيار</strong>
+                    <span data-ar="صور أو PDF — حتى 5 ملفات" data-en="Images or PDF — up to 5 files">صور أو PDF — حتى 5 ملفات</span>
+                </div>
+                <div class="ka-drop-list" data-list></div>
+                <input class="order-file" id="plans" type="file" accept="image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif,.pdf,application/pdf" multiple required>
+            </div>
             <p class="order-lead" data-ar="إلزامي. الصيغ المقبولة: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF. حتى 5 ملفات، 20 ميغابايت لكل ملف." data-en="Required. Accepted formats: JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC, AVIF, and PDF. Up to 5 files, 20 MB each.">إلزامي. الصيغ المقبولة: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF. حتى 5 ملفات، 20 ميغابايت لكل ملف.</p>
             <h3 data-ar="العقد" data-en="Contract">العقد</h3>
             <pre class="order-contract" id="contract"></pre>
@@ -353,7 +360,9 @@
         });
         document.getElementById("agreed").addEventListener("change", refreshSubmit);
         document.getElementById("plans").addEventListener("change", () => {
-            document.getElementById("plans").classList.toggle("is-missing", !document.getElementById("plans").files.length);
+            const missing = !document.getElementById("plans").files.length;
+            document.getElementById("plans").classList.toggle("is-missing", missing);
+            document.getElementById("plans").closest("[data-ka-drop]")?.classList.toggle("is-missing", missing);
         });
         function gateMessage() {
             const agreed = document.getElementById("agreed").checked;
@@ -402,6 +411,7 @@
             };
             if (!files.length) {
                 plansInput.classList.add("is-missing");
+                plansInput.closest("[data-ka-drop]")?.classList.add("is-missing");
                 alertBox.hidden = false;
                 alertBox.className = "auth-alert is-error";
                 alertBox.textContent = lang === "ar"
@@ -411,6 +421,7 @@
                 return;
             }
             plansInput.classList.remove("is-missing");
+            plansInput.closest("[data-ka-drop]")?.classList.remove("is-missing");
             if (files.length > 5 || files.some((file) => file.size > maxFile)) {
                 alertBox.hidden = false;
                 alertBox.className = "auth-alert is-error";

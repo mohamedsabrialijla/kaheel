@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Kaheel;
 use App\Http\Controllers\Controller;
 use App\Models\KaheelCategory;
 use App\Models\KaheelPackage;
+use App\Models\KaheelPackageImage;
 use App\Models\KaheelSetting;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 
 class SiteController extends Controller
 {
@@ -29,15 +31,36 @@ class SiteController extends Controller
         $package = KaheelPackage::query()
             ->whereRaw('LOWER(code) = ?', [strtolower($code)])
             ->where('is_active', true)
-            ->with(['tiers' => function ($query) {
-                $query->where('is_active', true)->orderBy('sort_order')->with('items');
-            }])
+            ->with([
+                'images',
+                'tiers' => function ($query) {
+                    $query->where('is_active', true)->orderBy('sort_order')->with('items');
+                },
+            ])
             ->firstOrFail();
 
         return view('kaheel.package', array_merge($this->publicSettings(), [
             'package' => $package,
-            'gallery' => $this->gallery($package->code),
+            'gallery' => $this->gallery($package),
         ]));
+    }
+
+    public function galleryImage(KaheelPackageImage $image)
+    {
+        if ($image->isLegacy()) {
+            return redirect($image->publicUrl());
+        }
+        $path = Storage::disk('local')->path($image->path);
+        $mime = (string) $image->mime;
+        $allowed = str_starts_with($mime, 'image/') && !str_contains($mime, 'svg');
+        if (!$allowed || !is_file($path)) {
+            abort(404);
+        }
+
+        return response()->file($path, [
+            'Content-Type' => $mime,
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     private function publicSettings(): array
@@ -63,6 +86,7 @@ class SiteController extends Controller
             ->orderBy('sort_order')
             ->orderBy('id')
             ->with([
+                'images',
                 'outline',
                 'tiers' => function ($query) {
                     $query->where('is_active', true)->orderBy('sort_order')->with('items');
@@ -118,8 +142,18 @@ class SiteController extends Controller
         return $packages->first()?->outline ?? collect();
     }
 
-    private function gallery(string $code): array
+    private function gallery(KaheelPackage $package): array
     {
+        $shots = $package->images->map(fn (KaheelPackageImage $image) => [
+            'url' => $image->publicUrl(),
+            'ar' => $image->caption_ar ?: $package->name_ar,
+            'en' => $image->caption_en ?: $package->name_en,
+        ])->all();
+
+        if ($shots) {
+            return $shots;
+        }
+
         $sets = [
             'VIP' => [
                 ['file' => 'vip-living.jpg', 'ar' => 'غرفة الطعام والمعيشة', 'en' => 'Dining & living'],
@@ -138,8 +172,12 @@ class SiteController extends Controller
             ],
         ];
 
-        return $sets[strtoupper($code)] ?? [
+        return array_map(fn ($shot) => [
+            'url' => asset('kaheel/'.$shot['file']),
+            'ar' => $shot['ar'],
+            'en' => $shot['en'],
+        ], $sets[strtoupper($package->code)] ?? [
             ['file' => 'vip-living.jpg', 'ar' => 'الباقة', 'en' => 'Package'],
-        ];
+        ]);
     }
 }

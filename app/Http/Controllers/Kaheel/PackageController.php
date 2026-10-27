@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Kaheel;
 
 use App\Models\KaheelOrder;
 use App\Models\KaheelPackage;
+use App\Models\KaheelPackageImage;
 use App\Models\KaheelPackageItem;
 use App\Models\KaheelPackageTier;
 use App\Support\KaheelPermissions;
@@ -33,7 +34,7 @@ class PackageController extends KaheelAdminController
             ->keyBy('package_code');
 
         $rows = KaheelPackage::query()
-            ->with(['tiers.items'])
+            ->with(['tiers.items', 'images'])
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get()
@@ -77,8 +78,11 @@ class PackageController extends KaheelAdminController
             'is_active' => $request->boolean('is_active', true),
         ]);
         $package->save();
+        if ($request->boolean('sync_images') || $request->has('keep_ids') || $request->hasFile('images')) {
+            $this->syncImages($package, $request);
+        }
 
-        return mainResponse(true, 'Success', $this->present($package->fresh('tiers.items')), 200, 'items', '');
+        return mainResponse(true, 'Success', $this->present($package->fresh(['tiers.items', 'images'])), 200, 'items', '');
     }
 
     public function togglePackage(Request $request)
@@ -95,7 +99,13 @@ class PackageController extends KaheelAdminController
 
     public function deletePackage(Request $request)
     {
-        KaheelPackage::query()->whereKey($request->input('id'))->delete();
+        $package = KaheelPackage::query()->with('images')->find($request->input('id'));
+        if ($package) {
+            foreach ($package->images as $image) {
+                $image->deleteFile();
+            }
+            $package->delete();
+        }
 
         return mainResponse(true, 'Success', null, 200, 'items', '');
     }
@@ -239,9 +249,60 @@ class PackageController extends KaheelAdminController
             || KaheelPermissions::allows($admin, 'overview.view');
     }
 
+    private function syncImages(KaheelPackage $package, Request $request): void
+    {
+        $keep = collect($request->input('keep_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->values();
+
+        $package->loadMissing('images');
+        foreach ($package->images as $image) {
+            if (!$keep->contains($image->id)) {
+                $image->deleteFile();
+                $image->delete();
+            }
+        }
+
+        foreach ($keep as $index => $id) {
+            $image = $package->images()->whereKey($id)->first();
+            if (!$image) {
+                continue;
+            }
+            $image->caption_ar = trim((string) $request->input('caption_ar.'.$id, '')) ?: null;
+            $image->caption_en = trim((string) $request->input('caption_en.'.$id, '')) ?: null;
+            $image->sort_order = $index + 1;
+            $image->save();
+        }
+
+        $files = $request->file('images', []);
+        if (!is_array($files)) {
+            $files = $files ? [$files] : [];
+        }
+        $sort = $keep->count();
+        foreach (array_values($files) as $index => $file) {
+            if (!$file || !$file->isValid() || !kaheel_file_is_image(...kaheel_upload_parts($file)) || kaheel_upload_blocked(...kaheel_upload_parts($file))) {
+                continue;
+            }
+            if ($file->getSize() > 8 * 1024 * 1024) {
+                continue;
+            }
+            $sort++;
+            KaheelPackageImage::query()->create([
+                'package_id' => $package->id,
+                'path' => $file->store('kaheel-packages/'.$package->id),
+                'original_name' => $file->getClientOriginalName(),
+                'mime' => kaheel_stored_mime($file),
+                'caption_ar' => trim((string) $request->input('new_caption_ar.'.$index, '')) ?: null,
+                'caption_en' => trim((string) $request->input('new_caption_en.'.$index, '')) ?: null,
+                'sort_order' => $sort,
+            ]);
+        }
+    }
+
     private function present(KaheelPackage $package, $stats = null): array
     {
-        $package->loadMissing('tiers.items');
+        $package->loadMissing('tiers.items', 'images');
 
         return [
             'id' => $package->id,
@@ -252,6 +313,12 @@ class PackageController extends KaheelAdminController
             'tagline_en' => $package->tagline_en,
             'sort_order' => $package->sort_order,
             'is_active' => $package->is_active,
+            'images' => $package->images->map(fn (KaheelPackageImage $image) => [
+                'id' => $image->id,
+                'url' => $image->publicUrl(),
+                'caption_ar' => $image->caption_ar,
+                'caption_en' => $image->caption_en,
+            ])->values(),
             'ordersCount' => (int) ($stats->orders_count ?? 0),
             'sales' => round((float) ($stats->sales ?? 0), 2),
             'tiers' => $package->tiers->map(function (KaheelPackageTier $tier) {

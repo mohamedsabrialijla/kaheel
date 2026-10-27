@@ -133,6 +133,7 @@ Route::get('/test-signed', function () {
         return view('kaheel.admin-login');
     });
 
+    Route::get('/packages/gallery/{image}', [App\Http\Controllers\Kaheel\SiteController::class, 'galleryImage']);
     Route::get('/packages/{code}', [App\Http\Controllers\Kaheel\SiteController::class, 'package']);
 
     Route::get('/order', [App\Http\Controllers\Kaheel\OrderController::class, 'create']);

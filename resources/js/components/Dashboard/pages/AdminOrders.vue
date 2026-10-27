@@ -98,10 +98,10 @@
                 <h3 class="ka-ord-subhead">{{ t.payments }}</h3>
                 <p v-if="!paymentEntries.length" class="ka-sup-muted">{{ t.noPayments }}</p>
                 <div v-else class="ka-ord-pay-list">
-                    <article v-for="row in paymentEntries" :key="row.id" class="ka-ord-pay-row">
+                    <article v-for="row in paymentEntries" :key="row.id" class="ka-ord-pay-row" :class="{ 'is-rejected': row.state === 'rejected' }">
                         <div class="ka-ord-pay-main">
                             <strong>{{ row.label }} — {{ row.ref }}</strong>
-                            <span class="ka-sup-muted">{{ row.method }} · {{ row.status }} · {{ date(row.at) }}</span>
+                            <span class="ka-sup-muted">{{ row.method }} · <span class="ka-pay-status" :class="{ 'is-rejected': row.state === 'rejected' }">{{ row.status }}</span> · {{ date(row.at) }}</span>
                         </div>
                         <div class="ka-ord-pay-side">
                             <strong>{{ money(row.amount) }} SAR</strong>
@@ -188,6 +188,7 @@
                             <span v-if="isPdf(file)" class="ka-file-pdf" aria-hidden="true">PDF</span>
                         </span>
                         <span class="ka-file-name">{{ file.name }}</span>
+                        <span class="ka-file-time">{{ date(file.created_at) }}</span>
                     </a>
                 </div>
                 <h3 class="ka-ord-sub">{{ t.handoverFiles }}</h3>
@@ -214,16 +215,42 @@
                 </div>
 
                 <div v-if="canUpload && canOperate && can('orders.edit')" class="ka-ord-uploads">
-                    <label class="ka-field">
+                    <div class="ka-field">
                         <span>{{ t.uploadDesign }}</span>
-                        <input type="file" accept="image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif,.pdf,application/pdf" multiple @change="upload($event, 'design')">
-                        <span class="ka-sup-muted">{{ t.designLimit }}</span>
-                    </label>
-                    <label class="ka-field" :class="{ 'is-required': needsHandover }">
+                        <div class="ka-drop" :class="{ 'is-over': designOver }" @dragenter.prevent="designOver = true" @dragover.prevent="designOver = true" @dragleave.prevent="designOver = false" @drop.prevent="onDrop($event, 'design')">
+                            <button type="button" class="ka-drop-zone" @click="$refs.designPick.click()">
+                                <strong>{{ t.dropFiles }}</strong>
+                                <span>{{ t.designLimit }}</span>
+                            </button>
+                            <div class="ka-drop-list">
+                                <div v-for="(item, index) in designQueue" :key="item.id" class="ka-drop-item">
+                                    <span class="ka-drop-thumb" :class="{ 'is-pdf': item.pdf }" :style="item.preview ? { backgroundImage: 'url(' + item.preview + ')' } : null">{{ item.pdf ? 'PDF' : '' }}</span>
+                                    <span class="ka-drop-meta"><strong>{{ item.file.name }}</strong><em>{{ item.size }}</em></span>
+                                    <button type="button" class="ka-drop-x" @click="removeQueued('design', index)">×</button>
+                                </div>
+                            </div>
+                            <input ref="designPick" class="ka-drop-input" type="file" accept="image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif,.pdf,application/pdf" multiple @change="queueFiles($event, 'design')">
+                            <button v-if="designQueue.length" type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="uploadQueued('design')">{{ t.uploadNow }}</button>
+                        </div>
+                    </div>
+                    <div class="ka-field" :class="{ 'is-required': needsHandover }">
                         <span>{{ t.uploadHandover }}</span>
-                        <input type="file" accept="image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif,.pdf,application/pdf" multiple @change="upload($event, 'handover')">
-                        <span class="ka-sup-muted">{{ t.handoverHint }}</span>
-                    </label>
+                        <div class="ka-drop" :class="{ 'is-over': handoverOver }" @dragenter.prevent="handoverOver = true" @dragover.prevent="handoverOver = true" @dragleave.prevent="handoverOver = false" @drop.prevent="onDrop($event, 'handover')">
+                            <button type="button" class="ka-drop-zone" @click="$refs.handoverPick.click()">
+                                <strong>{{ t.dropFiles }}</strong>
+                                <span>{{ t.handoverHint }}</span>
+                            </button>
+                            <div class="ka-drop-list">
+                                <div v-for="(item, index) in handoverQueue" :key="item.id" class="ka-drop-item">
+                                    <span class="ka-drop-thumb" :class="{ 'is-pdf': item.pdf }" :style="item.preview ? { backgroundImage: 'url(' + item.preview + ')' } : null">{{ item.pdf ? 'PDF' : '' }}</span>
+                                    <span class="ka-drop-meta"><strong>{{ item.file.name }}</strong><em>{{ item.size }}</em></span>
+                                    <button type="button" class="ka-drop-x" @click="removeQueued('handover', index)">×</button>
+                                </div>
+                            </div>
+                            <input ref="handoverPick" class="ka-drop-input" type="file" accept="image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif,.pdf,application/pdf" multiple @change="queueFiles($event, 'handover')">
+                            <button v-if="handoverQueue.length" type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="uploadQueued('handover')">{{ t.uploadNow }}</button>
+                        </div>
+                    </div>
                 </div>
                 </div>
 
@@ -294,6 +321,7 @@
                         <button type="button" class="ka-btn ka-btn-primary" :disabled="saving || !order.design_ready" @click="sendDesign">{{ t.sendDesign }}</button>
                     </div>
                     <p v-if="order.design_status === 'rejected'" class="ka-ord-hint">{{ t.designRejectedHint }}</p>
+                    <p v-if="designRejectNote" class="ka-ord-error">{{ designRejectNote }}</p>
                     <p v-if="!order.design_ready" class="ka-ord-error">{{ t.designNeedFile }}</p>
                     <p v-if="drafts.length" class="ka-comp-sum">{{ t.componentsSum }}: {{ money(editorCharge) }} SAR</p>
                     </fieldset>
@@ -519,6 +547,10 @@ export default {
             advanceNote: "",
             paymentNote: "",
             contractOpen: false,
+            designQueue: [],
+            handoverQueue: [],
+            designOver: false,
+            handoverOver: false,
         };
     },
     computed: {
@@ -596,6 +628,8 @@ export default {
                 contract: "Signed furnishing agreement",
                 uploadDesign: "Upload the design (images or PDF)",
                 designLimit: "Accepted: JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC, AVIF, and PDF. Several files, up to 25 MB each.",
+                dropFiles: "Drop files here or click to browse",
+                uploadNow: "Upload selected files",
                 chatFormats: "Photos: JPG, PNG, WEBP, GIF, BMP, HEIC, AVIF. Video: MP4, WEBM, MOV.",
                 uploadHandover: "Upload handover report (required before closing)",
                 components: "Design components and pricing",
@@ -732,6 +766,8 @@ export default {
                 contract: "عقد خدمات التأثيث الموقّع",
                 uploadDesign: "رفع التصميم (صورة أو PDF)",
                 designLimit: "الصيغ المقبولة: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF. عدة ملفات، وحتى 25 ميغابايت لكل ملف.",
+                dropFiles: "اسحب الملفات هنا أو اضغط للاختيار",
+                uploadNow: "رفع الملفات المحددة",
                 chatFormats: "الصور: JPG و PNG و WEBP و GIF و BMP و HEIC و AVIF. الفيديو: MP4 و WEBM و MOV.",
                 uploadHandover: "رفع محضر الاستلام (إلزامي قبل الإغلاق)",
                 components: "مكوّنات التصميم وتسعيرها",
@@ -859,6 +895,11 @@ export default {
         finalReceipts() {
             return (this.order?.files || []).filter((file) => file.kind === "final_receipt");
         },
+        designRejectNote() {
+            const event = [...(this.order?.events || [])].reverse().find((row) => String(row.note || "").startsWith("رفض العميل للتصميم"));
+            if (!event) return "";
+            return String(event.note).replace(/^رفض العميل للتصميم:\s*/, "");
+        },
         needsFinalReview() {
             return this.order?.status === "final_payment" && this.order.final_payment_status === "pending";
         },
@@ -879,6 +920,17 @@ export default {
         paymentEntries() {
             if (!this.order) return [];
             const rows = [];
+            const labelOf = (state) => {
+                if (state === "approved") return this.locale === "en" ? "Confirmed" : "تم التأكيد";
+                if (state === "rejected") return this.locale === "en" ? "Rejected" : "مرفوض";
+                if (state === "pending") return this.locale === "en" ? "Pending" : "بانتظار التأكيد";
+                return "—";
+            };
+            const fileState = (file, files, current) => {
+                if (["pending", "approved", "rejected"].includes(file.review_status)) return file.review_status;
+                const last = [...files].sort((a, b) => a.id - b.id).at(-1);
+                return last && file.id === last.id ? (current || "pending") : "rejected";
+            };
             if (this.order.payment_method) {
                 if (!this.receipts.length) {
                     rows.push({
@@ -887,19 +939,22 @@ export default {
                         ref: this.order.payment_method === "visa" ? "Visa" : this.order.number,
                         amount: this.order.deposit_amount,
                         method: this.methodLabel,
-                        status: this.payStateLabel,
+                        state: this.order.payment_status,
+                        status: labelOf(this.order.payment_status),
                         at: this.order.created_at,
                         url: null,
                     });
                 }
                 this.receipts.forEach((file) => {
+                    const state = fileState(file, this.receipts, this.order.payment_status);
                     rows.push({
                         id: "receipt-" + file.id,
                         label: this.locale === "en" ? "Deposit" : "عربون",
                         ref: file.name,
                         amount: this.order.deposit_amount,
                         method: this.locale === "en" ? "Receipt" : "رفع إيصال",
-                        status: this.payStateLabel,
+                        state,
+                        status: labelOf(state),
                         at: file.created_at,
                         url: file.url,
                     });
@@ -907,11 +962,6 @@ export default {
             }
             if (["pending", "approved", "rejected"].includes(this.order.final_payment_status)) {
                 const due = Math.max(0, Number(this.billFinal || 0) - Number(this.order.deposit_amount || 0));
-                const finalStatus = this.order.final_payment_status === "approved"
-                    ? (this.locale === "en" ? "Confirmed" : "مؤكد")
-                    : (this.order.final_payment_status === "rejected"
-                        ? (this.locale === "en" ? "Rejected" : "مرفوض")
-                        : (this.locale === "en" ? "Pending" : "بانتظار التأكيد"));
                 const finalMethod = this.order.final_payment_method === "receipt"
                     ? (this.locale === "en" ? "Receipt" : "رفع إيصال")
                     : (this.locale === "en" ? "Visa" : "فيزا");
@@ -922,19 +972,22 @@ export default {
                         ref: this.order.final_payment_method === "visa" ? "Visa" : "FINAL-" + this.order.number,
                         amount: due,
                         method: finalMethod,
-                        status: finalStatus,
+                        state: this.order.final_payment_status,
+                        status: labelOf(this.order.final_payment_status),
                         at: this.order.created_at,
                         url: null,
                     });
                 }
                 this.finalReceipts.forEach((file) => {
+                    const state = fileState(file, this.finalReceipts, this.order.final_payment_status);
                     rows.push({
                         id: "final-" + file.id,
                         label: this.locale === "en" ? "Final payment" : "السداد النهائي",
                         ref: file.name,
                         amount: due,
                         method: this.locale === "en" ? "Receipt" : "رفع إيصال",
-                        status: finalStatus,
+                        state,
+                        status: labelOf(state),
                         at: file.created_at,
                         url: file.url,
                     });
@@ -1462,10 +1515,14 @@ export default {
             await this.post("KaheelOrders/message", { id: this.order.id, body });
             this.scrollChat();
         },
-        async upload(event, kind) {
+        onDrop(event, kind) {
+            this.designOver = false;
+            this.handoverOver = false;
+            this.queueFiles({ target: { files: event.dataTransfer?.files || [], value: "" } }, kind);
+        },
+        queueFiles(event, kind) {
             const selected = Array.from(event.target.files || []).slice(0, 10);
             event.target.value = "";
-            if (!selected.length) return;
             const max = 25 * 1024 * 1024;
             const allowedDoc = (file) => {
                 const name = file.name || "";
@@ -1484,6 +1541,29 @@ export default {
                     : "الصيغ المقبولة: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF.";
                 return;
             }
+            const key = kind === "handover" ? "handoverQueue" : "designQueue";
+            const extra = selected.map((file) => {
+                const pdf = /pdf/i.test(file.type) || /\.pdf$/i.test(file.name);
+                return {
+                    id: file.name + ":" + file.size + ":" + file.lastModified + ":" + Math.random(),
+                    file,
+                    pdf,
+                    preview: !pdf && file.type.startsWith("image/") ? URL.createObjectURL(file) : "",
+                    size: (file.size / (1024 * 1024)).toFixed(2) + " MB",
+                };
+            });
+            this[key] = this[key].concat(extra).slice(0, 10);
+        },
+        removeQueued(kind, index) {
+            const key = kind === "handover" ? "handoverQueue" : "designQueue";
+            const item = this[key][index];
+            if (item?.preview) URL.revokeObjectURL(item.preview);
+            this[key] = this[key].filter((_, i) => i !== index);
+        },
+        async uploadQueued(kind) {
+            const key = kind === "handover" ? "handoverQueue" : "designQueue";
+            const selected = this[key].map((item) => item.file);
+            if (!selected.length) return;
             this.saving = true;
             this.error = "";
             try {
@@ -1499,6 +1579,8 @@ export default {
                     }
                     this.apply(response);
                 }
+                this[key].forEach((item) => item.preview && URL.revokeObjectURL(item.preview));
+                this[key] = [];
             } catch (error) {
                 this.error = error.response?.data?.message || (this.locale === "en" ? "The file was not uploaded." : "لم يُرفع الملف.");
             } finally {

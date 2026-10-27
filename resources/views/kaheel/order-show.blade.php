@@ -9,21 +9,20 @@
     $finalReceiptFiles = $order->files->where('kind', 'final_receipt')->values();
     $plans = $order->files->filter(fn ($file) => $file->kind === 'plan' || $file->kind === null);
     $designs = $order->files->where('kind', 'design');
+    $payLabel = function (string $status) {
+        return match ($status) {
+            'approved' => ['ar' => 'تم التأكيد', 'en' => 'Confirmed'],
+            'rejected' => ['ar' => 'مرفوض', 'en' => 'Rejected'],
+            'pending' => ['ar' => 'بانتظار التأكيد', 'en' => 'Pending'],
+            default => ['ar' => '—', 'en' => '—'],
+        };
+    };
     $paymentRows = collect();
     if ($order->payment_method) {
-        $statusAr = match ($order->payment_status) {
-            'approved' => 'مؤكد',
-            'pending' => 'بانتظار التأكيد',
-            'rejected' => 'مرفوض',
-            default => '—',
-        };
-        $statusEn = match ($order->payment_status) {
-            'approved' => 'Confirmed',
-            'pending' => 'Pending',
-            'rejected' => 'Rejected',
-            default => '—',
-        };
+        $sortedReceipts = $receiptFiles->sortBy('id')->values();
+        $lastReceiptId = optional($sortedReceipts->last())->id;
         if ($receiptFiles->isEmpty()) {
+            $label = $payLabel((string) $order->payment_status);
             $paymentRows->push([
                 'kind' => 'deposit',
                 'title_ar' => 'عربون',
@@ -32,13 +31,16 @@
                 'amount' => (float) $order->deposit_amount,
                 'method_ar' => $order->payment_method === 'visa' ? 'فيزا' : 'رفع إيصال',
                 'method_en' => $order->payment_method === 'visa' ? 'Visa' : 'Receipt',
-                'status_ar' => $statusAr,
-                'status_en' => $statusEn,
+                'status' => $order->payment_status,
+                'status_ar' => $label['ar'],
+                'status_en' => $label['en'],
                 'at' => $order->updated_at,
                 'url' => null,
             ]);
         }
         foreach ($receiptFiles as $file) {
+            $state = $file->resolvedStatus((int) $file->id === (int) $lastReceiptId ? $order->payment_status : 'rejected');
+            $label = $payLabel($state);
             $paymentRows->push([
                 'kind' => 'deposit',
                 'title_ar' => 'عربون',
@@ -47,8 +49,9 @@
                 'amount' => (float) $order->deposit_amount,
                 'method_ar' => 'رفع إيصال',
                 'method_en' => 'Receipt',
-                'status_ar' => $statusAr,
-                'status_en' => $statusEn,
+                'status' => $state,
+                'status_ar' => $label['ar'],
+                'status_en' => $label['en'],
                 'at' => $file->created_at,
                 'url' => url(app()->getLocale().'/orders/'.$order->id.'/files/'.$file->id),
             ]);
@@ -56,19 +59,12 @@
     }
     if (in_array($order->final_payment_status, ['pending', 'approved', 'rejected'], true)) {
         $finalDue = max(0, (float) $order->price_incl + (float) $order->addons_total - (float) $order->deposit_amount);
-        $finalStatusAr = match ($order->final_payment_status) {
-            'approved' => 'مؤكد',
-            'rejected' => 'مرفوض',
-            default => 'بانتظار التأكيد',
-        };
-        $finalStatusEn = match ($order->final_payment_status) {
-            'approved' => 'Confirmed',
-            'rejected' => 'Rejected',
-            default => 'Pending',
-        };
         $finalMethodAr = $order->final_payment_method === 'receipt' ? 'رفع إيصال' : 'فيزا';
         $finalMethodEn = $order->final_payment_method === 'receipt' ? 'Receipt' : 'Visa';
+        $sortedFinal = $finalReceiptFiles->sortBy('id')->values();
+        $lastFinalId = optional($sortedFinal->last())->id;
         if ($finalReceiptFiles->isEmpty()) {
+            $label = $payLabel((string) $order->final_payment_status);
             $paymentRows->push([
                 'kind' => 'final',
                 'title_ar' => 'السداد النهائي',
@@ -77,13 +73,16 @@
                 'amount' => $finalDue,
                 'method_ar' => $finalMethodAr,
                 'method_en' => $finalMethodEn,
-                'status_ar' => $finalStatusAr,
-                'status_en' => $finalStatusEn,
+                'status' => $order->final_payment_status,
+                'status_ar' => $label['ar'],
+                'status_en' => $label['en'],
                 'at' => $order->updated_at,
                 'url' => null,
             ]);
         }
         foreach ($finalReceiptFiles as $file) {
+            $state = $file->resolvedStatus((int) $file->id === (int) $lastFinalId ? $order->final_payment_status : 'rejected');
+            $label = $payLabel($state);
             $paymentRows->push([
                 'kind' => 'final',
                 'title_ar' => 'السداد النهائي',
@@ -92,8 +91,9 @@
                 'amount' => $finalDue,
                 'method_ar' => 'رفع إيصال',
                 'method_en' => 'Receipt',
-                'status_ar' => $finalStatusAr,
-                'status_en' => $finalStatusEn,
+                'status' => $state,
+                'status_ar' => $label['ar'],
+                'status_en' => $label['en'],
                 'at' => $file->created_at,
                 'url' => url(app()->getLocale().'/orders/'.$order->id.'/files/'.$file->id),
             ]);
@@ -102,6 +102,8 @@
     $components = collect($order->design_components ?? [])->values();
     $designApproved = $order->design_status === 'approved' || $order->design_signed_at;
     $designRejected = $order->design_status === 'rejected';
+    $designRejectNote = optional($order->events->sortByDesc('id')->first(fn ($event) => str_starts_with((string) $event->note, 'رفض العميل للتصميم')))->note;
+    $designRejectNote = $designRejectNote ? trim(preg_replace('/^رفض العميل للتصميم:\s*/u', '', $designRejectNote)) : null;
     $designReviewOpen = $order->status === 'design_review' && !$designApproved;
     $showDesignPanel = $designs->isNotEmpty() || $order->status === 'design_review' || $designApproved || $designRejected || $components->isNotEmpty();
     $stageDateAr = $order->updated_at->locale('ar')->isoFormat('D MMMM YYYY، h:mm A');
@@ -119,7 +121,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=41" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=45" rel="stylesheet">
 </head>
 <body>
     @include('kaheel.partials.public-header')
@@ -182,13 +184,20 @@
                 <div class="order-pay-list">
                     @foreach ($paymentRows as $row)
                         @php
-                            $rowDateAr = optional($row['at'])->locale('ar')->isoFormat('D MMMM YYYY');
-                            $rowDateEn = optional($row['at'])->locale('en')->isoFormat('D MMMM YYYY');
+                            $rowDateAr = optional($row['at'])->locale('ar')->isoFormat('D MMMM YYYY، h:mm A');
+                            $rowDateEn = optional($row['at'])->locale('en')->isoFormat('D MMMM YYYY, h:mm A');
+                            $rejected = ($row['status'] ?? '') === 'rejected';
                         @endphp
-                        <article class="order-pay-row">
+                        <article class="order-pay-row {{ $rejected ? 'is-rejected' : '' }}">
                             <div class="order-pay-row-main">
                                 <p class="order-doc-title" data-ar="{{ $row['title_ar'] }} — {{ $row['ref'] }}" data-en="{{ $row['title_en'] }} — {{ $row['ref'] }}">{{ $row['title_ar'] }} — {{ $row['ref'] }}</p>
-                                <p class="order-doc-meta" data-ar="{{ $row['method_ar'] }} · {{ $row['status_ar'] }} · {{ $rowDateAr }}" data-en="{{ $row['method_en'] }} · {{ $row['status_en'] }} · {{ $rowDateEn }}">{{ $row['method_ar'] }} · {{ $row['status_ar'] }} · {{ $rowDateAr }}</p>
+                                <p class="order-doc-meta">
+                                    <span data-ar="{{ $row['method_ar'] }}" data-en="{{ $row['method_en'] }}">{{ $row['method_ar'] }}</span>
+                                    ·
+                                    <span class="order-pay-status {{ $rejected ? 'is-rejected' : '' }}" data-ar="{{ $row['status_ar'] }}" data-en="{{ $row['status_en'] }}">{{ $row['status_ar'] }}</span>
+                                    ·
+                                    <span data-ar="{{ $rowDateAr }}" data-en="{{ $rowDateEn }}">{{ $rowDateAr }}</span>
+                                </p>
                             </div>
                             <div class="order-pay-row-side">
                                 <strong>{{ $money($row['amount']) }} <span data-ar="ريال" data-en="SAR">ريال</span></strong>
@@ -240,6 +249,9 @@
                             <p class="order-lead" data-ar="تم اعتمادك وتوقيعك{{ $signedAtAr ? ' بتاريخ '.$signedAtAr : '' }} — لا يمكن تعديل التصميم بعد الآن." data-en="Approved and signed{{ $signedAtEn ? ' on '.$signedAtEn : '' }} — changes are locked.">تم اعتمادك وتوقيعك{{ $signedAtAr ? ' بتاريخ '.$signedAtAr : '' }} — لا يمكن تعديل التصميم بعد الآن.</p>
                         @elseif ($designRejected)
                             <p class="order-lead" data-ar="فريقنا يعمل على تعديل التصميم حسب ملاحظاتك — تابع ملاحظاتك في المناقشة." data-en="Our team is revising the design based on your notes — keep the conversation going.">فريقنا يعمل على تعديل التصميم حسب ملاحظاتك — تابع ملاحظاتك في المناقشة.</p>
+                            @if ($designRejectNote)
+                                <p class="auth-alert is-error">{{ $designRejectNote }}</p>
+                            @endif
                         @else
                             <p class="order-lead" data-ar="فريق الإدارة ينهي تصميمك الآن — ستصلك رسالة تنبيه فور جاهزيته للمراجعة." data-en="Our team is finalizing your design — you will be notified as soon as it is ready for review.">فريق الإدارة ينهي تصميمك الآن — ستصلك رسالة تنبيه فور جاهزيته للمراجعة.</p>
                         @endif
@@ -264,6 +276,7 @@
                                             @if ($isPdf)<span class="order-file-pdf" aria-hidden="true">PDF</span>@endif
                                         </span>
                                         <span class="order-file-name">{{ $file->original_name }}</span>
+                                        <span class="order-file-time" data-ar="{{ $file->created_at->locale('ar')->isoFormat('D MMMM YYYY، h:mm A') }}" data-en="{{ $file->created_at->locale('en')->isoFormat('D MMMM YYYY, h:mm A') }}">{{ $file->created_at->locale('ar')->isoFormat('D MMMM YYYY، h:mm A') }}</span>
                                     </a>
                                 @endforeach
                             </div>
@@ -335,12 +348,15 @@
                                 <div class="order-actions">
                                     <button class="btn btn-sm btn-outline" type="button" id="design-clear-sign" data-ar="مسح التوقيع" data-en="Clear">مسح التوقيع</button>
                                 </div>
+                                <label class="auth-field design-reject-field">
+                                    <span data-ar="سبب الرفض" data-en="Rejection reason">سبب الرفض</span>
+                                    <textarea id="design-reject-note" rows="3" data-ar-placeholder="اكتب سبب رفض التصميم..." data-en-placeholder="Write why you are rejecting the design..." placeholder="اكتب سبب رفض التصميم..."></textarea>
+                                </label>
                                 <div class="design-decide">
                                     <button class="btn btn-lg btn-primary" type="button" id="design-approve" disabled data-ar="اعتماد التصميم والتوقيع" data-en="Approve & sign design">اعتماد التصميم والتوقيع</button>
                                     <button class="btn btn-lg btn-outline design-reject" type="button" id="design-reject" data-ar="رفض وإرجاع للتعديل" data-en="Reject and return">رفض وإرجاع للتعديل</button>
                                 </div>
                                 <p class="order-lead" id="design-sign-hint" data-ar="ارسم توقيعك في المربع أعلاه لتفعيل زر الاعتماد." data-en="Draw your signature above to enable approval.">ارسم توقيعك في المربع أعلاه لتفعيل زر الاعتماد.</p>
-                                <p class="order-lead" data-ar="لشرح سبب الرفض اكتب ملاحظتك في مناقشة الطلب قبل الإرجاع." data-en="Add your notes in the order discussion before returning the design.">لشرح سبب الرفض اكتب ملاحظتك في مناقشة الطلب قبل الإرجاع.</p>
                                 <p class="auth-alert is-error" id="design-error" hidden></p>
                             </div>
                         @elseif ($components->isNotEmpty())
@@ -872,11 +888,22 @@
                 });
                 document.getElementById("design-reject")?.addEventListener("click", async () => {
                     if (busy) return;
-                    busy = true;
+                    const note = (document.getElementById("design-reject-note")?.value || "").trim();
                     const err = document.getElementById("design-error");
+                    if (!note) {
+                        if (err) {
+                            err.hidden = false;
+                            err.textContent = document.documentElement.lang === "en"
+                                ? "Write the rejection reason before returning the design."
+                                : "اكتب سبب الرفض قبل إرجاع التصميم.";
+                        }
+                        document.getElementById("design-reject-note")?.focus();
+                        return;
+                    }
+                    busy = true;
                     if (err) err.hidden = true;
                     try {
-                        await postJson(box.dataset.confirm, { decision: "reject" });
+                        await postJson(box.dataset.confirm, { decision: "reject", note });
                         location.assign(location.pathname);
                     } catch (error) {
                         if (err) { err.hidden = false; err.textContent = error.message; }

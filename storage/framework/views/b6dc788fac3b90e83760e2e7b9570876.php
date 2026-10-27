@@ -2,7 +2,7 @@
     $sessionUser = auth('admin')->user();
     $customer = $sessionUser ? null : kaheel_customer();
     $sessionLabel = $sessionUser
-        ? $sessionUser->email
+        ? (trim((string) $sessionUser->name) !== '' ? $sessionUser->name : $sessionUser->email)
         : ($customer ? ($customer->name ?: $customer->username) : null);
     $authUrl = url(app()->getLocale().'/auth');
 ?>

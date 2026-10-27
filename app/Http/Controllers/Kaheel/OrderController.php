@@ -254,9 +254,18 @@ class OrderController extends Controller
         }
 
         DB::transaction(function () use ($order, $file, $isFinal) {
+            $kind = $isFinal ? 'final_receipt' : 'receipt';
+            KaheelOrderFile::query()
+                ->where('order_id', $order->id)
+                ->where('kind', $kind)
+                ->where(function ($query) {
+                    $query->whereNull('review_status')->orWhere('review_status', '!=', 'approved');
+                })
+                ->update(['review_status' => 'rejected']);
             KaheelOrderFile::query()->create([
                 'order_id' => $order->id,
-                'kind' => $isFinal ? 'final_receipt' : 'receipt',
+                'kind' => $kind,
+                'review_status' => 'pending',
                 'original_name' => $file->getClientOriginalName(),
                 'path' => $file->store('kaheel-orders/'.$order->id),
                 'mime' => kaheel_stored_mime($file),
@@ -309,7 +318,7 @@ class OrderController extends Controller
             return redirect(url(app()->getLocale().'/orders'));
         }
 
-        $order->load('files');
+        $order->load('files', 'events');
         $order->promoteApprovedFinalPayment();
         $settings = KaheelSetting::map();
         $days = $settings['delivery_working_days'] ?? '25';
@@ -548,12 +557,32 @@ class OrderController extends Controller
             $order->save();
             $this->customerEvent($order, $from, 'final_payment', 'وافق العميل على التصميم ووقّع');
         } else {
+            $isAr = app()->getLocale() !== 'en';
+            $note = trim((string) $request->input('note', ''));
+            if ($note === '') {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'ok' => false,
+                        'error' => $isAr ? 'اكتب سبب الرفض قبل إرجاع التصميم.' : 'Write the rejection reason before returning the design.',
+                    ], 422);
+                }
+
+                return redirect(url(app()->getLocale().'/orders/'.$order->id));
+            }
             $order->design_status = 'rejected';
             $order->status = 'design_preparation';
             $order->design_signature = null;
             $order->design_signed_at = null;
             $order->save();
-            $this->customerEvent($order, $from, 'design_preparation', 'رفض العميل للتصميم');
+            $this->customerEvent($order, $from, 'design_preparation', 'رفض العميل للتصميم: '.$note);
+            KaheelOrderMessage::query()->create([
+                'order_id' => $order->id,
+                'sender_role' => 'customer',
+                'sender_name' => $order->customer_name ?: $order->username,
+                'kind' => 'text',
+                'body' => $isAr ? 'سبب رفض التصميم: '.$note : 'Design rejection reason: '.$note,
+                'customer_seen_at' => now(),
+            ]);
         }
 
         if ($request->expectsJson()) {

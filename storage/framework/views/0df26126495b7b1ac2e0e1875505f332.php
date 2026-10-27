@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="<?php echo e(asset('kaheel/home.css')); ?>?v=38" rel="stylesheet">
+    <link href="<?php echo e(asset('kaheel/home.css')); ?>?v=46" rel="stylesheet">
 </head>
 <body>
     <header class="site-header">
@@ -72,13 +72,14 @@
                     <?php $__currentLoopData = $packages; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $package): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <?php
                             $code = strtoupper($package->code);
-                            $image = $code === 'CLASSIC' ? 'classic-living.jpg' : 'vip-living.jpg';
+                            $cover = $package->images->first();
+                            $imageUrl = $cover ? $cover->publicUrl() : asset('kaheel/'.($code === 'CLASSIC' ? 'classic-living.jpg' : 'vip-living.jpg'));
                             $from = $package->tiers->min('price_incl_vat');
                             $lines = $highlights[$package->id] ?? [];
                         ?>
                         <article class="package-card <?php echo e($code === 'VIP' ? 'is-vip' : 'is-classic'); ?>">
                             <a class="package-media" href="<?php echo e(url(app()->getLocale().'/packages/'.strtolower($code))); ?>">
-                                <img src="<?php echo e(asset('kaheel/'.$image)); ?>" alt="<?php echo e($package->name_ar); ?>" data-alt-ar="<?php echo e($package->name_ar); ?>" data-alt-en="<?php echo e($package->name_en); ?>">
+                                <img src="<?php echo e($imageUrl); ?>" alt="<?php echo e($package->name_ar); ?>" data-alt-ar="<?php echo e($package->name_ar); ?>" data-alt-en="<?php echo e($package->name_en); ?>">
                                 <span class="badge <?php echo e($code === 'VIP' ? 'badge-vip' : 'badge-classic'); ?>" data-t="showUnit">وحدة نموذجية تم التسليم</span>
                             </a>
                             <div class="package-body">

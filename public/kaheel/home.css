@@ -1534,6 +1534,118 @@ html[dir="rtl"] .icon-forward {
     font-size: 0.875rem;
 }
 
+.ka-drop {
+    position: relative;
+    margin-top: 0.75rem;
+}
+
+.ka-drop-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+
+.ka-drop-zone {
+    display: grid;
+    justify-items: center;
+    gap: 0.35rem;
+    border: 1px dashed var(--border);
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--secondary) 40%, transparent);
+    padding: 1.15rem 1rem;
+    text-align: center;
+    cursor: pointer;
+}
+
+.ka-drop.is-over .ka-drop-zone,
+.ka-drop-zone:hover {
+    border-color: var(--primary);
+    background: color-mix(in oklab, var(--primary) 8%, #fff);
+}
+
+.ka-drop.is-missing .ka-drop-zone {
+    outline: 2px solid oklch(62% 0.2 25);
+    outline-offset: 3px;
+}
+
+.ka-drop-zone strong {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.ka-drop-zone span {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.ka-drop-list {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.65rem;
+}
+
+.ka-drop-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.7rem;
+    background: #fff;
+    padding: 0.5rem 0.65rem;
+}
+
+.ka-drop-thumb {
+    flex: 0 0 3.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 0.45rem;
+    background: var(--muted) center / cover no-repeat;
+}
+
+.ka-drop-thumb.is-pdf {
+    display: grid;
+    place-items: center;
+    background: #e11d48;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
+.ka-drop-meta {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.ka-drop-meta strong {
+    overflow: hidden;
+    font-size: 0.8125rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ka-drop-meta em {
+    color: var(--muted-foreground);
+    font-size: 0.7rem;
+    font-style: normal;
+}
+
+.ka-drop-x {
+    flex: 0 0 auto;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 0;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--muted) 80%, #fff);
+    color: var(--foreground);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
 .order-pad {
     height: 9rem;
     cursor: crosshair;
@@ -1794,9 +1906,12 @@ html[dir="rtl"] .icon-forward {
 }
 
 .order-pay-submit {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     margin-top: 1.25rem;
+    text-align: center;
 }
 
 .order-pay-list {
@@ -2000,6 +2115,22 @@ a.order-doc:hover {
     text-align: center;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.order-file-time {
+    display: block;
+    margin-top: 0.15rem;
+    color: var(--muted-foreground);
+    font-size: 0.65rem;
+    line-height: 1.35;
+    text-align: center;
+    white-space: normal;
+}
+
+.order-pay-status.is-rejected,
+.order-pay-row.is-rejected .order-pay-status {
+    color: #dc2626;
+    font-weight: 600;
 }
 
 .order-doc .order-contract {
@@ -2780,6 +2911,25 @@ a.order-doc:hover {
 .design-reject {
     border-color: color-mix(in oklab, oklch(55% 0.2 25) 55%, var(--border));
     color: oklch(45% 0.18 25);
+}
+
+.design-reject-field {
+    display: grid;
+    gap: 0.4rem;
+    margin-top: 1rem;
+}
+
+.design-reject-field textarea {
+    width: 100%;
+    min-height: 5.5rem;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: #fff;
+    padding: 0.75rem 0.85rem;
+    color: var(--foreground);
+    font: inherit;
+    font-size: 0.875rem;
 }
 
 @media (min-width: 640px) {

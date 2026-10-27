@@ -102,6 +102,35 @@
                     <label class="ka-field"><span>English name</span><input v-model="packageForm.name_en" required></label>
                     <label class="ka-field"><span>الوصف المختصر</span><input v-model="packageForm.tagline_ar"></label>
                     <label class="ka-field"><span>Tagline</span><input v-model="packageForm.tagline_en"></label>
+                    <div class="ka-field ka-span">
+                        <span>{{ t.gallery }}</span>
+                        <div class="ka-drop" :class="{ 'is-over': galleryOver }" @dragenter.prevent="galleryOver = true" @dragover.prevent="galleryOver = true" @dragleave.prevent="galleryOver = false" @drop.prevent="onGalleryDrop">
+                            <button type="button" class="ka-drop-zone" @click="$refs.galleryPick.click()">
+                                <strong>{{ t.galleryDrop }}</strong>
+                                <span>{{ t.galleryHint }}</span>
+                            </button>
+                            <div class="ka-drop-list">
+                                <div v-for="(item, index) in packageImages" :key="'keep-' + item.id" class="ka-drop-item is-gallery">
+                                    <span class="ka-drop-thumb" :style="{ backgroundImage: 'url(' + item.url + ')' }"></span>
+                                    <span class="ka-drop-meta">
+                                        <input v-model="item.caption_ar" :placeholder="t.captionAr">
+                                        <input v-model="item.caption_en" :placeholder="t.captionEn">
+                                    </span>
+                                    <button type="button" class="ka-drop-x" @click="packageImages.splice(index, 1)">×</button>
+                                </div>
+                                <div v-for="(item, index) in galleryQueue" :key="item.id" class="ka-drop-item is-gallery">
+                                    <span class="ka-drop-thumb" :style="item.preview ? { backgroundImage: 'url(' + item.preview + ')' } : null"></span>
+                                    <span class="ka-drop-meta">
+                                        <strong>{{ item.file.name }}</strong>
+                                        <input v-model="item.caption_ar" :placeholder="t.captionAr">
+                                        <input v-model="item.caption_en" :placeholder="t.captionEn">
+                                    </span>
+                                    <button type="button" class="ka-drop-x" @click="removeQueued(index)">×</button>
+                                </div>
+                            </div>
+                            <input ref="galleryPick" class="ka-drop-input" type="file" accept="image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif" multiple @change="queueGallery">
+                        </div>
+                    </div>
                     <label class="ka-check ka-span"><input v-model="packageForm.is_active" type="checkbox">{{ t.visible }}</label>
                     <p v-if="formError" class="ka-sup-error ka-span">{{ formError }}</p>
                     <button type="submit" class="ka-btn ka-btn-primary ka-sup-submit" :disabled="saving">{{ saving ? "…" : t.savePackage }}</button>
@@ -216,6 +245,9 @@ export default {
             tierDialog: false,
             itemsDialog: false,
             packageForm: {},
+            packageImages: [],
+            galleryQueue: [],
+            galleryOver: false,
             tierForm: {},
             tierPackageId: null,
             itemsTier: {},
@@ -252,6 +284,11 @@ export default {
                 code: "Code",
                 sort: "Sort order",
                 visible: "Package active and visible to customers",
+                gallery: "Website gallery",
+                galleryDrop: "Drop images here or click to browse",
+                galleryHint: "These photos appear on the package page. JPG, PNG, WEBP and similar, several files.",
+                captionAr: "Caption (Arabic)",
+                captionEn: "Caption (English)",
                 savePackage: "Save package",
                 editTier: "Edit sub-package",
                 newTierTitle: "New sub-package",
@@ -300,6 +337,11 @@ export default {
                 code: "الرمز",
                 sort: "الترتيب",
                 visible: "الباقة مفعّلة ومعروضة للعملاء",
+                gallery: "معرض صور الموقع",
+                galleryDrop: "اسحب الصور هنا أو اضغط للاختيار",
+                galleryHint: "هذه الصور تظهر في صفحة الباقة. JPG و PNG و WEBP وما شابه، عدة ملفات.",
+                captionAr: "وصف الصورة (عربي)",
+                captionEn: "وصف الصورة (إنجليزي)",
                 savePackage: "حفظ الباقة",
                 editTier: "تعديل الباقة الفرعية",
                 newTierTitle: "باقة فرعية جديدة",
@@ -370,12 +412,37 @@ export default {
         },
         openPackage(pkg) {
             this.formError = "";
+            this.galleryQueue.forEach((item) => item.preview && URL.revokeObjectURL(item.preview));
+            this.galleryQueue = [];
+            this.packageImages = pkg ? (pkg.images || []).map((image) => ({ ...image })) : [];
             this.packageForm = pkg ? {
                 id: pkg.id, code: pkg.code, name_ar: pkg.name_ar, name_en: pkg.name_en,
                 tagline_ar: pkg.tagline_ar || "", tagline_en: pkg.tagline_en || "",
                 sort_order: pkg.sort_order, is_active: !!pkg.is_active,
             } : { code: "", name_ar: "", name_en: "", tagline_ar: "", tagline_en: "", sort_order: this.rows.length + 1, is_active: true };
             this.packageDialog = true;
+        },
+        onGalleryDrop(event) {
+            this.galleryOver = false;
+            this.queueGallery({ target: { files: event.dataTransfer?.files || [], value: "" } });
+        },
+        queueGallery(event) {
+            const selected = Array.from(event.target.files || []);
+            event.target.value = "";
+            const max = 8 * 1024 * 1024;
+            const extra = selected.filter((file) => file.type.startsWith("image/") && file.type !== "image/svg+xml" && file.size <= max).map((file) => ({
+                id: file.name + ":" + file.size + ":" + file.lastModified + ":" + Math.random(),
+                file,
+                preview: URL.createObjectURL(file),
+                caption_ar: "",
+                caption_en: "",
+            }));
+            this.galleryQueue = this.galleryQueue.concat(extra).slice(0, 20);
+        },
+        removeQueued(index) {
+            const item = this.galleryQueue[index];
+            if (item?.preview) URL.revokeObjectURL(item.preview);
+            this.galleryQueue = this.galleryQueue.filter((_, i) => i !== index);
         },
         openTier(pkg, tier) {
             this.formError = "";
@@ -404,7 +471,29 @@ export default {
             this.saving = true;
             this.formError = "";
             try {
-                await axios.post("KaheelPackages/savePackage", this.packageForm);
+                const body = new FormData();
+                if (this.packageForm.id) body.append("id", this.packageForm.id);
+                body.append("code", this.packageForm.code || "");
+                body.append("name_ar", this.packageForm.name_ar || "");
+                body.append("name_en", this.packageForm.name_en || "");
+                body.append("tagline_ar", this.packageForm.tagline_ar || "");
+                body.append("tagline_en", this.packageForm.tagline_en || "");
+                body.append("sort_order", this.packageForm.sort_order ?? 0);
+                body.append("is_active", this.packageForm.is_active ? "1" : "0");
+                body.append("sync_images", "1");
+                this.packageImages.forEach((image) => {
+                    body.append("keep_ids[]", image.id);
+                    body.append("caption_ar[" + image.id + "]", image.caption_ar || "");
+                    body.append("caption_en[" + image.id + "]", image.caption_en || "");
+                });
+                this.galleryQueue.forEach((item, index) => {
+                    body.append("images[]", item.file);
+                    body.append("new_caption_ar[" + index + "]", item.caption_ar || "");
+                    body.append("new_caption_en[" + index + "]", item.caption_en || "");
+                });
+                await axios.post("KaheelPackages/savePackage", body);
+                this.galleryQueue.forEach((item) => item.preview && URL.revokeObjectURL(item.preview));
+                this.galleryQueue = [];
                 this.packageDialog = false;
                 await this.load();
             } catch (error) {

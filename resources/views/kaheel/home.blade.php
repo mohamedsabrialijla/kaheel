@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=38" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=46" rel="stylesheet">
 </head>
 <body>
     <header class="site-header">
@@ -72,13 +72,14 @@
                     @foreach ($packages as $package)
                         @php
                             $code = strtoupper($package->code);
-                            $image = $code === 'CLASSIC' ? 'classic-living.jpg' : 'vip-living.jpg';
+                            $cover = $package->images->first();
+                            $imageUrl = $cover ? $cover->publicUrl() : asset('kaheel/'.($code === 'CLASSIC' ? 'classic-living.jpg' : 'vip-living.jpg'));
                             $from = $package->tiers->min('price_incl_vat');
                             $lines = $highlights[$package->id] ?? [];
                         @endphp
                         <article class="package-card {{ $code === 'VIP' ? 'is-vip' : 'is-classic' }}">
                             <a class="package-media" href="{{ url(app()->getLocale().'/packages/'.strtolower($code)) }}">
-                                <img src="{{ asset('kaheel/'.$image) }}" alt="{{ $package->name_ar }}" data-alt-ar="{{ $package->name_ar }}" data-alt-en="{{ $package->name_en }}">
+                                <img src="{{ $imageUrl }}" alt="{{ $package->name_ar }}" data-alt-ar="{{ $package->name_ar }}" data-alt-en="{{ $package->name_en }}">
                                 <span class="badge {{ $code === 'VIP' ? 'badge-vip' : 'badge-classic' }}" data-t="showUnit">وحدة نموذجية تم التسليم</span>
                             </a>
                             <div class="package-body">

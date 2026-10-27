@@ -153,6 +153,7 @@ class AdminOrderController extends KaheelAdminController
                 $order->status = 'admin_review';
             }
             $order->save();
+            KaheelOrderFile::markLatest($order->id, 'receipt', 'approved');
             $this->event($order, $from, $order->status, 'تم تأكيد الدفع');
 
             return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
@@ -168,6 +169,7 @@ class AdminOrderController extends KaheelAdminController
         $order->payment_note = $note;
         $order->status = 'deposit_pending';
         $order->save();
+        KaheelOrderFile::markLatest($order->id, 'receipt', 'rejected');
         $this->event($order, $from, 'deposit_pending', 'تم رفض الدفع: '.$note);
 
         return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
@@ -195,6 +197,7 @@ class AdminOrderController extends KaheelAdminController
             $order->final_payment_status = 'rejected';
             $order->final_payment_note = $note;
             $order->save();
+            KaheelOrderFile::markLatest($order->id, 'final_receipt', 'rejected');
             $this->event($order, $order->status, $order->status, 'تم رفض السداد النهائي: '.$note);
 
             return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
@@ -209,6 +212,7 @@ class AdminOrderController extends KaheelAdminController
         $order->final_payment_note = null;
         $order->status = 'final_approval';
         $order->save();
+        KaheelOrderFile::markLatest($order->id, 'final_receipt', 'approved');
         $this->event($order, $from, $order->status, 'تم تأكيد السداد النهائي');
 
         return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
@@ -588,6 +592,7 @@ class AdminOrderController extends KaheelAdminController
                 'kind' => $file->kind,
                 'name' => $file->original_name,
                 'mime' => $file->mime,
+                'review_status' => $file->review_status,
                 'url' => url($locale.'/web/KaheelOrders/file/'.$file->id),
                 'created_at' => optional($file->created_at)->toIso8601String(),
             ])->values(),

@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="<?php echo e(asset('kaheel/home.css')); ?>?v=35" rel="stylesheet">
+    <link href="<?php echo e(asset('kaheel/home.css')); ?>?v=46" rel="stylesheet">
 </head>
 <body>
     <header class="site-header">
@@ -51,7 +51,7 @@
         <section class="pkg-gallery" aria-label="<?php echo e($package->code); ?>">
             <?php $__currentLoopData = $gallery; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $shot): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <figure class="pkg-shot">
-                    <img src="<?php echo e(asset('kaheel/'.$shot['file'])); ?>" alt="<?php echo e($shot['ar']); ?>" data-alt-ar="<?php echo e($shot['ar']); ?>" data-alt-en="<?php echo e($shot['en']); ?>">
+                    <img src="<?php echo e($shot['url']); ?>" alt="<?php echo e($shot['ar']); ?>" data-alt-ar="<?php echo e($shot['ar']); ?>" data-alt-en="<?php echo e($shot['en']); ?>">
                     <figcaption data-ar="<?php echo e($shot['ar']); ?>" data-en="<?php echo e($shot['en']); ?>"><?php echo e($shot['ar']); ?></figcaption>
                 </figure>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>

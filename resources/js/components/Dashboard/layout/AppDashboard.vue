@@ -20,8 +20,8 @@
                         <svg viewBox="0 0 24 24"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg>
                     </button>
                     <div>
-                        <p class="ka-admin-title">{{ t.administration }}</p>
-                        <p class="ka-admin-role">{{ t.administrator }}</p>
+                        <p class="ka-admin-title">{{ adminName }}</p>
+                        <p class="ka-admin-role">{{ adminEmail || t.administrator }}</p>
                     </div>
                 </div>
                 <div class="ka-head-actions">
@@ -98,6 +98,21 @@ export default {
         ...mapGetters(["getUser"]),
         locale() {
             return this.$route.params.locale || "ar";
+        },
+        adminName() {
+            const user = this.getUser || {};
+            const boot = window.__KAHEEL_ADMIN || {};
+            const name = String(user.name || user.username || boot.name || "").trim();
+            return name || this.t.administration;
+        },
+        adminEmail() {
+            const user = this.getUser || {};
+            const boot = window.__KAHEEL_ADMIN || {};
+            const role = user.role_name;
+            const roleLabel = role && (this.locale === "en"
+                ? (role.name_en || role.name)
+                : (role.name_ar || role.name));
+            return String(roleLabel || "").trim() || String(user.email || boot.email || "").trim();
         },
         isFullAdmin() {
             return isKaheelFullAdmin(this.getUser);

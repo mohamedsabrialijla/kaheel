@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=35" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=46" rel="stylesheet">
 </head>
 <body>
     <header class="site-header">
@@ -51,7 +51,7 @@
         <section class="pkg-gallery" aria-label="{{ $package->code }}">
             @foreach ($gallery as $shot)
                 <figure class="pkg-shot">
-                    <img src="{{ asset('kaheel/'.$shot['file']) }}" alt="{{ $shot['ar'] }}" data-alt-ar="{{ $shot['ar'] }}" data-alt-en="{{ $shot['en'] }}">
+                    <img src="{{ $shot['url'] }}" alt="{{ $shot['ar'] }}" data-alt-ar="{{ $shot['ar'] }}" data-alt-en="{{ $shot['en'] }}">
                     <figcaption data-ar="{{ $shot['ar'] }}" data-en="{{ $shot['en'] }}">{{ $shot['ar'] }}</figcaption>
                 </figure>
             @endforeach

@@ -32,4 +32,9 @@ class KaheelPackage extends Model
     {
         return $this->hasMany(KaheelPackageItem::class, 'package_id')->whereNull('tier_id')->orderBy('sort_order');
     }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(KaheelPackageImage::class, 'package_id')->orderBy('sort_order')->orderBy('id');
+    }
 }

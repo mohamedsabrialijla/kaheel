@@ -19,7 +19,14 @@
             <input type="hidden" name="lang" value="ar">
             <input type="hidden" name="method" value="receipt">
             <p class="order-lead" data-ar="أرفق الإيصال ثم اضغط موافق. الحد الأقصى 20 ميغابايت." data-en="Attach the receipt, then press OK. Maximum size is 20 MB.">أرفق الإيصال ثم اضغط موافق. الحد الأقصى 20 ميغابايت.</p>
-            <input class="order-file" id="receipt" name="receipt" type="file" accept="image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif,.pdf,application/pdf">
+            <div class="ka-drop" data-ka-drop data-max="1" data-max-mb="20">
+                <div class="ka-drop-zone" data-browse>
+                    <strong data-ar="اسحب الإيصال هنا أو اضغط للاختيار" data-en="Drop the receipt here or click to browse">اسحب الإيصال هنا أو اضغط للاختيار</strong>
+                    <span data-ar="صورة أو PDF" data-en="Image or PDF">صورة أو PDF</span>
+                </div>
+                <div class="ka-drop-list" data-list></div>
+                <input class="order-file" id="receipt" name="receipt" type="file" accept="image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.tif,.tiff,.heic,.heif,.avif,.pdf,application/pdf">
+            </div>
             <p class="order-lead" data-ar="الصيغ المقبولة: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF. الحد الأقصى 20 ميغابايت." data-en="Accepted formats: JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC, AVIF, and PDF. Maximum size is 20 MB.">الصيغ المقبولة: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF. الحد الأقصى 20 ميغابايت.</p>
             <button class="btn btn-lg btn-primary auth-submit" id="receipt-ok" type="submit" disabled data-ar="موافق" data-en="OK">موافق</button>
         </form>
