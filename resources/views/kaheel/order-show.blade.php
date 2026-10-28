@@ -276,7 +276,7 @@
                                             @if ($isPdf)<span class="order-file-pdf" aria-hidden="true">PDF</span>@endif
                                         </span>
                                         <span class="order-file-name">{{ $file->original_name }}</span>
-                                        <span class="order-file-time" data-ar="{{ $file->created_at->locale('ar')->isoFormat('D MMMM YYYY، h:mm A') }}" data-en="{{ $file->created_at->locale('en')->isoFormat('D MMMM YYYY, h:mm A') }}">{{ $file->created_at->locale('ar')->isoFormat('D MMMM YYYY، h:mm A') }}</span>
+                                        <span class="order-file-time" data-ar="{{ kaheel_local_time($file->created_at, 'ar') }}" data-en="{{ kaheel_local_time($file->created_at, 'en') }}">{{ kaheel_local_time($file->created_at, 'ar') }}</span>
                                     </a>
                                 @endforeach
                             </div>

@@ -143,16 +143,8 @@
                 <div v-if="order.final_payment_status === 'approved'" class="ka-ord-pay-actions">
                     <p class="ka-ord-ok">{{ t.finalOk }}</p>
                 </div>
-                <div v-else-if="order.status === 'final_payment'" class="ka-ord-pay-actions">
-                    <template v-if="order.final_payment_status === 'pending' && can('orders.edit')">
-                        <p class="ka-sup-muted">{{ t.finalPending }}</p>
-                        <label class="ka-field"><span>{{ t.rejectNote }}</span><textarea v-model="paymentNote" rows="3" :placeholder="t.rejectPlaceholder"></textarea></label>
-                        <div class="ka-ord-actions">
-                            <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="confirmFinal('approved')">{{ t.confirmFinal }}</button>
-                            <button type="button" class="ka-btn ka-btn-danger" :disabled="saving || !paymentNote.trim()" @click="confirmFinal('rejected')">{{ t.rejectPay }}</button>
-                        </div>
-                    </template>
-                    <template v-else-if="order.final_payment_status === 'rejected'">
+                <div v-else-if="order.status === 'final_payment' && !needsFinalReview" class="ka-ord-pay-actions">
+                    <template v-if="order.final_payment_status === 'rejected'">
                         <p v-if="order.final_payment_note" class="ka-ord-error">{{ order.final_payment_note }}</p>
                         <p class="ka-sup-muted">{{ t.finalRejectedWait }}</p>
                     </template>
@@ -394,15 +386,7 @@
 
             <section v-if="can('orders.edit')" class="ka-ord-card ka-ord-advance">
                 <h2>{{ t.advance }}</h2>
-                <div v-if="needsFinalReview" class="ka-ord-pay-actions">
-                    <p class="ka-sup-muted">{{ t.finalPending }}</p>
-                    <label class="ka-field"><span>{{ t.rejectNote }}</span><textarea v-model="paymentNote" rows="3" :placeholder="t.rejectPlaceholder"></textarea></label>
-                    <div class="ka-ord-actions">
-                        <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="confirmFinal('approved')">{{ t.confirmFinal }}</button>
-                        <button type="button" class="ka-btn ka-btn-danger" :disabled="saving || !paymentNote.trim()" @click="confirmFinal('rejected')">{{ t.rejectPay }}</button>
-                    </div>
-                </div>
-                <template v-else-if="order.next_status">
+                <template v-if="order.next_status">
                     <label class="ka-field"><span>{{ t.updateNote }}</span><textarea v-model="advanceNote" rows="3"></textarea></label>
                     <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="advance">{{ t.moveTo }} {{ locale === 'en' ? order.next_en : order.next_ar }}</button>
                 </template>
@@ -1082,19 +1066,34 @@ export default {
         money(value) {
             return Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         },
+        parseStamp(value) {
+            if (!value) return null;
+            const text = String(value).trim().replace(" ", "T").replace(/\.(\d{3})\d+/, ".$1");
+            const parsed = new Date(text);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        },
+        formatStamp(value, options) {
+            const parsed = this.parseStamp(value);
+            if (!parsed) return value ? "—" : "";
+            return parsed.toLocaleString(this.locale === "en" ? "en-GB" : "ar-SA", {
+                timeZone: "Asia/Riyadh",
+                hour12: true,
+                ...options,
+            });
+        },
         date(value) {
             if (!value) return "—";
-            return new Date(value).toLocaleString(this.locale === "en" ? "en-GB" : "ar-EG", {
+            return this.formatStamp(value, {
                 day: "numeric",
                 month: "long",
                 year: "numeric",
                 hour: "2-digit",
                 minute: "2-digit",
-            });
+            }) || "—";
         },
         chatTime(value) {
             if (!value) return "";
-            return new Date(value).toLocaleString(this.locale === "en" ? "en-GB" : "ar-EG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+            return this.formatStamp(value, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
         },
         mediaCaption(message) {
             const labels = { image: this.t.mediaImage, video: this.t.mediaVideo, audio: this.t.mediaAudio, pdf: this.t.mediaPdf };

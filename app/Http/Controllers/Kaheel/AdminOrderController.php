@@ -50,7 +50,7 @@ class AdminOrderController extends KaheelAdminController
             'status_en' => $order->statusCopy()['en'],
             'step' => $order->progressStep(),
             'percent' => $order->progressPercent(),
-            'created_at' => optional($order->created_at)->toIso8601String(),
+            'created_at' => kaheel_iso($order->created_at),
             'unread' => (int) $order->unread_count,
         ]);
 
@@ -92,7 +92,7 @@ class AdminOrderController extends KaheelAdminController
             'name' => $message->sender_name,
             'kind' => $message->kind ?: 'text',
             'body' => trim((string) $message->body) ?: ($isAr ? 'رسالة جديدة من العميل' : 'New customer message'),
-            'created_at' => optional($message->created_at)->toIso8601String(),
+            'created_at' => kaheel_iso($message->created_at),
             'chat' => true,
         ]);
 
@@ -105,7 +105,7 @@ class AdminOrderController extends KaheelAdminController
                 'name' => $order->customer_name ?: $order->username,
                 'kind' => $kind,
                 'body' => $isAr ? $ar : $en,
-                'created_at' => optional($order->updated_at)->toIso8601String(),
+                'created_at' => kaheel_iso($order->updated_at),
                 'chat' => false,
             ]);
         };
@@ -566,9 +566,9 @@ class AdminOrderController extends KaheelAdminController
             'package_en' => $order->package_name_en,
             'tier_ar' => $order->tier_name_ar,
             'tier_en' => $order->tier_name_en,
-            'created_at' => optional($order->created_at)->toIso8601String(),
+            'created_at' => kaheel_iso($order->created_at),
             'design_status' => $order->design_status ?: 'none',
-            'design_signed_at' => optional($order->design_signed_at)->toIso8601String(),
+            'design_signed_at' => kaheel_iso($order->design_signed_at),
             'price_excl' => (float) $order->price_excl,
             'vat' => round((float) $order->price_incl - (float) $order->price_excl, 2),
             'price_incl' => (float) $order->price_incl,
@@ -594,7 +594,7 @@ class AdminOrderController extends KaheelAdminController
                 'mime' => $file->mime,
                 'review_status' => $file->review_status,
                 'url' => url($locale.'/web/KaheelOrders/file/'.$file->id),
-                'created_at' => optional($file->created_at)->toIso8601String(),
+                'created_at' => kaheel_iso($file->created_at),
             ])->values(),
             'events' => $order->events->sortBy('id')->values()->map(fn (KaheelOrderEvent $event) => [
                 'id' => $event->id,
@@ -602,7 +602,7 @@ class AdminOrderController extends KaheelAdminController
                 'to_status' => $event->to_status,
                 'note' => $event->note,
                 'actor_name' => $event->actor_name,
-                'created_at' => optional($event->created_at)->toIso8601String(),
+                'created_at' => kaheel_iso($event->created_at),
             ]),
             'unread' => $order->messages->where('sender_role', 'customer')->whereNull('admin_seen_at')->count(),
             'messages' => $order->messages->sortBy('id')->values()->map(fn (KaheelOrderMessage $message) => [
@@ -614,7 +614,7 @@ class AdminOrderController extends KaheelAdminController
                 'url' => $message->media_path ? url($locale.'/web/KaheelOrders/messageMedia/'.$message->id) : null,
                 'file_name' => $message->media_name,
                 'duration' => $message->duration,
-                'created_at' => optional($message->created_at)->toIso8601String(),
+                'created_at' => kaheel_iso($message->created_at),
             ]),
             'alternatives' => KaheelAlternative::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'category', 'name_ar', 'name_en', 'price_delta']),
             'categories' => KaheelCategory::catalog(),

@@ -190,6 +190,29 @@ function kaheel_msg(string $ar, string $en): string
     return app()->getLocale() === 'en' ? $en : $ar;
 }
 
+function kaheel_iso($time): ?string
+{
+    if (!$time) {
+        return null;
+    }
+    $carbon = $time instanceof \Carbon\CarbonInterface ? $time->copy() : \Carbon\Carbon::parse($time);
+
+    return $carbon->utc()->format('Y-m-d\TH:i:s\Z');
+}
+
+function kaheel_local_time($time, ?string $locale = null): string
+{
+    if (!$time) {
+        return '';
+    }
+    $locale = $locale ?: app()->getLocale();
+    $carbon = $time instanceof \Carbon\CarbonInterface ? $time->copy() : \Carbon\Carbon::parse($time);
+
+    return $carbon->timezone('Asia/Riyadh')
+        ->locale($locale === 'en' ? 'en' : 'ar')
+        ->isoFormat($locale === 'en' ? 'D MMMM YYYY, h:mm A' : 'D MMMM YYYY، h:mm A');
+}
+
 function kaheel_customer(): ?\App\Models\KaheelCustomerSession
 {
     $id = session('kaheel_customer_session_id');
