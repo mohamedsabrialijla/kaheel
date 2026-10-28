@@ -208,9 +208,9 @@ function kaheel_local_time($time, ?string $locale = null): string
     $locale = $locale ?: app()->getLocale();
     $carbon = $time instanceof \Carbon\CarbonInterface ? $time->copy() : \Carbon\Carbon::parse($time);
 
-    return $carbon->timezone('Asia/Riyadh')
+    return $carbon->clone()->utc()->timezone('Asia/Riyadh')
         ->locale($locale === 'en' ? 'en' : 'ar')
-        ->isoFormat($locale === 'en' ? 'D MMMM YYYY, h:mm A' : 'D MMMM YYYY، h:mm A');
+        ->isoFormat($locale === 'en' ? 'D MMMM YYYY, HH:mm' : 'D MMMM YYYY، HH:mm');
 }
 
 function kaheel_customer(): ?\App\Models\KaheelCustomerSession

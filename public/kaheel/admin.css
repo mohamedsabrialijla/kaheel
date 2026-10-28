@@ -2361,6 +2361,17 @@ body.kaheel-admin .ka-ord-actions > .ka-btn {
     margin-top: 0;
 }
 
+body.kaheel-admin .ka-ord-final-only {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+body.kaheel-admin .ka-ord-final-only h3 {
+    margin: 0 0 0.35rem;
+    font-size: 1rem;
+}
+
 body.kaheel-admin .ka-ord-uploads {
     display: grid;
     grid-template-columns: 1fr;

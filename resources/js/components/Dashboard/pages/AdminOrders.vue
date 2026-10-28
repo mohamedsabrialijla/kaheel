@@ -111,16 +111,6 @@
                 </div>
             </section>
 
-            <section v-if="needsFinalReview && can('orders.edit')" class="ka-ord-card ka-ord-review">
-                <h2>{{ t.finalReviewTitle }}</h2>
-                <p class="ka-sup-muted">{{ t.finalPending }}</p>
-                <label class="ka-field"><span>{{ t.rejectNote }}</span><textarea v-model="paymentNote" rows="3" :placeholder="t.rejectPlaceholder"></textarea></label>
-                <div class="ka-ord-actions">
-                    <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="confirmFinal('approved')">{{ t.confirmFinal }}</button>
-                    <button type="button" class="ka-btn ka-btn-danger" :disabled="saving || !paymentNote.trim()" @click="confirmFinal('rejected')">{{ t.rejectPay }}</button>
-                </div>
-            </section>
-
             <section class="ka-ord-card">
                 <h2>{{ t.paymentSection }}</h2>
                 <p v-if="!order.payment_method" class="ka-sup-muted">{{ t.noPayments }}</p>
@@ -130,7 +120,7 @@
                         <div><p>{{ t.amount }}</p><strong>{{ money(order.deposit_amount) }} SAR</strong></div>
                         <div><p>{{ t.payState }}</p><strong>{{ payStateLabel }}</strong></div>
                     </div>
-                    <p v-if="order.payment_status === 'approved'" class="ka-ord-ok">{{ t.paymentOk }}</p>
+                    <p v-if="order.payment_status === 'approved' && !needsFinalReview" class="ka-ord-ok">{{ t.paymentOk }}</p>
                     <p v-if="order.payment_note" class="ka-ord-error">{{ order.payment_note }}</p>
                     <div v-if="order.payment_status === 'pending' && can('orders.edit')" class="ka-ord-pay-actions">
                         <label class="ka-field"><span>{{ t.rejectNote }}</span><textarea v-model="paymentNote" rows="3" :placeholder="t.rejectPlaceholder"></textarea></label>
@@ -140,16 +130,21 @@
                         </div>
                     </div>
                 </template>
-                <div v-if="order.final_payment_status === 'approved'" class="ka-ord-pay-actions">
-                    <p class="ka-ord-ok">{{ t.finalOk }}</p>
+                <div v-if="needsFinalReview && can('orders.edit')" class="ka-ord-pay-actions ka-ord-final-only">
+                    <h3>{{ t.finalReviewTitle }}</h3>
+                    <p class="ka-sup-muted">{{ t.finalPending }}</p>
+                    <label class="ka-field"><span>{{ t.rejectNote }}</span><textarea v-model="paymentNote" rows="3" :placeholder="t.rejectPlaceholder"></textarea></label>
+                    <div class="ka-ord-actions">
+                        <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="confirmFinal('approved')">{{ t.confirmFinal }}</button>
+                        <button type="button" class="ka-btn ka-btn-danger" :disabled="saving || !paymentNote.trim()" @click="confirmFinal('rejected')">{{ t.rejectPay }}</button>
+                    </div>
                 </div>
-                <div v-else-if="order.status === 'final_payment' && !needsFinalReview" class="ka-ord-pay-actions">
-                    <template v-if="order.final_payment_status === 'rejected'">
-                        <p v-if="order.final_payment_note" class="ka-ord-error">{{ order.final_payment_note }}</p>
-                        <p class="ka-sup-muted">{{ t.finalRejectedWait }}</p>
-                    </template>
-                    <p v-else class="ka-sup-muted">{{ t.finalWaitCustomer }}</p>
-                </div>
+                <p v-else-if="order.final_payment_status === 'approved'" class="ka-ord-ok">{{ t.finalOk }}</p>
+                <template v-else-if="order.final_payment_status === 'rejected'">
+                    <p v-if="order.final_payment_note" class="ka-ord-error">{{ order.final_payment_note }}</p>
+                    <p class="ka-sup-muted">{{ t.finalRejectedWait }}</p>
+                </template>
+                <p v-else-if="order.status === 'final_payment'" class="ka-sup-muted">{{ t.finalWaitCustomer }}</p>
             </section>
 
             <section class="ka-ord-card">
@@ -1068,7 +1063,10 @@ export default {
         },
         parseStamp(value) {
             if (!value) return null;
-            const text = String(value).trim().replace(" ", "T").replace(/\.(\d{3})\d+/, ".$1");
+            let text = String(value).trim().replace(" ", "T").replace(/\.(\d{3})\d+/, ".$1");
+            if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(text) && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(text)) {
+                text += "Z";
+            }
             const parsed = new Date(text);
             return Number.isNaN(parsed.getTime()) ? null : parsed;
         },
@@ -1076,8 +1074,7 @@ export default {
             const parsed = this.parseStamp(value);
             if (!parsed) return value ? "—" : "";
             return parsed.toLocaleString(this.locale === "en" ? "en-GB" : "ar-SA", {
-                timeZone: "Asia/Riyadh",
-                hour12: true,
+                hour12: false,
                 ...options,
             });
         },
