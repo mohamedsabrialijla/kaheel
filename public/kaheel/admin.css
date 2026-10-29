@@ -523,6 +523,12 @@ body.kaheel-admin .ka-mix {
     gap: 1rem;
 }
 
+@media (min-width: 768px) {
+    body.kaheel-admin .ka-mix {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
 body.kaheel-admin .ka-mix article {
     border: 1px solid var(--border);
     border-radius: 0.375rem;
@@ -551,6 +557,7 @@ body.kaheel-admin .ka-bars {
     gap: 0.75rem;
     height: 220px;
     padding-top: 1rem;
+    overflow-x: auto;
 }
 
 body.kaheel-admin .ka-bar-col {
@@ -580,8 +587,39 @@ body.kaheel-admin .ka-bar-track {
 body.kaheel-admin .ka-bar-fill {
     width: 100%;
     height: 0;
+    min-height: 0;
     border-radius: 4px 4px 0 0;
     background: #c7783e;
+}
+
+body.kaheel-admin .ka-line {
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+body.kaheel-admin .ka-line.is-sales { stroke: #C7783E; }
+body.kaheel-admin .ka-line.is-cost { stroke: #8F6A4B; }
+body.kaheel-admin .ka-line.is-profit { stroke: #5C6B63; }
+
+body.kaheel-admin .ka-donut {
+    fill: none;
+}
+
+body.kaheel-admin .ka-legend li {
+    justify-content: space-between;
+}
+
+body.kaheel-admin .ka-legend em {
+    margin-inline-start: 0.5rem;
+    font-style: normal;
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+body.kaheel-admin .ka-sla.is-warn strong {
+    color: #b45309;
 }
 
 body.kaheel-admin .ka-backdrop {

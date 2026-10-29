@@ -535,6 +535,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('KaheelStaff/createItem', [App\Http\Controllers\Kaheel\StaffController::class, 'store']);
         Route::post('KaheelStaff/save', [App\Http\Controllers\Kaheel\StaffController::class, 'save']);
 
+        Route::get('KaheelOverview/stats', [App\Http\Controllers\Kaheel\OverviewController::class, 'stats']);
+
         Route::get('KaheelOrders/notices', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'notices']);
         Route::post('KaheelOrders/readMessages', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'readMessages']);
         Route::get('KaheelOrders/getAllItems', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'index']);

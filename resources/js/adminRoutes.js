@@ -58,7 +58,7 @@ export default [
     { 
         path: '/:locale/dashboard', 
         component: Dashboard, 
-        meta: { requiresAuth: true, role: 'admin' } 
+        meta: { requiresAuth: true, role: 'admin', kaheel: 'overview' } 
     },
     { path: '/:locale/dashboard/orders', component: AdminOrders, meta: { requiresAuth: true, role: 'admin', kaheel: 'orders' } },
     { path: '/:locale/dashboard/orders/:id', component: AdminOrders, meta: { requiresAuth: true, role: 'admin', kaheel: 'orders' } },
