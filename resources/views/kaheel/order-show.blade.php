@@ -106,10 +106,8 @@
     $designRejectNote = $designRejectNote ? trim(preg_replace('/^رفض العميل للتصميم:\s*/u', '', $designRejectNote)) : null;
     $designReviewOpen = $order->status === 'design_review' && !$designApproved;
     $showDesignPanel = $designs->isNotEmpty() || $order->status === 'design_review' || $designApproved || $designRejected || $components->isNotEmpty();
-    $stageDateAr = $order->updated_at->locale('ar')->isoFormat('D MMMM YYYY، h:mm A');
-    $stageDateEn = $order->updated_at->locale('en')->isoFormat('D MMMM YYYY, h:mm A');
-    $signedAtAr = $order->design_signed_at?->locale('ar')->isoFormat('D MMMM YYYY');
-    $signedAtEn = $order->design_signed_at?->locale('en')->isoFormat('D MMMM YYYY');
+    $stageStamp = kaheel_iso($order->updated_at);
+    $signedStamp = kaheel_iso($order->design_signed_at);
 @endphp
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -121,7 +119,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=45" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=47" rel="stylesheet">
 </head>
 <body>
     @include('kaheel.partials.public-header')
@@ -184,8 +182,7 @@
                 <div class="order-pay-list">
                     @foreach ($paymentRows as $row)
                         @php
-                            $rowDateAr = optional($row['at'])->locale('ar')->isoFormat('D MMMM YYYY، h:mm A');
-                            $rowDateEn = optional($row['at'])->locale('en')->isoFormat('D MMMM YYYY, h:mm A');
+                            $rowStamp = kaheel_iso($row['at'] ?? null);
                             $rejected = ($row['status'] ?? '') === 'rejected';
                         @endphp
                         <article class="order-pay-row {{ $rejected ? 'is-rejected' : '' }}">
@@ -196,7 +193,7 @@
                                     ·
                                     <span class="order-pay-status {{ $rejected ? 'is-rejected' : '' }}" data-ar="{{ $row['status_ar'] }}" data-en="{{ $row['status_en'] }}">{{ $row['status_ar'] }}</span>
                                     ·
-                                    <span data-ar="{{ $rowDateAr }}" data-en="{{ $rowDateEn }}">{{ $rowDateAr }}</span>
+                                    <span data-stamp="{{ $rowStamp }}">{{ $rowStamp }}</span>
                                 </p>
                             </div>
                             <div class="order-pay-row-side">
@@ -246,7 +243,14 @@
                             @endif
                         </h2>
                         @if ($designApproved)
-                            <p class="order-lead" data-ar="تم اعتمادك وتوقيعك{{ $signedAtAr ? ' بتاريخ '.$signedAtAr : '' }} — لا يمكن تعديل التصميم بعد الآن." data-en="Approved and signed{{ $signedAtEn ? ' on '.$signedAtEn : '' }} — changes are locked.">تم اعتمادك وتوقيعك{{ $signedAtAr ? ' بتاريخ '.$signedAtAr : '' }} — لا يمكن تعديل التصميم بعد الآن.</p>
+                            <p class="order-lead">
+                                <span data-ar="تم اعتمادك وتوقيعك" data-en="Approved and signed">تم اعتمادك وتوقيعك</span>
+                                @if ($signedStamp)
+                                    <span data-ar=" بتاريخ " data-en=" on "> بتاريخ </span>
+                                    <span data-stamp="{{ $signedStamp }}">{{ $signedStamp }}</span>
+                                @endif
+                                <span data-ar=" — لا يمكن تعديل التصميم بعد الآن." data-en=" — changes are locked."> — لا يمكن تعديل التصميم بعد الآن.</span>
+                            </p>
                         @elseif ($designRejected)
                             <p class="order-lead" data-ar="فريقنا يعمل على تعديل التصميم حسب ملاحظاتك — تابع ملاحظاتك في المناقشة." data-en="Our team is revising the design based on your notes — keep the conversation going.">فريقنا يعمل على تعديل التصميم حسب ملاحظاتك — تابع ملاحظاتك في المناقشة.</p>
                             @if ($designRejectNote)
@@ -276,7 +280,7 @@
                                             @if ($isPdf)<span class="order-file-pdf" aria-hidden="true">PDF</span>@endif
                                         </span>
                                         <span class="order-file-name">{{ $file->original_name }}</span>
-                                        <span class="order-file-time" data-ar="{{ kaheel_local_time($file->created_at, 'ar') }}" data-en="{{ kaheel_local_time($file->created_at, 'en') }}">{{ kaheel_local_time($file->created_at, 'ar') }}</span>
+                                        <span class="order-file-time" data-stamp="{{ kaheel_iso($file->created_at) }}">{{ kaheel_iso($file->created_at) }}</span>
                                     </a>
                                 @endforeach
                             </div>
@@ -436,7 +440,7 @@
                         @endif
                         <span data-ar="{{ $stage['ar'] }}" data-en="{{ $stage['en'] }}">{{ $stage['ar'] }}</span>
                         @if ($index < $step)
-                            <time data-ar="{{ $stageDateAr }}" data-en="{{ $stageDateEn }}">{{ $stageDateAr }}</time>
+                            <time data-stamp="{{ $stageStamp }}">{{ $stageStamp }}</time>
                         @endif
                     </li>
                 @endforeach
@@ -506,6 +510,7 @@
             root.lang = en ? "en" : "ar";
             root.dir = en ? "ltr" : "rtl";
             document.querySelectorAll("[data-ar]").forEach((node) => {
+                if (node.hasAttribute("data-stamp")) return;
                 node.textContent = en ? node.dataset.en : node.dataset.ar;
             });
             document.querySelectorAll("[data-ar-placeholder]").forEach((node) => {
@@ -937,14 +942,7 @@
             target.hidden = count < 1;
         };
 
-        const stamp = (iso) => {
-            const date = new Date(iso);
-            if (Number.isNaN(date.getTime())) return "";
-            const en = document.documentElement.lang === "en";
-            const time = new Intl.DateTimeFormat(en ? "en" : "ar", { hour: "numeric", minute: "2-digit" }).format(date);
-            const day = new Intl.DateTimeFormat(en ? "en" : "ar", { year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
-            return time + " · " + day;
-        };
+        const stamp = (iso) => (window.kaheelFormatStamp ? window.kaheelFormatStamp(iso) : "");
 
         const mediaLabel = (kind) => {
             const en = document.documentElement.lang === "en";

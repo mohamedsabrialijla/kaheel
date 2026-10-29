@@ -77,3 +77,51 @@
         clear(event.target);
     }, true);
 })();
+
+(function () {
+    function parseStamp(value) {
+        if (!value) return null;
+        var text = String(value).trim().replace(" ", "T").replace(/\.(\d{3})\d+/, ".$1");
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(text) && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(text)) {
+            text += "Z";
+        }
+        var date = new Date(text);
+        return isNaN(date.getTime()) ? null : date;
+    }
+
+    function formatStamp(value) {
+        var date = parseStamp(value);
+        if (!date) return "";
+        var en = String(document.documentElement.lang || "ar").toLowerCase().indexOf("en") === 0;
+        return new Intl.DateTimeFormat(en ? "en-GB" : "ar-SA", {
+            hour12: false,
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+        }).format(date);
+    }
+
+    function bindStamps() {
+        document.querySelectorAll("[data-stamp]").forEach(function (node) {
+            var label = formatStamp(node.getAttribute("data-stamp"));
+            if (label) node.textContent = label;
+        });
+    }
+
+    window.kaheelParseStamp = parseStamp;
+    window.kaheelFormatStamp = formatStamp;
+    window.kaheelBindStamps = bindStamps;
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bindStamps);
+    } else {
+        bindStamps();
+    }
+    document.addEventListener("click", function (event) {
+        if (event.target.closest("#lang-toggle")) {
+            setTimeout(bindStamps, 0);
+        }
+    });
+})();

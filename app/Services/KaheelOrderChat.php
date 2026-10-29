@@ -35,7 +35,7 @@ class KaheelOrderChat
                 'body' => (string) $message->body,
                 'url' => $url,
                 'duration' => $message->duration === null ? null : (int) $message->duration,
-                'created_at' => optional($message->created_at)->toIso8601String(),
+                'created_at' => kaheel_iso($message->created_at),
             ]);
         } catch (Throwable $e) {
             Log::warning('Kaheel order chat was saved locally but not synced.', [

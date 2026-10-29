@@ -2179,7 +2179,7 @@ a.order-doc:hover {
 
 .pay-columns {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 0.75rem;
     margin-top: 1rem;
     align-items: stretch;
@@ -2223,6 +2223,10 @@ a.order-doc:hover {
 }
 
 @media (min-width: 640px) {
+    .pay-columns {
+        grid-template-columns: 1fr 1fr;
+    }
+
     .order-grid.cols-2 {
         grid-template-columns: 1fr 1fr;
     }
@@ -2948,5 +2952,107 @@ a.order-doc:hover {
     .design-sticky-actions,
     .design-decide {
         grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 639px) {
+    .order-page {
+        padding: 1.1rem 0.9rem 5.75rem;
+    }
+
+    .orders-head {
+        gap: 0.75rem;
+    }
+
+    .orders-new {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .order-hero {
+        flex-wrap: wrap;
+        align-items: stretch;
+    }
+
+    .order-card {
+        padding: 1rem;
+        border-radius: 0.85rem;
+    }
+
+    .order-list-card {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+        row-gap: 0.75rem;
+    }
+
+    .order-list-side {
+        text-align: start;
+    }
+
+    .order-rows div {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.2rem;
+    }
+
+    .order-pay-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .order-pay-row-side {
+        justify-content: space-between;
+    }
+
+    .order-stages li {
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+
+    .order-stages time {
+        width: 100%;
+        margin-inline-start: 1.75rem;
+        margin-top: 0.15rem;
+    }
+
+    .order-progress-top {
+        gap: 0.35rem;
+        flex-wrap: wrap;
+    }
+
+    .order-chat-launch {
+        bottom: max(0.85rem, env(safe-area-inset-bottom));
+        inset-inline-start: max(0.85rem, env(safe-area-inset-left));
+    }
+
+    .order-chat-panel {
+        width: 100%;
+        inset-inline-end: 0;
+    }
+
+    .order-chat-head,
+    .order-chat-form {
+        padding-inline: 0.9rem;
+    }
+
+    .order-chat-form {
+        padding-bottom: max(0.9rem, env(safe-area-inset-bottom));
+    }
+
+    .order-chat-form textarea {
+        min-height: 4.25rem;
+    }
+
+    .order-chat-tools {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .order-chat-tools .btn {
+        flex: 1 1 auto;
+    }
+
+    .order-file-time {
+        font-size: 0.62rem;
     }
 }

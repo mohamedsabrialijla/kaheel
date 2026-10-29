@@ -35,7 +35,7 @@
         @endif
         <link href="{{ url('assets/css/styleCustom.css') }}" rel="stylesheet" type="text/css" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Instrument+Serif&family=Work+Sans:wght@400;500;600;700&display=swap">
-        <link href="{{ asset('kaheel/admin.css') }}?v=54" rel="stylesheet" type="text/css" />
+        <link href="{{ asset('kaheel/admin.css') }}?v=55" rel="stylesheet" type="text/css" />
 
         <!--end::Global Stylesheets Bundle-->
         <script>// Frame-busting to prevent site from being loaded within a frame without permission (click-jacking) if (window.top != window.self) { window.top.location.replace(window.self.location.href); }</script>

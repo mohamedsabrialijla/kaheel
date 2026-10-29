@@ -369,7 +369,7 @@ class OrderController extends Controller
                     'name' => $message->sender_name,
                     'kind' => $message->kind ?: 'text',
                     'body' => trim((string) $message->body),
-                    'created_at' => optional($message->created_at)->toIso8601String(),
+                    'created_at' => kaheel_iso($message->created_at),
                 ];
             })->values(),
         ]);
@@ -761,7 +761,7 @@ class OrderController extends Controller
                 'body' => $message->body,
                 'file_name' => $message->media_name,
                 'url' => $message->media_path ? url($locale.'/orders/'.$order->id.'/messages/'.$message->id.'/media') : null,
-                'created_at' => optional($message->created_at)->toIso8601String(),
+                'created_at' => kaheel_iso($message->created_at),
             ];
         })->all();
     }

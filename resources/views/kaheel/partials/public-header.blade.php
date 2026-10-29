@@ -1,3 +1,4 @@
+@include('kaheel.partials.native-validation')
 <header class="site-header">
     <div class="header-inner">
         <a class="brand" href="{{ $home }}" aria-label="FORMA BY AZURE — KAHEEL">
@@ -26,4 +27,3 @@
         </nav>
     </div>
 </header>
-@include('kaheel.partials.native-validation')

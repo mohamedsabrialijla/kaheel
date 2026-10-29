@@ -15,12 +15,7 @@
             const badge = document.getElementById("notice-bell-badge");
             if (!root || root.dataset.ready) return;
             root.dataset.ready = "1";
-            const stamp = (iso) => {
-                const date = new Date(iso);
-                if (Number.isNaN(date.getTime())) return "";
-                const en = document.documentElement.lang === "en";
-                return new Intl.DateTimeFormat(en ? "en" : "ar", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
-            };
+            const stamp = (iso) => (window.kaheelFormatStamp ? window.kaheelFormatStamp(iso) : "");
             const mediaLabel = (kind) => {
                 const en = document.documentElement.lang === "en";
                 const labels = en

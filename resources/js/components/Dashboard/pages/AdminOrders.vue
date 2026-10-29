@@ -21,6 +21,25 @@
                     </select>
                 </label>
             </div>
+            <div class="ka-ord-mobile-list">
+                <p v-if="loading" class="ka-empty">…</p>
+                <p v-else-if="!filtered.length" class="ka-empty">{{ t.empty }}</p>
+                <template v-else>
+                    <button v-for="row in filtered" :key="'m' + row.id" type="button" class="ka-ord-mobile-card" @click="open(row.id)">
+                        <div class="ka-ord-mobile-top">
+                            <div>
+                                <p class="ka-ord-strong">{{ row.number }} <span v-if="row.unread" class="ka-unread">{{ row.unread }}</span></p>
+                                <p class="ka-sup-muted">{{ date(row.created_at) }}</p>
+                            </div>
+                            <span class="ka-ord-badge" :class="'is-' + row.status">{{ locale === 'en' ? row.status_en : row.status_ar }}</span>
+                        </div>
+                        <p class="ka-ord-strong">{{ row.customer_name }}</p>
+                        <p class="ka-sup-muted">{{ row.unit_no }} · {{ row.compound_name }}</p>
+                        <p class="ka-ord-strong">{{ money(row.amount) }} <span class="ka-sup-muted">SAR</span></p>
+                        <progress-track :percent="row.percent" :step="row.step" :label="t.progress"></progress-track>
+                    </button>
+                </template>
+            </div>
             <div class="ka-table-wrap ka-ord-table">
                 <table class="ka-table wide">
                     <thead>
