@@ -265,6 +265,12 @@ class AdminController extends Controller
 
         $id = Auth::guard('admin')->id();
         $items = Admin::query()->findOrFail($id);
+        if (($items->status ?? 'active') === 'not_active') {
+            $items->tokens()->delete();
+            Auth::guard('admin')->logout();
+
+            return mainResponse(false, kaheel_msg('تم إيقاف هذا الحساب ولا يمكن استخدامه.', 'This account has been disabled.'), null, 401, 'items', '');
+        }
         $message ="Ddeleted Item successfully";
         return mainResponse(true, $message , $items, 200, 'items','');
 

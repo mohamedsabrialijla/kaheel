@@ -20,6 +20,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'localeSessionRedirect'   => \Mcamara\LaravelLocalization\Middleware\LocaleSessionRedirect::class,
             'localeCookieRedirect'    => \Mcamara\LaravelLocalization\Middleware\LocaleCookieRedirect::class,
             'localeViewPath'          => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationViewPath::class,
+            'kaheel.admin.active'     => \App\Http\Middleware\EnsureKaheelAdminActive::class,
             'QrCode' => SimpleSoftwareIO\QrCode\Facades\QrCode::class,
             'Image' => Intervention\Image\Facades\Image::class,
             

@@ -497,7 +497,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 
 
-    Route::group(['prefix' => 'web', 'middleware' => ['auth:admin']], function () {
+    Route::group(['prefix' => 'web', 'middleware' => ['auth:admin', 'kaheel.admin.active']], function () {
         
 
  

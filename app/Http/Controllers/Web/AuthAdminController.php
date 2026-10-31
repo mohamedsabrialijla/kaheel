@@ -39,6 +39,15 @@ class AuthAdminController extends Controller
         if($token = auth('admin')->attempt($credentials))
         {
             $user = auth('admin')->user();
+            if (($user->status ?? 'active') === 'not_active') {
+                $user->tokens()->delete();
+                auth('admin')->logout();
+                $message = (app()->getLocale() == 'ar')
+                    ? 'تم إيقاف هذا الحساب ولا يمكن تسجيل الدخول.'
+                    : 'This account has been disabled and cannot sign in.';
+
+                return mainResponse(false, $message, null, 203, 'items', '');
+            }
             $user['token'] = $user->createToken('auth_token')->plainTextToken;
             $message = 'Success Login';
             return mainResponse(true, $message , $user , 200 , 'items','');
@@ -198,17 +207,15 @@ class AuthAdminController extends Controller
      */
     public function logout(Request $request)
     {
-        $user = $request->user();
-        
-        if ($user->tokens()->delete()) {
-                     Auth::guard('admin')->logout();
-
-        $message = 'logged out successfully';
-            return mainResponse(true, $message , null, 200 , 'items','');
-        } else {
-        $message = 'logged out successfully';
-            return mainResponse(true, $message , null, 200 , 'items','');
+        $admin = auth('admin')->user();
+        if ($admin) {
+            $admin->tokens()->delete();
         }
+        Auth::guard('admin')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return mainResponse(true, 'logged out successfully', null, 200, 'items', '');
     }
 
     /**

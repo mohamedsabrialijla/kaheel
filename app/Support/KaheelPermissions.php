@@ -72,6 +72,27 @@ class KaheelPermissions
         return $codes;
     }
 
+    public static function withImpliedView(array $codes): array
+    {
+        $set = [];
+        foreach ($codes as $code) {
+            if (!is_string($code) || $code === '') {
+                continue;
+            }
+            $set[$code] = true;
+            $dot = strrpos($code, '.');
+            if ($dot === false) {
+                continue;
+            }
+            $action = substr($code, $dot + 1);
+            if ($action !== 'view') {
+                $set[substr($code, 0, $dot).'.view'] = true;
+            }
+        }
+
+        return array_values(array_intersect(array_keys($set), self::codes()));
+    }
+
     public static function rows(): array
     {
         $actions = self::actions();

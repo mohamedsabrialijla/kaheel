@@ -55,7 +55,7 @@
                             </div>
                             <div class="ka-role-actions-grid">
                                 <label v-for="perm in module.permissions" :key="perm.code" class="ka-role-perm">
-                                    <input type="checkbox" :checked="form.permissions.includes(perm.code)" @change="toggle(perm.code, $event.target.checked)">
+                                    <input type="checkbox" :checked="form.permissions.includes(perm.code)" :disabled="perm.action !== 'view' && !hasView(module.code)" @change="toggle(perm.code, $event.target.checked)">
                                     {{ locale === "ar" ? perm.label_ar : perm.label_en }}
                                 </label>
                             </div>
@@ -194,12 +194,25 @@ export default {
                 if (!this.form.permissions.includes(code)) this.form.permissions.push(code);
             });
         },
+        hasView(module) {
+            return this.form.permissions.includes(module + ".view");
+        },
         toggle(code, checked) {
+            const dot = code.lastIndexOf(".");
+            const module = dot === -1 ? "" : code.slice(0, dot);
+            const action = dot === -1 ? code : code.slice(dot + 1);
             if (checked) {
                 if (!this.form.permissions.includes(code)) this.form.permissions.push(code);
+                const view = module + ".view";
+                if (action !== "view" && module && !this.form.permissions.includes(view)) {
+                    this.form.permissions.push(view);
+                }
                 return;
             }
             this.form.permissions = this.form.permissions.filter((item) => item !== code);
+            if (action === "view" && module) {
+                this.form.permissions = this.form.permissions.filter((item) => item !== module + ".view" && !item.startsWith(module + "."));
+            }
         },
         async save() {
             this.saving = true;
@@ -213,7 +226,7 @@ export default {
                 this.apply(response.data.items || {});
                 this.dialog = false;
             } catch (error) {
-                this.formError = this.locale === "ar" ? "تعذر الحفظ." : "Could not save.";
+                this.formError = error.response?.data?.message || (this.locale === "ar" ? "تعذر الحفظ." : "Could not save.");
             } finally {
                 this.saving = false;
             }

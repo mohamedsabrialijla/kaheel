@@ -60,12 +60,12 @@
                         <span>{{ t.role }}</span>
                         <select v-model="form.role_id" required>
                             <option disabled value="">{{ t.pickRole }}</option>
-                            <option v-for="role in roles" :key="role.id" :value="String(role.id)">{{ locale === "ar" ? role.name_ar : role.name_en }}</option>
+                            <option v-for="role in activeRoles" :key="role.id" :value="String(role.id)">{{ locale === "ar" ? role.name_ar : role.name_en }}</option>
                         </select>
                     </label>
-                    <p v-if="!roles.length" class="ka-set-error">{{ t.needRole }}</p>
+                    <p v-if="!activeRoles.length" class="ka-set-error">{{ t.needRole }}</p>
                     <p v-if="formError" class="ka-set-error">{{ formError }}</p>
-                    <button type="submit" class="ka-btn ka-btn-primary ka-sup-submit" :disabled="saving || !roles.length">{{ saving ? "…" : t.create }}</button>
+                    <button type="submit" class="ka-btn ka-btn-primary ka-sup-submit" :disabled="saving || !activeRoles.length">{{ saving ? "…" : t.create }}</button>
                 </form>
             </div>
         </div>
@@ -86,7 +86,7 @@
                         <span>{{ t.role }}</span>
                         <select v-model="edit.role_id">
                             <option value="">{{ t.none }}</option>
-                            <option v-for="role in roles" :key="'e-' + role.id" :value="String(role.id)">{{ locale === "ar" ? role.name_ar : role.name_en }}</option>
+                            <option v-for="role in editRoles" :key="'e-' + role.id" :value="String(role.id)">{{ locale === "ar" ? role.name_ar : role.name_en }}{{ role.is_active ? "" : " (" + t.disabled + ")" }}</option>
                         </select>
                     </label>
                     <label class="ka-check ka-role-active"><input v-model="edit.is_active" type="checkbox">{{ t.active }}</label>
@@ -161,6 +161,7 @@ export default {
                     editTitle: "Edit employee",
                     editLead: "Update the employee details, job title, role and password.",
                     save: "Save",
+                    disabled: "Disabled",
                 };
             }
             return {
@@ -192,7 +193,14 @@ export default {
                     editTitle: "تعديل الموظف",
                     editLead: "عدّل الاسم والبريد والمسمى الوظيفي والدور وكلمة المرور.",
                     save: "حفظ",
+                    disabled: "معطّل",
             };
+        },
+        activeRoles() {
+            return this.roles.filter((role) => role.is_active !== false);
+        },
+        editRoles() {
+            return this.roles.filter((role) => role.is_active !== false || String(role.id) === String(this.edit.role_id));
         },
     },
     watch: {
@@ -211,7 +219,8 @@ export default {
     methods: {
         roleName(person) {
             if (!person.role_id) return this.t.none;
-            return this.locale === "ar" ? (person.role_name_ar || this.t.none) : (person.role_name_en || this.t.none);
+            const name = this.locale === "ar" ? (person.role_name_ar || this.t.none) : (person.role_name_en || this.t.none);
+            return person.role_active === false ? name + " (" + this.t.disabled + ")" : name;
         },
         apply(data) {
             this.staff = data.staff || [];
@@ -266,7 +275,7 @@ export default {
                 this.apply(response.data.items || {});
                 this.createDialog = false;
             } catch (error) {
-                this.formError = this.locale === "ar" ? "تعذر الإنشاء." : "Could not create.";
+                this.formError = error.response?.data?.message || (this.locale === "ar" ? "تعذر الإنشاء." : "Could not create.");
             } finally {
                 this.saving = false;
             }
@@ -293,7 +302,7 @@ export default {
                 this.apply(response.data.items || {});
                 this.editDialog = false;
             } catch (error) {
-                this.formError = this.locale === "ar" ? "تعذر الحفظ." : "Could not save.";
+                this.formError = error.response?.data?.message || (this.locale === "ar" ? "تعذر الحفظ." : "Could not save.");
             } finally {
                 this.saving = false;
             }
@@ -318,7 +327,7 @@ export default {
                 }
                 this.apply(response.data.items || {});
             } catch (error) {
-                this.error = this.locale === "ar" ? "تعذر التحديث." : "Could not update.";
+                this.error = error.response?.data?.message || (this.locale === "ar" ? "تعذر التحديث." : "Could not update.");
             } finally {
                 this.saving = false;
             }

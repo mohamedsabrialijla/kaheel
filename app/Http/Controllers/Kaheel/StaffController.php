@@ -85,6 +85,10 @@ class StaffController extends KaheelAdminController
         $email = trim((string) $request->input('email', $admin->email));
         $password = (string) $request->input('password', '');
         $roleId = $request->input('role_id') ? (int) $request->input('role_id') : null;
+        $currentRoleId = (int) (DB::table('model_has_roles')
+            ->where('model_id', $admin->id)
+            ->where('model_type', Admin::class)
+            ->value('role_id') ?: ($admin->role_id ?: 0));
 
         if ($name === '' || $email === '') {
             return mainResponse(false, kaheel_msg('الاسم والبريد مطلوبان.', 'Name and email are required.'), null, 422, 'items', '');
@@ -92,8 +96,8 @@ class StaffController extends KaheelAdminController
         if (DB::table('admins')->where('email', $email)->where('id', '!=', $admin->id)->exists()) {
             return mainResponse(false, kaheel_msg('البريد الإلكتروني مستخدم مسبقاً.', 'Email already exists.'), null, 422, 'items', '');
         }
-        if ($roleId && !$this->activeRole($roleId)) {
-            return mainResponse(false, kaheel_msg('الدور غير موجود.', 'Role not found.'), null, 422, 'items', '');
+        if ($roleId && !$this->assignableRole($roleId, $currentRoleId)) {
+            return mainResponse(false, kaheel_msg('الدور غير موجود أو معطّل.', 'Role is missing or disabled.'), null, 422, 'items', '');
         }
 
         $values = [
@@ -112,6 +116,10 @@ class StaffController extends KaheelAdminController
 
         DB::table('admins')->where('id', $admin->id)->update($values);
         $this->syncRole((int) $admin->id, $roleId);
+        if (($values['status'] ?? '') === 'not_active') {
+            $model = Admin::query()->find($admin->id);
+            $model?->tokens()->delete();
+        }
         $this->forget();
 
         return mainResponse(true, 'Success', [
@@ -122,7 +130,7 @@ class StaffController extends KaheelAdminController
 
     private function rows()
     {
-        $roles = DB::table('roles')->whereNotNull('name_ar')->get(['id', 'name_ar', 'name_en'])->keyBy('id');
+        $roles = DB::table('roles')->whereNotNull('name_ar')->get(['id', 'name_ar', 'name_en', 'is_active'])->keyBy('id');
         $assigned = DB::table('model_has_roles')
             ->where('model_type', Admin::class)
             ->pluck('role_id', 'model_id');
@@ -147,6 +155,7 @@ class StaffController extends KaheelAdminController
                     'role_id' => $roleId,
                     'role_name_ar' => $role->name_ar ?? null,
                     'role_name_en' => $role->name_en ?? null,
+                    'role_active' => $role ? (bool) $role->is_active : false,
                     'is_active' => $admin->status === 'active',
                     'locked' => $admin->account_role === 'admin',
                 ];
@@ -159,13 +168,13 @@ class StaffController extends KaheelAdminController
         return DB::table('roles')
             ->where('guard_name', 'admin')
             ->whereNotNull('name_ar')
-            ->where('is_active', true)
             ->orderBy('id')
-            ->get(['id', 'name_ar', 'name_en'])
+            ->get(['id', 'name_ar', 'name_en', 'is_active'])
             ->map(fn ($role) => [
                 'id' => $role->id,
                 'name_ar' => $role->name_ar,
                 'name_en' => $role->name_en,
+                'is_active' => (bool) $role->is_active,
             ])
             ->values();
     }
@@ -178,6 +187,19 @@ class StaffController extends KaheelAdminController
             ->whereNotNull('name_ar')
             ->where('is_active', true)
             ->exists();
+    }
+
+    private function assignableRole(int $roleId, int $currentRoleId): bool
+    {
+        if ($roleId === $currentRoleId) {
+            return DB::table('roles')
+                ->where('id', $roleId)
+                ->where('guard_name', 'admin')
+                ->whereNotNull('name_ar')
+                ->exists();
+        }
+
+        return $this->activeRole($roleId);
     }
 
     private function syncRole(int $adminId, ?int $roleId): void

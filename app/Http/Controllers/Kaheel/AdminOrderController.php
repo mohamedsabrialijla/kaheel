@@ -287,10 +287,11 @@ class AdminOrderController extends KaheelAdminController
                 'unit_label_en' => $row['unit_label_en'] ?? 'piece',
                 'base_qty' => (float) ($row['base_qty'] ?? 0),
                 'price_per_unit' => (float) ($row['price_per_unit'] ?? 0),
+                'extra_qty' => max(0, (float) ($row['extra_qty'] ?? 0)),
                 'extra_cost' => (float) ($row['extra_cost'] ?? 0),
                 'selected_key' => (string) ($row['selected_key'] ?? ''),
                 'added' => !empty($row['added']),
-                'priced' => !empty($row['priced']),
+                'priced' => false,
                 'options' => collect($row['options'] ?? [])->map(fn ($option) => [
                     'name_ar' => trim((string) ($option['name_ar'] ?? '')),
                     'name_en' => trim((string) ($option['name_en'] ?? '')),
@@ -300,20 +301,28 @@ class AdminOrderController extends KaheelAdminController
         })->filter(fn ($row) => $row['name_ar'] !== '' || $row['name_en'] !== '')->values()->all();
 
         $order->design_components = $components;
-        $order->addons_total = round(collect($components)->sum(fn ($row) => $this->componentCharge($row)), 2);
+        $order->addons_total = $this->addonsFromComponents($components);
         $order->save();
 
         return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
     }
 
+    private function addonsFromComponents(array $components): float
+    {
+        return round(collect($components)->sum(fn ($row) => $this->componentCharge($row)), 2);
+    }
+
     private function componentCharge(array $row): float
     {
-        $line = ((float) $row['base_qty'] * (float) $row['price_per_unit']) + (float) $row['extra_cost'];
-        if (!empty($row['added']) || !empty($row['priced'])) {
-            return $line;
+        $unit = (float) ($row['price_per_unit'] ?? 0);
+        $delta = ($row['selected_key'] ?? '') !== '' ? (float) ($row['extra_cost'] ?? 0) : 0.0;
+        if (!empty($row['added'])) {
+            return ((float) ($row['base_qty'] ?? 0) * $unit) + $delta;
         }
 
-        return ($row['selected_key'] ?? '') !== '' ? (float) $row['extra_cost'] : 0.0;
+        $extraQty = max(0, (float) ($row['extra_qty'] ?? 0));
+
+        return ($extraQty * $unit) + $delta;
     }
 
     public function sendDesign(Request $request)
@@ -350,11 +359,19 @@ class AdminOrderController extends KaheelAdminController
         }
 
         $current = $order->supplier_assignments ?? [];
+        $today = now()->toDateString();
         foreach ($request->input('assignments', []) as $row) {
             $supplier = KaheelSupplier::query()->find($row['supplier_id'] ?? 0);
             $scope = trim((string) ($row['scope_ar'] ?? ''));
             if (!$supplier || $scope === '') {
                 continue;
+            }
+            if (!$supplier->is_active) {
+                return mainResponse(false, kaheel_msg('لا يمكن إضافة مورد موقوف إلى الطلب.', 'A disabled supplier cannot be added to the order.'), null, 422, 'items', '');
+            }
+            $expected = $row['expected_date'] ?: null;
+            if ($expected && $expected < $today) {
+                return mainResponse(false, kaheel_msg('تاريخ التوريد لا يمكن أن يكون بتاريخ سابق.', 'The supply date cannot be in the past.'), null, 422, 'items', '');
             }
             $current[] = [
                 'id' => (string) Str::uuid(),
@@ -364,7 +381,7 @@ class AdminOrderController extends KaheelAdminController
                 'scope_ar' => $scope,
                 'scope_en' => trim((string) ($row['scope_en'] ?? '')) ?: $scope,
                 'cost' => (float) ($row['cost'] ?? 0),
-                'expected_date' => $row['expected_date'] ?: null,
+                'expected_date' => $expected,
                 'delivered_at' => null,
             ];
         }
@@ -531,6 +548,11 @@ class AdminOrderController extends KaheelAdminController
     private function detail(KaheelOrder $order): array
     {
         $order->load(['files', 'events', 'messages']);
+        $addons = $this->addonsFromComponents($order->design_components ?? []);
+        if (round((float) $order->addons_total, 2) !== $addons) {
+            $order->addons_total = $addons;
+            $order->save();
+        }
         $copy = $order->statusCopy();
         $next = $order->nextStatus();
         $gate = $this->stageBlock($order);
@@ -618,7 +640,7 @@ class AdminOrderController extends KaheelAdminController
             ]),
             'alternatives' => KaheelAlternative::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'category', 'name_ar', 'name_en', 'price_delta']),
             'categories' => KaheelCategory::catalog(),
-            'suppliers' => KaheelSupplier::query()->orderBy('name_ar')->get(['id', 'name_ar', 'name_en']),
+            'suppliers' => KaheelSupplier::query()->where('is_active', true)->orderBy('name_ar')->get(['id', 'name_ar', 'name_en']),
         ];
     }
 

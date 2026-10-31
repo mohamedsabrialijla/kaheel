@@ -33,13 +33,16 @@ class RoleController extends KaheelAdminController
         $nameAr = trim((string) $request->input('name_ar'));
         $nameEn = trim((string) $request->input('name_en'));
         $allowed = KaheelPermissions::codes();
-        $codes = array_values(array_unique(array_filter(
+        $codes = KaheelPermissions::withImpliedView(array_values(array_unique(array_filter(
             (array) $request->input('permissions', []),
             fn ($code) => in_array($code, $allowed, true)
-        )));
+        ))));
 
         if ($nameAr === '' || $nameEn === '') {
             return mainResponse(false, kaheel_msg('الاسم بالعربية والإنجليزية مطلوب.', 'Name is required.'), null, 422, 'items', '');
+        }
+        if ($this->nameTaken($nameAr, $nameEn, $roleId)) {
+            return mainResponse(false, kaheel_msg('يوجد دور بنفس الاسم.', 'A role with this name already exists.'), null, 422, 'items', '');
         }
 
         $permissionIds = DB::table('permissions')
@@ -203,6 +206,19 @@ class RoleController extends KaheelAdminController
         }
 
         DB::table('admins')->where('id', $adminId)->update(['role_id' => $roleId]);
+    }
+
+    private function nameTaken(string $nameAr, string $nameEn, $ignoreId): bool
+    {
+        return DB::table('roles')
+            ->where('guard_name', 'admin')
+            ->whereNotNull('name_ar')
+            ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->where(function ($query) use ($nameAr, $nameEn) {
+                $query->whereRaw('LOWER(name_ar) = ?', [mb_strtolower($nameAr)])
+                    ->orWhereRaw('LOWER(name_en) = ?', [mb_strtolower($nameEn)]);
+            })
+            ->exists();
     }
 
     private function uniqueSlug(string $name, $ignoreId): string

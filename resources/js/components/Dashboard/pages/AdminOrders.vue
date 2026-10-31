@@ -329,6 +329,7 @@
                     <p v-if="order.design_status === 'rejected'" class="ka-ord-hint">{{ t.designRejectedHint }}</p>
                     <p v-if="designRejectNote" class="ka-ord-error">{{ designRejectNote }}</p>
                     <p v-if="!order.design_ready" class="ka-ord-error">{{ t.designNeedFile }}</p>
+                    <p v-if="loadedFromPackage" class="ka-ord-hint">{{ t.packageIncluded }}</p>
                     <p v-if="drafts.length" class="ka-comp-sum">{{ t.componentsSum }}: {{ money(editorCharge) }} SAR</p>
                     </fieldset>
                 </div>
@@ -354,12 +355,12 @@
                         <label class="ka-field"><span>{{ t.supplier }}</span>
                             <select v-model="row.supplier_id">
                                 <option value="">{{ t.pickSupplier }}</option>
-                                <option v-for="supplier in order.suppliers" :key="supplier.id" :value="supplier.id">{{ locale === 'en' ? supplier.name_en : supplier.name_ar }}</option>
+                                <option v-for="supplier in activeSuppliers" :key="supplier.id" :value="supplier.id">{{ locale === 'en' ? supplier.name_en : supplier.name_ar }}</option>
                             </select>
                         </label>
                         <label class="ka-field"><span>{{ t.scope }}</span><input v-model="row.scope_ar"></label>
                         <label class="ka-field"><span>{{ t.cost }}</span><input v-model.number="row.cost" type="number" min="0"></label>
-                        <label class="ka-field"><span>{{ t.expected }}</span><input v-model="row.expected_date" type="date"></label>
+                        <label class="ka-field"><span>{{ t.expected }}</span><input v-model="row.expected_date" type="date" :min="todayIso"></label>
                     </article>
                     <div class="ka-ord-actions">
                         <button type="button" class="ka-btn ka-btn-outline" @click="supplierDrafts.push({ supplier_id: '', scope_ar: '', cost: 0, expected_date: '' })">{{ t.addSupplier }}</button>
@@ -503,6 +504,7 @@ const blankComponent = () => ({
     base_qty: 1,
     price_per_unit: 0,
     extra_cost: 0,
+    extra_qty: 0,
     selected_key: "",
     options: [],
 });
@@ -658,6 +660,7 @@ export default {
                 undoLoad: "Undo load",
                 addComponent: "Add component",
                 saveComponents: "Save components",
+                packageIncluded: "Package item prices are already in the package total. Saving them does not add that amount again — only extras and swapped alternatives are billed.",
                 sendDesign: "Send design to customer",
                 suppliers: "Suppliers and delivery",
                 expected: "Expected",
@@ -668,6 +671,7 @@ export default {
                 cost: "Cost",
                 addSupplier: "Add supplier",
                 assign: "Assign and notify",
+                datePast: "The supply date cannot be in the past.",
                 thread: "Order chat",
                 chatHint: "Each order has its own conversation. Messages stay with this order.",
                 startChat: "Start your conversation with the customer",
@@ -796,6 +800,7 @@ export default {
                 undoLoad: "العودة عن التحميل",
                 addComponent: "إضافة مكوّن",
                 saveComponents: "حفظ المكوّنات",
+                packageIncluded: "أسعار عناصر الباقة داخلة أصلاً في سعر الباقة. حفظها لا يضيف المبلغ مرة ثانية — تُحتسب فقط الإضافات والبدائل المختارة.",
                 sendDesign: "إرسال التصميم للعميل",
                 suppliers: "الموردون والتوريد",
                 expected: "المتوقع",
@@ -806,6 +811,7 @@ export default {
                 cost: "التكلفة",
                 addSupplier: "إضافة مورد",
                 assign: "إسناد وإرسال تنبيه",
+                datePast: "تاريخ التوريد لا يمكن أن يكون بتاريخ سابق.",
                 thread: "محادثة الطلب",
                 chatHint: "لكل طلب محادثة خاصة، وتُحفظ رسائلها مع هذا الطلب فقط.",
                 startChat: "ابدأ محادثتك مع العميل",
@@ -842,14 +848,13 @@ export default {
             return this.drafts.reduce((sum, item) => sum + this.linePrice(item), 0);
         },
         editorCharge() {
-            if (this.loadedFromPackage) return this.draftPrice;
             return this.drafts.reduce((sum, item) => sum + this.charge(item), 0);
         },
         billAddons() {
             if (this.order?.status !== "design_preparation" || !this.editorOpen) {
                 return Number(this.order?.addons_total || 0);
             }
-            if (this.loadedFromPackage) return this.draftPrice;
+            if (this.loadedFromPackage) return this.editorCharge;
             const saved = this.order?.components || [];
             const draftIds = new Set(this.drafts.filter((item) => item.id).map((item) => item.id));
             const hidden = saved.filter((item) => !draftIds.has(item.id)).reduce((sum, item) => sum + this.charge(item), 0);
@@ -1008,6 +1013,15 @@ export default {
         },
         canAssign() {
             return this.order && ["final_approval", "in_supply"].includes(this.order.status);
+        },
+        todayIso() {
+            const date = new Date();
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
+            return `${date.getFullYear()}-${month}-${day}`;
+        },
+        activeSuppliers() {
+            return (this.order?.suppliers || []).filter((supplier) => supplier.is_active !== false);
         },
         threadClosed() {
             return this.order && (this.order.status === "closed" || this.order.design_status === "approved");
@@ -1440,19 +1454,23 @@ export default {
             return Number(item.base_qty || 0) * Number(item.price_per_unit || 0) + Number(item.extra_cost || 0);
         },
         charge(item) {
-            if (item.added || item.priced) return this.linePrice(item);
-            return item.selected_key ? Number(item.extra_cost || 0) : 0;
+            const unit = Number(item.price_per_unit || 0);
+            const delta = item.selected_key ? Number(item.extra_cost || 0) : 0;
+            if (item.added) return Number(item.base_qty || 0) * unit + delta;
+            return Math.max(0, Number(item.extra_qty || 0)) * unit + delta;
         },
         shownPrice(item) {
-            if (this.loadedFromPackage || item.added || item.priced) return this.linePrice(item);
-            return item.selected_key ? Number(item.extra_cost || 0) : this.linePrice(item);
+            if (item.added) return this.charge(item);
+            const included = Number(item.base_qty || 0) * Number(item.price_per_unit || 0);
+            return included + this.charge(item);
         },
         componentsPayload() {
             if (this.loadedFromPackage) {
                 return this.drafts.map((item) => ({
                     ...item,
                     added: !!item.added,
-                    priced: item.added ? !!item.priced : true,
+                    priced: false,
+                    extra_qty: Number(item.extra_qty || 0),
                 }));
             }
             const map = new Map();
@@ -1463,6 +1481,8 @@ export default {
                 const next = {
                     ...item,
                     added: item.id ? !!item.added : true,
+                    priced: false,
+                    extra_qty: Number(item.extra_qty || 0),
                     options: item.options ? item.options.map((option) => ({ ...option })) : [],
                 };
                 if (!item.id) {
@@ -1518,6 +1538,10 @@ export default {
         assignSuppliers() {
             const rows = this.supplierDrafts.filter((row) => row.supplier_id && row.scope_ar);
             if (!rows.length) return;
+            if (rows.some((row) => row.expected_date && row.expected_date < this.todayIso)) {
+                this.error = this.t.datePast;
+                return;
+            }
             this.post("KaheelOrders/assignSuppliers", { id: this.order.id, assignments: rows });
         },
         markDelivered(id, date) {

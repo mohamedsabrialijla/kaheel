@@ -56,6 +56,13 @@ class Admin extends Authenticatable
         if (!$role) {
             return [];
         }
+        $active = \Illuminate\Support\Facades\DB::table('roles')
+            ->where('id', $role)
+            ->where('is_active', true)
+            ->exists();
+        if (!$active) {
+            return [];
+        }
         $Permissions = role_has_permissions::where('role_id',$role)->pluck('permission_id')->toArray();
         $per = Permission::whereIn('id',$Permissions)->pluck('name')->toArray();
         
