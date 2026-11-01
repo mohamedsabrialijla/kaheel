@@ -716,7 +716,7 @@ class OrderController extends Controller
         return in_array($order->status, ['final_payment', 'final_approval', 'in_supply', 'supplied', 'closed'], true);
     }
 
-    public function file(KaheelOrder $order, KaheelOrderFile $file)
+    public function file(Request $request, KaheelOrder $order, KaheelOrderFile $file)
     {
         $mime = (string) $file->mime;
         $allowed = (str_starts_with($mime, 'image/') && !str_contains($mime, 'svg')) || $mime === 'application/pdf';
@@ -734,7 +734,7 @@ class OrderController extends Controller
                 'Content-Type' => $mime,
                 'X-Content-Type-Options' => 'nosniff',
             ])
-            ->setContentDisposition('inline', $file->original_name);
+            ->setContentDisposition($request->boolean('download') ? 'attachment' : 'inline', $file->original_name);
     }
 
     private function customerEvent(KaheelOrder $order, ?string $from, string $to, string $note): void

@@ -9,10 +9,9 @@
     $finalReceiptFiles = $order->files->where('kind', 'final_receipt')->values();
     $plans = $order->files->filter(fn ($file) => $file->kind === 'plan' || $file->kind === null);
     $designs = $order->files->where('kind', 'design');
-    $designVersions = \App\Models\KaheelOrder::groupDesignVersions($designs);
-    $currentDesigns = $designVersions['current'];
-    $previousDesigns = $designVersions['previous'];
-    $currentDesignNote = optional($currentDesigns->first(fn ($file) => filled($file->note)))->note;
+    $designBatches = \App\Models\KaheelOrder::designVersionBatches($designs);
+    $currentDesignBatch = $designBatches->last();
+    $previousDesignBatches = $designBatches->slice(0, -1)->reverse()->values();
     $designHistory = $order->designChangeLog();
     $payLabel = function (string $status) {
         return match ($status) {
@@ -133,7 +132,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=49" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=50" rel="stylesheet">
 </head>
 <body>
     @include('kaheel.partials.public-header')
@@ -278,50 +277,40 @@
 
                 <div class="order-design-body">
                     <div class="order-design-files">
-                        <h3 data-ar="نسخة التصميم الحالية" data-en="Current design version">نسخة التصميم الحالية</h3>
+                        <h3 data-ar="ملف التصميم" data-en="Design file">ملف التصميم</h3>
                         @if ($designs->isEmpty())
                             <p class="order-lead" data-ar="لم يُرسل التصميم بعد." data-en="The design has not been sent yet.">لم يُرسل التصميم بعد.</p>
                         @else
-                            @if ($currentDesignNote)
-                                <p class="design-version-note"><span data-ar="ما الذي تغيّر: " data-en="What changed: ">ما الذي تغيّر: </span>{{ $currentDesignNote }}</p>
+                            @if ($currentDesignBatch)
+                                <article class="design-latest">
+                                    <div class="design-latest-head">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>
+                                        <strong data-ar="أحدث نسخة من التصميم (النسخة {{ $currentDesignBatch['version'] }})" data-en="Latest design version (version {{ $currentDesignBatch['version'] }})">أحدث نسخة من التصميم (النسخة {{ $currentDesignBatch['version'] }})</strong>
+                                    </div>
+                                    @if ($currentDesignBatch['note'] !== '')
+                                        <p class="design-version-note"><span data-ar="ما الذي تغيّر: " data-en="What changed: ">ما الذي تغيّر: </span>{{ $currentDesignBatch['note'] }}</p>
+                                    @endif
+                                    <div class="design-file-stack">
+                                        @foreach ($currentDesignBatch['files'] as $file)
+                                            @include('kaheel.partials.design-file-card', ['file' => $file, 'version' => $currentDesignBatch['version'], 'order' => $order])
+                                        @endforeach
+                                    </div>
+                                </article>
                             @endif
-                            <div class="order-file-grid">
-                                @foreach ($currentDesigns as $file)
-                                    @php
-                                        $href = url(app()->getLocale().'/orders/'.$order->id.'/files/'.$file->id);
-                                        $isPdf = str_contains(strtolower(($file->mime ?: '').' '.$file->original_name), 'pdf');
-                                        $isImg = (str_starts_with((string) $file->mime, 'image/') && !str_contains(strtolower((string) $file->mime), 'svg')) || preg_match('/\.(jpe?g|jfif|png|gif|webp|bmp|tiff?|heic|heif|avif)$/i', (string) $file->original_name);
-                                    @endphp
-                                    <a class="order-file-tile" href="{{ $href }}" target="_blank" rel="noopener noreferrer">
-                                        <span class="order-file-thumb {{ $isPdf ? 'is-pdf' : '' }}" @if($isImg) style="background-image:url('{{ $href }}')" @endif>
-                                            @if ($isPdf)<span class="order-file-pdf" aria-hidden="true">PDF</span>@endif
-                                        </span>
-                                        <span class="order-file-name">{{ $file->original_name }}</span>
-                                        <span class="order-file-time" data-stamp="{{ kaheel_iso($file->created_at) }}">{{ kaheel_iso($file->created_at) }}</span>
-                                    </a>
-                                @endforeach
-                            </div>
-                            @if ($previousDesigns->isNotEmpty())
+                            @if ($previousDesignBatches->isNotEmpty())
                                 <details class="design-versions" open>
-                                    <summary data-ar="النسخ السابقة ({{ $previousDesigns->count() }})" data-en="Previous versions ({{ $previousDesigns->count() }})">النسخ السابقة ({{ $previousDesigns->count() }})</summary>
+                                    <summary>
+                                        <span data-ar="النسخ السابقة ({{ $previousDesignBatches->count() }})" data-en="Previous versions ({{ $previousDesignBatches->count() }})">النسخ السابقة ({{ $previousDesignBatches->count() }})</span>
+                                    </summary>
                                     <div class="design-versions-body">
-                                        @foreach ($previousDesigns as $file)
-                                            @php
-                                                $href = url(app()->getLocale().'/orders/'.$order->id.'/files/'.$file->id);
-                                                $isPdf = str_contains(strtolower(($file->mime ?: '').' '.$file->original_name), 'pdf');
-                                                $isImg = (str_starts_with((string) $file->mime, 'image/') && !str_contains(strtolower((string) $file->mime), 'svg')) || preg_match('/\.(jpe?g|jfif|png|gif|webp|bmp|tiff?|heic|heif|avif)$/i', (string) $file->original_name);
-                                            @endphp
+                                        @foreach ($previousDesignBatches as $batch)
                                             <div class="design-prev-block">
-                                                @if ($file->note)
-                                                    <p class="design-version-note">{{ $file->note }}</p>
+                                                @if ($batch['note'] !== '')
+                                                    <p class="design-version-note">{{ $batch['note'] }}</p>
                                                 @endif
-                                                <a class="order-file-tile" href="{{ $href }}" target="_blank" rel="noopener noreferrer">
-                                                    <span class="order-file-thumb {{ $isPdf ? 'is-pdf' : '' }}" @if($isImg) style="background-image:url('{{ $href }}')" @endif>
-                                                        @if ($isPdf)<span class="order-file-pdf" aria-hidden="true">PDF</span>@endif
-                                                    </span>
-                                                    <span class="order-file-name">{{ $file->original_name }}</span>
-                                                    <span class="order-file-time" data-stamp="{{ kaheel_iso($file->created_at) }}">{{ kaheel_iso($file->created_at) }}</span>
-                                                </a>
+                                                @foreach ($batch['files'] as $file)
+                                                    @include('kaheel.partials.design-file-card', ['file' => $file, 'version' => $batch['version'], 'order' => $order])
+                                                @endforeach
                                             </div>
                                         @endforeach
                                     </div>
@@ -331,13 +320,13 @@
                         @if (count($designHistory))
                             <details class="design-history" open>
                                 <summary>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                                     <span data-ar="سجل تعديلات التصميم ({{ count($designHistory) }})" data-en="Design change history ({{ count($designHistory) }})">سجل تعديلات التصميم ({{ count($designHistory) }})</span>
                                 </summary>
                                 <ol>
                                     @foreach ($designHistory as $entry)
                                         <li>
-                                            <p data-ar="{{ $entry['summary_ar'] ?? $entry['summary_en'] ?? '' }}" data-en="{{ $entry['summary_en'] ?? $entry['summary_ar'] ?? '' }}">{{ $entry['summary_ar'] ?? $entry['summary_en'] ?? '' }}</p>
+                                            <p class="design-history-title" data-ar="{{ $entry['summary_ar'] ?? $entry['summary_en'] ?? '' }}" data-en="{{ $entry['summary_en'] ?? $entry['summary_ar'] ?? '' }}">{{ $entry['summary_ar'] ?? $entry['summary_en'] ?? '' }}</p>
                                             <p class="design-history-meta">
                                                 <span data-ar="{{ ($entry['actor_role'] ?? '') === 'customer' ? 'العميل' : 'الإدارة' }}" data-en="{{ ($entry['actor_role'] ?? '') === 'customer' ? 'Customer' : 'Admin' }}">{{ ($entry['actor_role'] ?? '') === 'customer' ? 'العميل' : 'الإدارة' }}</span>
                                                 ·

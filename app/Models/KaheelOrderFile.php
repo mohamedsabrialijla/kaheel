@@ -35,4 +35,20 @@ class KaheelOrderFile extends Model
     {
         return $this->belongsTo(KaheelOrder::class, 'order_id');
     }
+
+    public function humanSize(): string
+    {
+        $bytes = (int) $this->size;
+        if ($bytes <= 0) {
+            return '';
+        }
+        if ($bytes < 1024) {
+            return $bytes.' B';
+        }
+        if ($bytes < 1048576) {
+            return (string) max(1, (int) round($bytes / 1024)).' KB';
+        }
+
+        return number_format($bytes / 1048576, 1).' MB';
+    }
 }

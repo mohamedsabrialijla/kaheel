@@ -114,25 +114,53 @@ class KaheelOrder extends Model
             ->all();
     }
 
+    public static function designVersionBatches($files)
+    {
+        $sorted = collect($files)->sortBy('id')->values();
+        $batches = [];
+        foreach ($sorted as $file) {
+            $last = $batches[count($batches) - 1] ?? null;
+            $same = $last
+                && $last['at']
+                && $file->created_at
+                && abs($file->created_at->diffInSeconds($last['at'])) <= 15;
+            if ($same) {
+                $batches[count($batches) - 1]['files']->push($file);
+            } else {
+                $batches[] = [
+                    'at' => $file->created_at,
+                    'files' => collect([$file]),
+                ];
+            }
+        }
+
+        $total = count($batches);
+
+        return collect($batches)->values()->map(function ($batch, $index) use ($total) {
+            $files = $batch['files'];
+            $noted = $files->first(fn ($file) => filled($file->note));
+
+            return [
+                'version' => $index + 1,
+                'is_current' => ($index + 1) === $total,
+                'at' => $batch['at'],
+                'files' => $files,
+                'note' => $noted?->note ?: '',
+            ];
+        });
+    }
+
     public static function groupDesignVersions($files): array
     {
-        $sorted = collect($files)->sortByDesc('id')->values();
-        if ($sorted->isEmpty()) {
+        $batches = self::designVersionBatches($files);
+        if ($batches->isEmpty()) {
             return ['current' => collect(), 'previous' => collect()];
         }
 
-        $latestAt = $sorted->first()->created_at;
-        $current = $sorted->filter(function ($file) use ($latestAt) {
-            if (!$latestAt || !$file->created_at) {
-                return false;
-            }
-
-            return abs($file->created_at->diffInSeconds($latestAt)) <= 15;
-        })->values();
-        $ids = $current->pluck('id')->all();
-        $previous = $sorted->reject(fn ($file) => in_array($file->id, $ids, true))->values();
-
-        return ['current' => $current, 'previous' => $previous];
+        return [
+            'current' => $batches->last()['files'],
+            'previous' => $batches->slice(0, -1)->reverse()->flatMap(fn ($batch) => $batch['files'])->values(),
+        ];
     }
 
     public function events(): HasMany
