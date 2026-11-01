@@ -188,15 +188,42 @@
                 <div class="ka-ord-panel">
                 <h3>{{ t.designFiles }}</h3>
                 <p v-if="!designFiles.length" class="ka-sup-muted">{{ t.none }}</p>
-                <div v-else class="ka-file-grid">
-                    <a v-for="file in designFiles" :key="file.id" class="ka-file-tile" :href="file.url" target="_blank" rel="noopener noreferrer">
-                        <span class="ka-file-thumb" :class="{ 'is-pdf': isPdf(file) }" :style="thumbStyle(file)">
-                            <span v-if="isPdf(file)" class="ka-file-pdf" aria-hidden="true">PDF</span>
-                        </span>
-                        <span class="ka-file-name">{{ file.name }}</span>
-                        <span class="ka-file-time">{{ date(file.created_at) }}</span>
-                    </a>
-                </div>
+                <template v-else>
+                    <p v-if="currentDesignNote" class="ka-design-note">{{ t.whatChanged }} {{ currentDesignNote }}</p>
+                    <div class="ka-file-grid">
+                        <a v-for="file in designCurrent" :key="file.id" class="ka-file-tile" :href="file.url" target="_blank" rel="noopener noreferrer">
+                            <span class="ka-file-thumb" :class="{ 'is-pdf': isPdf(file) }" :style="thumbStyle(file)">
+                                <span v-if="isPdf(file)" class="ka-file-pdf" aria-hidden="true">PDF</span>
+                            </span>
+                            <span class="ka-file-name">{{ file.name }}</span>
+                            <span class="ka-file-time">{{ date(file.created_at) }}</span>
+                        </a>
+                    </div>
+                    <details v-if="designPrevious.length" class="ka-design-versions">
+                        <summary>{{ t.previousVersions }} ({{ designPrevious.length }})</summary>
+                        <div v-for="file in designPrevious" :key="'prev-' + file.id">
+                            <p v-if="file.note" class="ka-design-note">{{ file.note }}</p>
+                            <div class="ka-file-grid">
+                                <a class="ka-file-tile" :href="file.url" target="_blank" rel="noopener noreferrer">
+                                    <span class="ka-file-thumb" :class="{ 'is-pdf': isPdf(file) }" :style="thumbStyle(file)">
+                                        <span v-if="isPdf(file)" class="ka-file-pdf" aria-hidden="true">PDF</span>
+                                    </span>
+                                    <span class="ka-file-name">{{ file.name }}</span>
+                                    <span class="ka-file-time">{{ date(file.created_at) }}</span>
+                                </a>
+                            </div>
+                        </div>
+                    </details>
+                </template>
+                <details v-if="designHistory.length" class="ka-design-history">
+                    <summary>{{ t.designHistory }} ({{ designHistory.length }})</summary>
+                    <ol>
+                        <li v-for="entry in designHistory" :key="entry.id">
+                            <p>{{ locale === 'en' ? (entry.summary_en || entry.summary_ar) : (entry.summary_ar || entry.summary_en) }}</p>
+                            <p class="ka-design-history-meta">{{ entry.actor_role === 'customer' ? t.customerActor : t.adminActor }} · {{ date(entry.created_at) }}</p>
+                        </li>
+                    </ol>
+                </details>
                 <h3 class="ka-ord-sub">{{ t.handoverFiles }}</h3>
                 <p v-if="needsHandover" class="ka-ord-error">{{ t.handoverRequired }}</p>
                 <p v-else-if="!handovers.length" class="ka-sup-muted">{{ t.none }}</p>
@@ -223,6 +250,7 @@
                 <div v-if="canUpload && canOperate && can('orders.edit')" class="ka-ord-uploads">
                     <div class="ka-field">
                         <span>{{ t.uploadDesign }}</span>
+                        <input v-model="designChangeNote" :placeholder="t.changeNotePlaceholder">
                         <div class="ka-drop" :class="{ 'is-over': designOver }" @dragenter.prevent="designOver = true" @dragover.prevent="designOver = true" @dragleave.prevent="designOver = false" @drop.prevent="onDrop($event, 'design')">
                             <button type="button" class="ka-drop-zone" @click="$refs.designPick.click()">
                                 <strong>{{ t.dropFiles }}</strong>
@@ -550,6 +578,7 @@ export default {
             designQueue: [],
             handoverQueue: [],
             designOver: false,
+            designChangeNote: "",
             handoverOver: false,
         };
     },
@@ -621,6 +650,12 @@ export default {
                 viewFinalReceipt: "View final receipt",
                 workspace: "Design, documents and suppliers",
                 designFiles: "Design files and versions",
+                previousVersions: "Previous versions",
+                whatChanged: "What changed:",
+                changeNotePlaceholder: "What changed in this version? (optional)",
+                designHistory: "Design change history",
+                customerActor: "Customer",
+                adminActor: "Admin",
                 handoverFiles: "Handover report",
                 handoverRequired: "A handover report is required before this order can be closed.",
                 handoverHint: "Required before closing. JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC, AVIF, or PDF, up to 25 MB.",
@@ -761,6 +796,12 @@ export default {
                 viewFinalReceipt: "عرض إيصال السداد النهائي",
                 workspace: "التصميم والمستندات والموردون",
                 designFiles: "ملفات التصميم ونسخه",
+                previousVersions: "النسخ السابقة",
+                whatChanged: "ما الذي تغيّر:",
+                changeNotePlaceholder: "ما الذي تغيّر في هذه النسخة؟ (اختياري)",
+                designHistory: "سجل تعديلات التصميم",
+                customerActor: "العميل",
+                adminActor: "الإدارة",
                 handoverFiles: "محضر الاستلام",
                 handoverRequired: "محضر الاستلام إلزامي قبل إغلاق الطلب.",
                 handoverHint: "مطلوب قبل الإغلاق. الصيغ: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF، وحتى 25 ميغابايت.",
@@ -882,6 +923,22 @@ export default {
         },
         designFiles() {
             return (this.order?.files || []).filter((file) => file.kind === "design");
+        },
+        designCurrent() {
+            const files = [...this.designFiles].sort((a, b) => Number(b.id) - Number(a.id));
+            if (!files.length) return [];
+            const stamp = new Date(files[0].created_at).getTime();
+            return files.filter((file) => Math.abs(new Date(file.created_at).getTime() - stamp) <= 90000);
+        },
+        designPrevious() {
+            const ids = new Set(this.designCurrent.map((file) => file.id));
+            return [...this.designFiles].filter((file) => !ids.has(file.id)).sort((a, b) => Number(b.id) - Number(a.id));
+        },
+        currentDesignNote() {
+            return this.designCurrent.find((file) => file.note)?.note || "";
+        },
+        designHistory() {
+            return this.order?.design_history || [];
         },
         handovers() {
             return (this.order?.files || []).filter((file) => file.kind === "handover");
@@ -1606,11 +1663,18 @@ export default {
             this.saving = true;
             this.error = "";
             try {
-                for (const file of selected) {
+                for (let index = 0; index < selected.length; index += 1) {
+                    const file = selected[index];
                     const body = new FormData();
                     body.append("id", this.order.id);
                     body.append("kind", kind);
                     body.append("file", file);
+                    if (kind === "design" && this.designChangeNote.trim()) {
+                        body.append("note", this.designChangeNote.trim());
+                    }
+                    if (kind === "design" && index === selected.length - 1) {
+                        body.append("log_history", "1");
+                    }
                     const response = await axios.post("KaheelOrders/upload", body);
                     if (response.data.status === false) {
                         this.error = response.data.message;
@@ -1620,6 +1684,7 @@ export default {
                 }
                 this[key].forEach((item) => item.preview && URL.revokeObjectURL(item.preview));
                 this[key] = [];
+                if (kind === "design") this.designChangeNote = "";
             } catch (error) {
                 this.error = error.response?.data?.message || (this.locale === "en" ? "The file was not uploaded." : "لم يُرفع الملف.");
             } finally {

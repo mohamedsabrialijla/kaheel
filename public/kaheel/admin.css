@@ -2290,6 +2290,46 @@ body.kaheel-admin .ka-file-grid {
     margin-top: 0.75rem;
 }
 
+body.kaheel-admin .ka-design-note {
+    margin: 0 0 0.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+body.kaheel-admin .ka-design-versions,
+body.kaheel-admin .ka-design-history {
+    margin-top: 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 0.75rem 0.9rem;
+}
+
+body.kaheel-admin .ka-design-versions summary,
+body.kaheel-admin .ka-design-history summary {
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+body.kaheel-admin .ka-design-history ol {
+    margin: 0.75rem 0 0;
+    padding: 0 0 0 0.9rem;
+    border-inline-start: 1px solid var(--border);
+    list-style: none;
+    display: grid;
+    gap: 0.7rem;
+}
+
+body.kaheel-admin .ka-design-history li p {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+body.kaheel-admin .ka-design-history-meta {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
 body.kaheel-admin a.ka-file-tile {
     display: grid;
     gap: 0.35rem;

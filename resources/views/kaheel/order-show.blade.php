@@ -9,6 +9,11 @@
     $finalReceiptFiles = $order->files->where('kind', 'final_receipt')->values();
     $plans = $order->files->filter(fn ($file) => $file->kind === 'plan' || $file->kind === null);
     $designs = $order->files->where('kind', 'design');
+    $designVersions = \App\Models\KaheelOrder::groupDesignVersions($designs);
+    $currentDesigns = $designVersions['current'];
+    $previousDesigns = $designVersions['previous'];
+    $currentDesignNote = optional($currentDesigns->first(fn ($file) => filled($file->note)))->note;
+    $designHistory = $order->designChangeLog();
     $payLabel = function (string $status) {
         return match ($status) {
             'approved' => ['ar' => 'تم التأكيد', 'en' => 'Confirmed'],
@@ -119,7 +124,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=47" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=48" rel="stylesheet">
 </head>
 <body>
     @include('kaheel.partials.public-header')
@@ -264,12 +269,15 @@
 
                 <div class="order-design-body">
                     <div class="order-design-files">
-                        <h3 data-ar="ملف التصميم" data-en="Design file">ملف التصميم</h3>
+                        <h3 data-ar="نسخة التصميم" data-en="Design version">نسخة التصميم</h3>
                         @if ($designs->isEmpty())
                             <p class="order-lead" data-ar="لم يُرسل التصميم بعد." data-en="The design has not been sent yet.">لم يُرسل التصميم بعد.</p>
                         @else
+                            @if ($currentDesignNote)
+                                <p class="design-version-note"><span data-ar="ما الذي تغيّر: " data-en="What changed: ">ما الذي تغيّر: </span>{{ $currentDesignNote }}</p>
+                            @endif
                             <div class="order-file-grid">
-                                @foreach ($designs as $file)
+                                @foreach ($currentDesigns as $file)
                                     @php
                                         $href = url(app()->getLocale().'/orders/'.$order->id.'/files/'.$file->id);
                                         $isPdf = str_contains(strtolower(($file->mime ?: '').' '.$file->original_name), 'pdf');
@@ -284,6 +292,52 @@
                                     </a>
                                 @endforeach
                             </div>
+                            @if ($previousDesigns->isNotEmpty())
+                                <details class="design-versions">
+                                    <summary data-ar="النسخ السابقة ({{ $previousDesigns->count() }})" data-en="Previous versions ({{ $previousDesigns->count() }})">النسخ السابقة ({{ $previousDesigns->count() }})</summary>
+                                    <div class="design-versions-body">
+                                        @foreach ($previousDesigns as $file)
+                                            @php
+                                                $href = url(app()->getLocale().'/orders/'.$order->id.'/files/'.$file->id);
+                                                $isPdf = str_contains(strtolower(($file->mime ?: '').' '.$file->original_name), 'pdf');
+                                                $isImg = (str_starts_with((string) $file->mime, 'image/') && !str_contains(strtolower((string) $file->mime), 'svg')) || preg_match('/\.(jpe?g|jfif|png|gif|webp|bmp|tiff?|heic|heif|avif)$/i', (string) $file->original_name);
+                                            @endphp
+                                            <div class="design-prev-block">
+                                                @if ($file->note)
+                                                    <p class="design-version-note">{{ $file->note }}</p>
+                                                @endif
+                                                <a class="order-file-tile" href="{{ $href }}" target="_blank" rel="noopener noreferrer">
+                                                    <span class="order-file-thumb {{ $isPdf ? 'is-pdf' : '' }}" @if($isImg) style="background-image:url('{{ $href }}')" @endif>
+                                                        @if ($isPdf)<span class="order-file-pdf" aria-hidden="true">PDF</span>@endif
+                                                    </span>
+                                                    <span class="order-file-name">{{ $file->original_name }}</span>
+                                                    <span class="order-file-time" data-stamp="{{ kaheel_iso($file->created_at) }}">{{ kaheel_iso($file->created_at) }}</span>
+                                                </a>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </details>
+                            @endif
+                        @endif
+                        @if (count($designHistory))
+                            <details class="design-history">
+                                <summary>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+                                    <span data-ar="سجل تعديلات التصميم ({{ count($designHistory) }})" data-en="Design change history ({{ count($designHistory) }})">سجل تعديلات التصميم ({{ count($designHistory) }})</span>
+                                </summary>
+                                <ol>
+                                    @foreach ($designHistory as $entry)
+                                        <li>
+                                            <p data-ar="{{ $entry['summary_ar'] ?? $entry['summary_en'] ?? '' }}" data-en="{{ $entry['summary_en'] ?? $entry['summary_ar'] ?? '' }}">{{ $entry['summary_ar'] ?? $entry['summary_en'] ?? '' }}</p>
+                                            <p class="design-history-meta">
+                                                <span data-ar="{{ ($entry['actor_role'] ?? '') === 'customer' ? 'العميل' : 'الإدارة' }}" data-en="{{ ($entry['actor_role'] ?? '') === 'customer' ? 'Customer' : 'Admin' }}">{{ ($entry['actor_role'] ?? '') === 'customer' ? 'العميل' : 'الإدارة' }}</span>
+                                                ·
+                                                <span data-stamp="{{ $entry['created_at'] ?? '' }}">{{ $entry['created_at'] ?? '' }}</span>
+                                            </p>
+                                        </li>
+                                    @endforeach
+                                </ol>
+                            </details>
                         @endif
                     </div>
 
@@ -595,16 +649,29 @@
                     const option = (row.options || []).find((item) => altKey(item) === sel.optionKey);
                     const delta = lineDelta(row);
                     const li = document.createElement("li");
+                    const copy = document.createElement("div");
+                    copy.className = "design-comp-copy";
                     const name = document.createElement("span");
                     name.className = "design-comp-name";
                     name.textContent = pick(row, "name_ar", "name_en");
+                    const unit = pick(row, "unit_label_ar", "unit_label_en");
                     const meta = document.createElement("span");
                     meta.className = "design-comp-meta";
-                    meta.textContent = `${Number(row.base_qty || 0) + sel.extraQty} ${pick(row, "unit_label_ar", "unit_label_en")}${option ? " · " + pick(option, "name_ar", "name_en") : ""}`;
+                    meta.textContent = `${Number(row.base_qty || 0) + sel.extraQty} ${unit} · ${money(row.price_per_unit)} ${sar()} / ${unit}`;
+                    copy.append(name, meta);
+                    if (sel.extraQty > 0 || option) {
+                        const change = document.createElement("span");
+                        change.className = "design-comp-change";
+                        const bits = [];
+                        if (sel.extraQty > 0) bits.push(en() ? `Extra qty ${sel.extraQty}` : `كمية إضافية ${sel.extraQty}`);
+                        if (option) bits.push((en() ? "Alternative " : "بديل ") + pick(option, "name_ar", "name_en"));
+                        change.textContent = (en() ? "Customer change: " : "تعديل العميل: ") + bits.join(" · ");
+                        copy.append(change);
+                    }
                     const price = document.createElement("span");
                     price.className = "design-comp-delta";
                     price.textContent = delta > 0 ? `+${money(delta)} ${sar()}` : "—";
-                    li.append(name, meta, price);
+                    li.append(copy, price);
                     list.append(li);
                 });
                 fillTotals(document.getElementById("design-totals-1"));

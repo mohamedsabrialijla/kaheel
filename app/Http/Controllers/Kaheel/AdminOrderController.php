@@ -340,8 +340,14 @@ class AdminOrderController extends KaheelAdminController
         }
 
         $from = $order->status;
+        $resent = $from === 'design_review' || $order->design_status === 'rejected';
         $order->design_status = 'sent';
         $order->status = 'design_review';
+        $order->recordDesignChange(
+            'admin',
+            $resent ? 'تم إعادة إرسال التصميم للعميل' : 'تم إرسال التصميم للعميل',
+            $resent ? 'The design was sent again to the customer' : 'The design was sent to the customer'
+        );
         $order->save();
         $this->event($order, $from, $order->status, $from === 'design_review' ? 'تم إعادة إرسال التصميم للعميل' : 'تم إرسال التصميم للعميل');
 
@@ -503,6 +509,7 @@ class AdminOrderController extends KaheelAdminController
             return mainResponse(false, 'الصيغ المقبولة: JPG و PNG و WEBP و GIF و BMP و TIFF و HEIC و AVIF و PDF.', null, 422, 'items', '');
         }
 
+        $note = $kind === 'design' ? trim((string) $request->input('note', '')) : '';
         KaheelOrderFile::query()->create([
             'order_id' => $order->id,
             'kind' => $kind,
@@ -510,12 +517,21 @@ class AdminOrderController extends KaheelAdminController
             'path' => $file->store('kaheel-orders/'.$order->id),
             'mime' => kaheel_stored_mime($file),
             'size' => $file->getSize(),
+            'note' => $note !== '' ? mb_substr($note, 0, 500) : null,
         ]);
+
+        if ($kind === 'design' && $request->boolean('log_history')) {
+            $order->recordDesignChange(
+                'admin',
+                $note !== '' ? 'رُفعت نسخة تصميم جديدة: '.$note : 'رُفعت نسخة تصميم جديدة',
+                $note !== '' ? 'A new design version was uploaded: '.$note : 'A new design version was uploaded'
+            );
+        }
 
         if ($kind === 'design' && $order->status === 'design_review' && $order->design_status !== 'approved') {
             $order->design_status = 'sent';
-            $order->save();
         }
+        $order->save();
 
         return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
     }
@@ -609,11 +625,13 @@ class AdminOrderController extends KaheelAdminController
             'contract_body' => $order->contract_body,
             'components' => $order->design_components ?? [],
             'assignments' => $order->supplier_assignments ?? [],
+            'design_history' => $order->designChangeLog(),
             'files' => $order->files->map(fn (KaheelOrderFile $file) => [
                 'id' => $file->id,
                 'kind' => $file->kind,
                 'name' => $file->original_name,
                 'mime' => $file->mime,
+                'note' => $file->note,
                 'review_status' => $file->review_status,
                 'url' => url($locale.'/web/KaheelOrders/file/'.$file->id),
                 'created_at' => kaheel_iso($file->created_at),

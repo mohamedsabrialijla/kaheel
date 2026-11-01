@@ -16,7 +16,7 @@ class KaheelOrder extends Model
         'compound_id', 'compound_name', 'compound_meta', 'compound_snapshot',
         'unit_id', 'unit_no', 'bedrooms_number', 'squar_meters', 'unit_snapshot',
         'price_excl', 'price_incl', 'deposit_percent', 'deposit_amount', 'addons_total',
-        'contract_body', 'signature', 'design_components', 'design_signature', 'design_signed_at', 'supplier_assignments',
+        'contract_body', 'signature', 'design_components', 'design_history', 'design_signature', 'design_signed_at', 'supplier_assignments',
         'status', 'design_status', 'payment_method', 'payment_status', 'payment_note',
         'final_payment_status', 'final_payment_method', 'final_payment_note',
     ];
@@ -33,6 +33,7 @@ class KaheelOrder extends Model
         'deposit_amount' => 'float',
         'addons_total' => 'float',
         'design_components' => 'array',
+        'design_history' => 'array',
         'design_signed_at' => 'datetime',
         'supplier_assignments' => 'array',
     ];
@@ -40,6 +41,65 @@ class KaheelOrder extends Model
     public function files(): HasMany
     {
         return $this->hasMany(KaheelOrderFile::class, 'order_id');
+    }
+
+    public function recordDesignChange(string $role, string $ar, string $en): void
+    {
+        $history = collect($this->design_history ?? [])->values();
+        $history->push([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'actor_role' => $role === 'customer' ? 'customer' : 'admin',
+            'summary_ar' => $ar,
+            'summary_en' => $en,
+            'created_at' => kaheel_iso(now()) ?: now()->toIso8601String(),
+        ]);
+        $this->design_history = $history->all();
+    }
+
+    public function designChangeLog(): array
+    {
+        $stored = collect($this->design_history ?? [])->filter(fn ($row) => is_array($row) && (($row['summary_ar'] ?? '') !== '' || ($row['summary_en'] ?? '') !== ''))->values();
+        if ($stored->isNotEmpty()) {
+            return $stored->all();
+        }
+
+        return $this->events
+            ->filter(fn ($event) => str_contains((string) $event->note, 'تصميم') || str_contains(strtolower((string) $event->note), 'design'))
+            ->values()
+            ->map(function ($event) {
+                $note = trim((string) $event->note);
+                $customer = str_contains($note, 'العميل') || str_contains(strtolower((string) $event->actor_name), 'customer');
+
+                return [
+                    'id' => $event->id,
+                    'actor_role' => $customer ? 'customer' : 'admin',
+                    'summary_ar' => $note,
+                    'summary_en' => $note,
+                    'created_at' => kaheel_iso($event->created_at),
+                ];
+            })
+            ->all();
+    }
+
+    public static function groupDesignVersions($files): array
+    {
+        $sorted = collect($files)->sortByDesc('id')->values();
+        if ($sorted->isEmpty()) {
+            return ['current' => collect(), 'previous' => collect()];
+        }
+
+        $latestAt = $sorted->first()->created_at;
+        $current = $sorted->filter(function ($file) use ($latestAt) {
+            if (!$latestAt || !$file->created_at) {
+                return false;
+            }
+
+            return abs($file->created_at->diffInSeconds($latestAt)) <= 90;
+        })->values();
+        $ids = $current->pluck('id')->all();
+        $previous = $sorted->reject(fn ($file) => in_array($file->id, $ids, true))->values();
+
+        return ['current' => $current, 'previous' => $previous];
     }
 
     public function events(): HasMany

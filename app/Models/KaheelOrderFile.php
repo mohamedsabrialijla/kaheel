@@ -10,7 +10,7 @@ class KaheelOrderFile extends Model
     protected $table = 'kaheel_order_files';
 
     protected $fillable = [
-        'order_id', 'kind', 'review_status', 'original_name', 'path', 'mime', 'size',
+        'order_id', 'kind', 'review_status', 'original_name', 'path', 'mime', 'size', 'note',
     ];
 
     public static function markLatest(int $orderId, string $kind, string $status): void

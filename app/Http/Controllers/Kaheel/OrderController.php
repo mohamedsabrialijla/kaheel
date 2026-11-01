@@ -508,7 +508,12 @@ class OrderController extends Controller
             $selections = [];
         }
 
+        $before = $order->design_components ?? [];
         $this->applyDesignSelections($order, $selections);
+        $summary = $this->selectionChangeCopy($before, $order->design_components ?? []);
+        if ($summary) {
+            $order->recordDesignChange('customer', $summary['ar'], $summary['en']);
+        }
         $order->save();
 
         return response()->json([
@@ -554,6 +559,7 @@ class OrderController extends Controller
             $order->design_signature = $signature;
             $order->design_signed_at = now();
             $order->status = 'final_payment';
+            $order->recordDesignChange('customer', 'وافق العميل على التصميم ووقّع', 'The customer approved and signed the design');
             $order->save();
             $this->customerEvent($order, $from, 'final_payment', 'وافق العميل على التصميم ووقّع');
         } else {
@@ -573,6 +579,7 @@ class OrderController extends Controller
             $order->status = 'design_preparation';
             $order->design_signature = null;
             $order->design_signed_at = null;
+            $order->recordDesignChange('customer', 'رفض العميل للتصميم: '.$note, 'The customer rejected the design: '.$note);
             $order->save();
             $this->customerEvent($order, $from, 'design_preparation', 'رفض العميل للتصميم: '.$note);
             KaheelOrderMessage::query()->create([
@@ -638,6 +645,41 @@ class OrderController extends Controller
 
         $order->design_components = $components;
         $order->addons_total = round($this->customerAddonsPreVat($components) * 1.15, 2);
+    }
+
+    private function selectionChangeCopy(array $before, array $after): ?array
+    {
+        $oldBy = collect($before)->keyBy(fn ($row) => (string) ($row['id'] ?? ''));
+        $ar = [];
+        $en = [];
+        foreach ($after as $row) {
+            $prev = $oldBy->get((string) ($row['id'] ?? ''), []);
+            $nameAr = trim((string) ($row['name_ar'] ?? '')) ?: trim((string) ($row['name_en'] ?? ''));
+            $nameEn = trim((string) ($row['name_en'] ?? '')) ?: $nameAr;
+            $oldQty = (float) ($prev['extra_qty'] ?? 0);
+            $newQty = (float) ($row['extra_qty'] ?? 0);
+            $oldKey = (string) ($prev['selected_key'] ?? '');
+            $newKey = (string) ($row['selected_key'] ?? '');
+            if (abs($oldQty - $newQty) > 0.0001) {
+                $ar[] = $nameAr.' — كمية إضافية '.$newQty;
+                $en[] = $nameEn.' — extra quantity '.$newQty;
+            }
+            if ($oldKey !== $newKey) {
+                $parts = explode('|', $newKey);
+                $altAr = $newKey === '' ? 'الخيار الأساسي' : trim((string) ($parts[0] ?? ''));
+                $altEn = $newKey === '' ? 'default option' : trim((string) ($parts[1] ?? $parts[0] ?? ''));
+                $ar[] = $nameAr.' — بديل '.$altAr;
+                $en[] = $nameEn.' — alternative '.$altEn;
+            }
+        }
+        if (!$ar) {
+            return null;
+        }
+
+        return [
+            'ar' => 'عدّل العميل المكوّنات: '.implode('؛ ', $ar),
+            'en' => 'The customer updated components: '.implode('; ', $en),
+        ];
     }
 
     private function customerAddonsPreVat(array $components): float

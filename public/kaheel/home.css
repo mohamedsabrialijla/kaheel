@@ -2689,6 +2689,13 @@ a.order-doc:hover {
     border-top: 0;
 }
 
+.design-comp-copy {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+    flex: 1;
+}
+
 .design-comp-name {
     margin: 0;
     font-weight: 600;
@@ -2696,6 +2703,78 @@ a.order-doc:hover {
 
 .design-comp-meta {
     margin: 0.25rem 0 0;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.design-comp-change {
+    color: var(--primary);
+    font-size: 0.75rem;
+}
+
+.design-version-note {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.design-versions,
+.design-history {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 0.85rem 1rem;
+}
+
+.design-versions summary,
+.design-history summary {
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.design-history summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.design-history summary svg {
+    width: 1rem;
+    height: 1rem;
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.design-versions-body,
+.design-history ol {
+    margin: 0.85rem 0 0;
+}
+
+.design-prev-block {
+    display: grid;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+}
+
+.design-history ol {
+    padding: 0 0 0 1rem;
+    border-inline-start: 1px solid var(--border);
+    list-style: none;
+    display: grid;
+    gap: 0.85rem;
+}
+
+[dir="rtl"] .design-history ol {
+    padding: 0 1rem 0 0;
+}
+
+.design-history li p {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.design-history-meta {
+    margin-top: 0.2rem !important;
     color: var(--muted-foreground);
     font-size: 0.75rem;
 }
