@@ -132,7 +132,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=50" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=51" rel="stylesheet">
 </head>
 <body>
     @include('kaheel.partials.public-header')
@@ -298,7 +298,7 @@
                                 </article>
                             @endif
                             @if ($previousDesignBatches->isNotEmpty())
-                                <details class="design-versions" open>
+                                <details class="design-versions">
                                     <summary>
                                         <span data-ar="النسخ السابقة ({{ $previousDesignBatches->count() }})" data-en="Previous versions ({{ $previousDesignBatches->count() }})">النسخ السابقة ({{ $previousDesignBatches->count() }})</span>
                                     </summary>

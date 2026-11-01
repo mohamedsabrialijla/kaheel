@@ -2721,68 +2721,90 @@ a.order-doc:hover {
 
 .design-latest {
     display: grid;
-    gap: 0.7rem;
-    padding: 1rem;
-    border: 1px solid color-mix(in oklab, var(--primary) 28%, var(--border));
-    border-radius: 0.9rem;
-    background: color-mix(in oklab, var(--primary) 8%, #fff);
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 0.75rem;
+    border: 1px solid color-mix(in oklab, var(--primary) 40%, var(--border));
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--primary) 5%, #fff);
 }
 
 .design-latest-head {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    color: var(--primary);
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+    color: var(--foreground);
 }
 
 .design-latest-head svg {
-    width: 1.05rem;
-    height: 1.05rem;
+    width: 1rem;
+    height: 1rem;
+    color: var(--primary);
     flex-shrink: 0;
 }
 
 .design-latest-head strong {
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-size: 0.875rem;
+    font-weight: 600;
 }
 
 .design-version-note {
-    margin: 0;
+    margin: 0 0 0.5rem;
     color: var(--muted-foreground);
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     line-height: 1.55;
 }
 
-.design-file-stack,
+.design-file-stack {
+    display: grid;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+@media (min-width: 640px) {
+    .design-file-stack {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 .design-prev-block {
     display: grid;
-    gap: 0.65rem;
+    gap: 0.5rem;
+    min-width: 0;
 }
 
 .design-file-card {
+    display: grid;
+    min-width: 0;
+    padding: 1rem;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--card) 60%, #fff);
+}
+
+.design-file-top {
     display: flex;
     align-items: flex-start;
     gap: 0.75rem;
-    padding: 0.85rem 0.95rem;
-    border: 1px solid var(--border);
-    border-radius: 0.8rem;
-    background: #fff;
+    min-width: 0;
 }
 
 .design-file-icon {
     display: grid;
     place-items: center;
-    width: 2.15rem;
-    height: 2.15rem;
+    width: 2rem;
+    height: 2rem;
     flex-shrink: 0;
-    border-radius: 0.45rem;
-    background: color-mix(in oklab, var(--primary) 8%, var(--muted));
+    border-radius: 0.5rem;
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
     color: var(--primary);
 }
 
 .design-file-icon svg {
-    width: 1.1rem;
-    height: 1.1rem;
+    width: 1rem;
+    height: 1rem;
 }
 
 .design-file-copy {
@@ -2792,9 +2814,12 @@ a.order-doc:hover {
 
 .design-file-title {
     margin: 0;
+    overflow: hidden;
     color: var(--foreground);
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .design-file-meta {
@@ -2809,22 +2834,52 @@ a.order-doc:hover {
 .design-file-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 0.7rem;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
 }
 
-.design-file-actions .btn {
+.design-file-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     height: 2rem;
-    gap: 0.3rem;
+    padding-inline: 0.75rem;
+    border-radius: var(--radius);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
 }
 
-.design-file-actions .btn svg {
+.design-file-btn svg {
     width: 0.875rem;
     height: 0.875rem;
+    margin-inline-end: 0.25rem;
+    flex-shrink: 0;
 }
 
-.design-file-actions .btn-outline {
-    background: #fff;
+.design-file-btn-preview {
+    border: 1px solid transparent;
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+
+.design-file-btn-preview:hover {
+    background: color-mix(in oklab, var(--secondary) 80%, var(--foreground));
+}
+
+.design-file-btn-download {
+    border: 1px solid var(--input);
+    background: var(--background);
+    color: var(--foreground);
+    box-shadow: var(--shadow);
+}
+
+.design-file-btn-download:hover {
+    background: var(--accent);
+    color: var(--accent-foreground);
 }
 
 .design-versions,
