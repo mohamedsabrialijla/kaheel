@@ -331,7 +331,7 @@ class AdminOrderController extends KaheelAdminController
         if ($blocked = $this->needsPaymentApproval($order)) {
             return $blocked;
         }
-        $allowed = $order->status === 'design_preparation' || $order->design_status === 'rejected';
+        $allowed = in_array($order->status, ['design_preparation', 'design_review'], true) || $order->design_status === 'rejected';
         if (!$allowed) {
             return mainResponse(false, 'إرسال التصميم متاح أثناء إعداده أو بعد رفض العميل.', null, 422, 'items', '');
         }
@@ -520,7 +520,7 @@ class AdminOrderController extends KaheelAdminController
             'note' => $note !== '' ? mb_substr($note, 0, 500) : null,
         ]);
 
-        if ($kind === 'design' && $request->boolean('log_history')) {
+        if ($kind === 'design') {
             $order->recordDesignChange(
                 'admin',
                 $note !== '' ? 'رُفعت نسخة تصميم جديدة: '.$note : 'رُفعت نسخة تصميم جديدة',

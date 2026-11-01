@@ -58,26 +58,59 @@ class KaheelOrder extends Model
 
     public function designChangeLog(): array
     {
-        $stored = collect($this->design_history ?? [])->filter(fn ($row) => is_array($row) && (($row['summary_ar'] ?? '') !== '' || ($row['summary_en'] ?? '') !== ''))->values();
-        if ($stored->isNotEmpty()) {
-            return $stored->all();
+        $rows = collect();
+
+        foreach ($this->files->where('kind', 'design')->sortBy('id')->values() as $index => $file) {
+            $note = trim((string) $file->note);
+            $n = $index + 1;
+            $rows->push([
+                'id' => 'file-'.$file->id,
+                'actor_role' => 'admin',
+                'summary_ar' => $note !== '' ? "رُفعت نسخة التصميم {$n}: {$note}" : "رُفعت نسخة التصميم {$n}",
+                'summary_en' => $note !== '' ? "Design version {$n} uploaded: {$note}" : "Design version {$n} uploaded",
+                'created_at' => kaheel_iso($file->created_at),
+                'sort' => optional($file->created_at)->timestamp ?? $file->id,
+            ]);
         }
 
-        return $this->events
-            ->filter(fn ($event) => str_contains((string) $event->note, 'تصميم') || str_contains(strtolower((string) $event->note), 'design'))
-            ->values()
-            ->map(function ($event) {
-                $note = trim((string) $event->note);
-                $customer = str_contains($note, 'العميل') || str_contains(strtolower((string) $event->actor_name), 'customer');
+        foreach ($this->events as $event) {
+            $note = trim((string) $event->note);
+            if ($note === '') {
+                continue;
+            }
+            if (!str_contains($note, 'تصميم') && !str_contains(strtolower($note), 'design')) {
+                continue;
+            }
+            $customer = str_contains($note, 'العميل') || str_contains(strtolower((string) $event->actor_name), 'customer');
+            $rows->push([
+                'id' => 'event-'.$event->id,
+                'actor_role' => $customer ? 'customer' : 'admin',
+                'summary_ar' => $note,
+                'summary_en' => $note,
+                'created_at' => kaheel_iso($event->created_at),
+                'sort' => optional($event->created_at)->timestamp ?? $event->id,
+            ]);
+        }
 
-                return [
-                    'id' => $event->id,
-                    'actor_role' => $customer ? 'customer' : 'admin',
-                    'summary_ar' => $note,
-                    'summary_en' => $note,
-                    'created_at' => kaheel_iso($event->created_at),
-                ];
-            })
+        foreach (collect($this->design_history ?? []) as $row) {
+            if (!is_array($row) || (($row['summary_ar'] ?? '') === '' && ($row['summary_en'] ?? '') === '')) {
+                continue;
+            }
+            $rows->push([
+                'id' => $row['id'] ?? uniqid('hist-'),
+                'actor_role' => ($row['actor_role'] ?? '') === 'customer' ? 'customer' : 'admin',
+                'summary_ar' => $row['summary_ar'] ?? $row['summary_en'] ?? '',
+                'summary_en' => $row['summary_en'] ?? $row['summary_ar'] ?? '',
+                'created_at' => $row['created_at'] ?? null,
+                'sort' => strtotime((string) ($row['created_at'] ?? '')) ?: 0,
+            ]);
+        }
+
+        return $rows
+            ->sortBy('sort')
+            ->unique(fn ($row) => ($row['summary_ar'] ?: $row['summary_en']).'|'.substr((string) ($row['created_at'] ?? ''), 0, 16))
+            ->values()
+            ->map(fn ($row) => collect($row)->except('sort')->all())
             ->all();
     }
 
@@ -94,7 +127,7 @@ class KaheelOrder extends Model
                 return false;
             }
 
-            return abs($file->created_at->diffInSeconds($latestAt)) <= 90;
+            return abs($file->created_at->diffInSeconds($latestAt)) <= 15;
         })->values();
         $ids = $current->pluck('id')->all();
         $previous = $sorted->reject(fn ($file) => in_array($file->id, $ids, true))->values();

@@ -199,7 +199,7 @@
                             <span class="ka-file-time">{{ date(file.created_at) }}</span>
                         </a>
                     </div>
-                    <details v-if="designPrevious.length" class="ka-design-versions">
+                    <details v-if="designPrevious.length" class="ka-design-versions" open>
                         <summary>{{ t.previousVersions }} ({{ designPrevious.length }})</summary>
                         <div v-for="file in designPrevious" :key="'prev-' + file.id">
                             <p v-if="file.note" class="ka-design-note">{{ file.note }}</p>
@@ -215,7 +215,7 @@
                         </div>
                     </details>
                 </template>
-                <details v-if="designHistory.length" class="ka-design-history">
+                <details v-if="designHistory.length" class="ka-design-history" open>
                     <summary>{{ t.designHistory }} ({{ designHistory.length }})</summary>
                     <ol>
                         <li v-for="entry in designHistory" :key="entry.id">
@@ -928,7 +928,7 @@ export default {
             const files = [...this.designFiles].sort((a, b) => Number(b.id) - Number(a.id));
             if (!files.length) return [];
             const stamp = new Date(files[0].created_at).getTime();
-            return files.filter((file) => Math.abs(new Date(file.created_at).getTime() - stamp) <= 90000);
+            return files.filter((file) => Math.abs(new Date(file.created_at).getTime() - stamp) <= 15000);
         },
         designPrevious() {
             const ids = new Set(this.designCurrent.map((file) => file.id));

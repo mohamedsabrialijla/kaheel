@@ -2597,9 +2597,14 @@ a.order-doc:hover {
     margin-bottom: 1.5rem;
 }
 
-.order-design-files h3 {
+.order-design-files h3,
+.design-price-block h3 {
     margin: 0;
     font-size: 0.875rem;
+}
+
+.design-price-block {
+    margin: 0 0 1.5rem;
 }
 
 .design-steps {

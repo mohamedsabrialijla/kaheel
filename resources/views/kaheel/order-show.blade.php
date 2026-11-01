@@ -105,6 +105,15 @@
         }
     }
     $components = collect($order->design_components ?? [])->values();
+    $compCharge = function ($row) {
+        $unit = (float) ($row['price_per_unit'] ?? 0);
+        $delta = ($row['selected_key'] ?? '') !== '' ? (float) ($row['extra_cost'] ?? 0) : 0.0;
+        if (!empty($row['added'])) {
+            return ((float) ($row['base_qty'] ?? 0) * $unit) + $delta;
+        }
+
+        return max(0, (float) ($row['extra_qty'] ?? 0)) * $unit + $delta;
+    };
     $designApproved = $order->design_status === 'approved' || $order->design_signed_at;
     $designRejected = $order->design_status === 'rejected';
     $designRejectNote = optional($order->events->sortByDesc('id')->first(fn ($event) => str_starts_with((string) $event->note, 'رفض العميل للتصميم')))->note;
@@ -124,7 +133,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=48" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=49" rel="stylesheet">
 </head>
 <body>
     @include('kaheel.partials.public-header')
@@ -269,7 +278,7 @@
 
                 <div class="order-design-body">
                     <div class="order-design-files">
-                        <h3 data-ar="نسخة التصميم" data-en="Design version">نسخة التصميم</h3>
+                        <h3 data-ar="نسخة التصميم الحالية" data-en="Current design version">نسخة التصميم الحالية</h3>
                         @if ($designs->isEmpty())
                             <p class="order-lead" data-ar="لم يُرسل التصميم بعد." data-en="The design has not been sent yet.">لم يُرسل التصميم بعد.</p>
                         @else
@@ -293,7 +302,7 @@
                                 @endforeach
                             </div>
                             @if ($previousDesigns->isNotEmpty())
-                                <details class="design-versions">
+                                <details class="design-versions" open>
                                     <summary data-ar="النسخ السابقة ({{ $previousDesigns->count() }})" data-en="Previous versions ({{ $previousDesigns->count() }})">النسخ السابقة ({{ $previousDesigns->count() }})</summary>
                                     <div class="design-versions-body">
                                         @foreach ($previousDesigns as $file)
@@ -320,7 +329,7 @@
                             @endif
                         @endif
                         @if (count($designHistory))
-                            <details class="design-history">
+                            <details class="design-history" open>
                                 <summary>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
                                     <span data-ar="سجل تعديلات التصميم ({{ count($designHistory) }})" data-en="Design change history ({{ count($designHistory) }})">سجل تعديلات التصميم ({{ count($designHistory) }})</span>
@@ -340,6 +349,40 @@
                             </details>
                         @endif
                     </div>
+
+                    @if ($components->isNotEmpty())
+                        <div class="design-price-block">
+                            <h3 data-ar="أسعار مكوّنات الباقة" data-en="Package component prices">أسعار مكوّنات الباقة</h3>
+                            <ul class="design-comp-list">
+                                @foreach ($components as $row)
+                                    @php
+                                        $delta = $compCharge($row);
+                                        $alt = '';
+                                        if (($row['selected_key'] ?? '') !== '') {
+                                            $parts = explode('|', (string) $row['selected_key']);
+                                            $alt = trim(($parts[0] ?? '') !== '' ? $parts[0] : ($parts[1] ?? ''));
+                                        }
+                                        $extraQty = (float) ($row['extra_qty'] ?? 0);
+                                    @endphp
+                                    <li>
+                                        <div class="design-comp-copy">
+                                            <span class="design-comp-name">{{ $row['name_ar'] ?: $row['name_en'] }}</span>
+                                            <span class="design-comp-meta">{{ (float) ($row['base_qty'] ?? 0) + $extraQty }} {{ $row['unit_label_ar'] ?: $row['unit_label_en'] }} · {{ $money($row['price_per_unit'] ?? 0) }} <span data-ar="ريال" data-en="SAR">ريال</span> / {{ $row['unit_label_ar'] ?: $row['unit_label_en'] }}</span>
+                                            @if ($extraQty > 0 || $alt !== '' || !empty($row['added']))
+                                                <span class="design-comp-change">
+                                                    <span data-ar="تعديل العميل" data-en="Customer change">تعديل العميل</span>
+                                                    @if (!empty($row['added'])) · <span data-ar="مضاف" data-en="Added">مضاف</span>@endif
+                                                    @if ($extraQty > 0) · <span data-ar="كمية إضافية" data-en="Extra qty">كمية إضافية</span> {{ $extraQty }}@endif
+                                                    @if ($alt !== '') · <span data-ar="بديل" data-en="Alternative">بديل</span> {{ $alt }}@endif
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <span class="design-comp-delta">{{ $delta > 0 ? '+'.$money($delta) : '—' }} <span data-ar="ريال" data-en="SAR">ريال</span></span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
 
                     @if ($designReviewOpen && $components->isNotEmpty())
                         <nav class="design-steps" id="design-steps" aria-label="Design review steps">
