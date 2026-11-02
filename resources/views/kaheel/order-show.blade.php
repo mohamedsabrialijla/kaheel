@@ -132,7 +132,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=51" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=52" rel="stylesheet">
 </head>
 <body>
     @include('kaheel.partials.public-header')
@@ -355,8 +355,8 @@
                                     @endphp
                                     <li>
                                         <div class="design-comp-copy">
-                                            <span class="design-comp-name">{{ $row['name_ar'] ?: $row['name_en'] }}</span>
-                                            <span class="design-comp-meta">{{ (float) ($row['base_qty'] ?? 0) + $extraQty }} {{ $row['unit_label_ar'] ?: $row['unit_label_en'] }} · {{ $money($row['price_per_unit'] ?? 0) }} <span data-ar="ريال" data-en="SAR">ريال</span> / {{ $row['unit_label_ar'] ?: $row['unit_label_en'] }}</span>
+                                            <span class="design-comp-name" data-ar="{{ $row['name_ar'] ?: $row['name_en'] }}" data-en="{{ $row['name_en'] ?: $row['name_ar'] }}">{{ $row['name_ar'] ?: $row['name_en'] }}</span>
+                                            <span class="design-comp-meta">{{ (float) ($row['base_qty'] ?? 0) + $extraQty }} <span data-ar="{{ $row['unit_label_ar'] ?: $row['unit_label_en'] }}" data-en="{{ $row['unit_label_en'] ?: $row['unit_label_ar'] }}">{{ $row['unit_label_ar'] ?: $row['unit_label_en'] }}</span> · {{ $money($row['price_per_unit'] ?? 0) }} / <span data-ar="{{ $row['unit_label_ar'] ?: $row['unit_label_en'] }}" data-en="{{ $row['unit_label_en'] ?: $row['unit_label_ar'] }}">{{ $row['unit_label_ar'] ?: $row['unit_label_en'] }}</span></span>
                                             @if ($extraQty > 0 || $alt !== '' || !empty($row['added']))
                                                 <span class="design-comp-change">
                                                     <span data-ar="تعديل العميل" data-en="Customer change">تعديل العميل</span>
@@ -366,7 +366,7 @@
                                                 </span>
                                             @endif
                                         </div>
-                                        <span class="design-comp-delta">{{ $delta > 0 ? '+'.$money($delta) : '—' }} <span data-ar="ريال" data-en="SAR">ريال</span></span>
+                                        <span class="design-comp-delta">{{ $delta > 0 ? '+'.$money($delta) : '—' }}</span>
                                     </li>
                                 @endforeach
                             </ul>
@@ -689,7 +689,7 @@
                     const unit = pick(row, "unit_label_ar", "unit_label_en");
                     const meta = document.createElement("span");
                     meta.className = "design-comp-meta";
-                    meta.textContent = `${Number(row.base_qty || 0) + sel.extraQty} ${unit} · ${money(row.price_per_unit)} ${sar()} / ${unit}`;
+                    meta.textContent = `${Number(row.base_qty || 0) + sel.extraQty} ${unit} · ${money(row.price_per_unit)} / ${unit}`;
                     copy.append(name, meta);
                     if (sel.extraQty > 0 || option) {
                         const change = document.createElement("span");
@@ -702,7 +702,7 @@
                     }
                     const price = document.createElement("span");
                     price.className = "design-comp-delta";
-                    price.textContent = delta > 0 ? `+${money(delta)} ${sar()}` : "—";
+                    price.textContent = delta > 0 ? `+${money(delta)}` : "—";
                     li.append(copy, price);
                     list.append(li);
                 });

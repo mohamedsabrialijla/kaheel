@@ -2611,24 +2611,37 @@ a.order-doc:hover {
 
 .design-steps {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 0.5rem;
     margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+    .design-steps {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 }
 
 .design-step {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    width: 100%;
+    min-width: 0;
     border: 1px solid var(--border);
     border-radius: 0.75rem;
-    background: var(--card);
-    padding: 0.65rem 0.75rem;
+    background: var(--background);
+    padding: 0.75rem 1rem;
     color: var(--muted-foreground);
     font: inherit;
-    font-size: 0.8rem;
+    font-size: 0.875rem;
+    line-height: 1.35;
     text-align: start;
     cursor: pointer;
+}
+
+.design-step > span:last-child {
+    min-width: 0;
 }
 
 .design-step:disabled {

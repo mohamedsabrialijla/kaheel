@@ -27,6 +27,9 @@ class OverviewController extends KaheelAdminController
         $booked = $orders->filter(fn (KaheelOrder $order) => $order->payment_status === 'approved');
         $closed = $orders->filter(fn (KaheelOrder $order) => $order->listedStatus() === 'closed');
         $active = $booked->reject(fn (KaheelOrder $order) => $order->listedStatus() === 'closed');
+        $awaitingDeposit = $orders->filter(fn (KaheelOrder $order) => in_array($order->payment_status, ['pending', 'rejected', null, ''], true));
+        $completedOrders = $orders->filter(fn (KaheelOrder $order) => in_array($order->listedStatus(), ['supplied', 'closed'], true));
+        $depositPaid = $booked->reject(fn (KaheelOrder $order) => in_array($order->listedStatus(), ['supplied', 'closed'], true));
 
         $collected = 0.0;
         $revenue = 0.0;
@@ -271,6 +274,13 @@ class OverviewController extends KaheelAdminController
                 'deviation' => $avgDeviation,
                 'late' => $lateOrders,
                 'ready' => $ready,
+                'awaiting_deposit' => $awaitingDeposit->count(),
+                'awaiting_pending' => $awaitingDeposit->filter(fn (KaheelOrder $order) => $order->payment_status !== 'rejected')->count(),
+                'awaiting_rejected' => $awaitingDeposit->filter(fn (KaheelOrder $order) => $order->payment_status === 'rejected')->count(),
+                'deposit_paid' => $depositPaid->count(),
+                'completed' => $completedOrders->count(),
+                'completed_supplied' => $completedOrders->filter(fn (KaheelOrder $order) => $order->listedStatus() === 'supplied')->count(),
+                'completed_closed' => $closed->count(),
             ],
             'months' => array_values($monthly),
             'mix' => $mixRows,

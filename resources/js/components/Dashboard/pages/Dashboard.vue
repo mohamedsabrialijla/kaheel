@@ -258,7 +258,7 @@ export default {
             if (this.ar) {
                 return {
                     title: "لوحة مؤشرات الإدارة",
-                    lead: "المبيعات والتكاليف والهوامش وأداء الموردين ومستويات الخدمة، محتسبة آلياً من الطلبات وأوامر التوريد.",
+                    lead: "المبيعات وعدد الطلبات حسب حالة الدفع والتسليم، مع أداء الموردين ومستويات الخدمة.",
                     loading: "جاري تحميل المؤشرات…",
                     salesTitle: "المبيعات مقابل التكلفة والربح",
                     mixTitle: "توزيع المشتريات على البنود",
@@ -278,10 +278,9 @@ export default {
                     currency: "ريال",
                     collected: "إجمالي المبيعات المحصلة",
                     vat: "شاملة الضريبة",
-                    supplierCost: "تكلفة الموردين",
-                    net: "صافي الربح",
-                    commission: "عمولة المنصة من الموردين",
-                    perRate: "حسب نسبة كل مورد",
+                    awaitingDeposit: "بانتظار العربون",
+                    depositPaid: "مدفوعة العربون",
+                    completedOrders: "مكتملة",
                     orders: "الطلبات",
                     customers: "العملاء",
                     onTime: "الالتزام بمدة التسليم",
@@ -306,7 +305,7 @@ export default {
             }
             return {
                 title: "Administration analytics",
-                lead: "Sales, cost, margin, supplier performance and SLA, computed from orders and supply assignments.",
+                lead: "Sales and order counts by payment and delivery status, plus supplier performance and SLA.",
                 loading: "Loading analytics…",
                 salesTitle: "Sales vs cost and profit",
                 mixTitle: "Purchase mix by category",
@@ -324,12 +323,11 @@ export default {
                 revenueLabel: "Revenue",
                 costLabel: "Cost",
                 currency: "SAR",
-                collected: "Collected sales",
-                vat: "VAT included",
-                supplierCost: "Supplier cost",
-                net: "Net profit",
-                commission: "Supplier commission",
-                perRate: "Per supplier rate",
+                    collected: "Collected sales",
+                    vat: "VAT included",
+                    awaitingDeposit: "Awaiting deposit",
+                    depositPaid: "Deposit paid",
+                    completedOrders: "Completed",
                 orders: "Orders",
                 customers: "Customers",
                 onTime: "On-time delivery",
@@ -354,16 +352,11 @@ export default {
         },
         kpis() {
             const k = this.k;
-            const margin = (k.margin_sales != null || k.margin_cost != null)
-                ? (this.ar
-                    ? `هامش على البيع ${this.pct(k.margin_sales)} · على التكلفة ${this.pct(k.margin_cost)}`
-                    : `Margin on sales ${this.pct(k.margin_sales)} · on cost ${this.pct(k.margin_cost)}`)
-                : (this.ar ? "هامش على البيع — · على التكلفة —" : "Margin on sales — · on cost —");
             return [
                 { icon: icon('<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>'), value: this.money(k.collected), label: this.t.collected, hint: this.t.vat },
-                { icon: icon('<path d="M13.744 17.736a6 6 0 1 1-7.48-7.48"/><path d="M15 6h1v4"/><path d="m6.134 14.768.866-.5 2 3.464"/><circle cx="16" cy="8" r="6"/>'), value: this.money(k.cost), label: this.t.supplierCost, hint: (this.ar ? "أوامر التوريد: " : "Purchase orders: ") + this.int(k.purchase_orders) },
-                { icon: icon('<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/>'), value: this.money(k.profit), label: this.t.net, hint: margin },
-                { icon: icon('<line x1="19" x2="5" y1="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>'), value: this.money(k.commission), label: this.t.commission, hint: this.t.perRate },
+                { icon: icon('<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>'), value: this.int(k.awaiting_deposit), label: this.t.awaitingDeposit, hint: this.ar ? `بانتظار التأكيد ${this.int(k.awaiting_pending)} · مرفوض ${this.int(k.awaiting_rejected)}` : `${this.int(k.awaiting_pending)} pending · ${this.int(k.awaiting_rejected)} rejected` },
+                { icon: icon('<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/>'), value: this.int(k.deposit_paid), label: this.t.depositPaid, hint: this.ar ? "عربون مؤكَّد وما زالت قيد التنفيذ" : "Deposit confirmed, still in progress" },
+                { icon: icon('<path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/>'), value: this.int(k.completed), label: this.t.completedOrders, hint: this.ar ? `جاهزة للتسليم ${this.int(k.completed_supplied)} · مغلقة ${this.int(k.completed_closed)}` : `${this.int(k.completed_supplied)} ready · ${this.int(k.completed_closed)} closed` },
                 { icon: icon('<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>'), value: this.int(k.orders), label: this.t.orders, hint: this.ar ? `نشطة ${this.int(k.active)} · مغلقة ${this.int(k.closed)}` : `${this.int(k.active)} active · ${this.int(k.closed)} closed` },
                 { icon: icon('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>'), value: this.int(k.customers), label: this.t.customers, hint: (this.ar ? "متوسط قيمة الطلب " : "Avg order ") + this.money(k.avg_order) },
                 { icon: icon('<line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/>'), value: this.pct(k.on_time), label: this.t.onTime, hint: (this.ar ? "متوسط الانحراف " : "Avg deviation ") + this.days(k.deviation) },
