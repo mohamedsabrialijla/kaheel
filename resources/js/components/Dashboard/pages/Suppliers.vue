@@ -29,7 +29,6 @@
                 <p class="ka-sup-muted">{{ row.contact_name || "—" }}</p>
                 <p class="ka-sup-rate">{{ t.rate }}: <span>{{ Number(row.commission_rate || 0) }}%</span></p>
                 <div class="ka-sup-contact">
-                    <p>{{ row.email || "—" }}</p>
                     <p class="ka-sup-muted">{{ row.phone || "—" }}</p>
                 </div>
                 <button v-if="can('suppliers.edit')" type="button" class="ka-btn ka-btn-outline" @click="openEdit(row)">
@@ -74,16 +73,6 @@
                         <input v-model="form.is_active" type="checkbox">
                         {{ t.activeCheck }}
                     </label>
-                    <template v-else>
-                        <label class="ka-field">
-                            <span>{{ t.email }}</span>
-                            <input v-model="form.email" type="email" required maxlength="255">
-                        </label>
-                        <label class="ka-field">
-                            <span>{{ t.password }}</span>
-                            <input v-model="form.password" type="password" required minlength="6">
-                        </label>
-                    </template>
                     <p v-if="error" class="ka-sup-error">{{ error }}</p>
                     <button type="submit" class="ka-btn ka-btn-primary ka-sup-submit" :disabled="saving">
                         {{ saving ? "…" : (editing ? t.save : t.submitCreate) }}
@@ -103,8 +92,6 @@ const blank = () => ({
     contact_name: "",
     phone: "",
     commission_rate: 0,
-    email: "",
-    password: "",
     is_active: true,
 });
 
@@ -128,42 +115,38 @@ export default {
             if (this.locale === "en") {
                 return {
                     title: "Suppliers",
-                    lead: "Supplier records, access accounts and the platform rate used in reports.",
+                    lead: "Supplier records and the platform rate used in reports.",
                     create: "New supplier",
                     active: "Active",
                     inactive: "Inactive",
                     rate: "Platform rate",
                     edit: "Edit",
                     editTitle: "Edit supplier",
-                    createTitle: "Create supplier and account",
+                    createTitle: "Create supplier",
                     dialogLead: "The platform rate applies to assigned order cost and appears in reports.",
                     contact: "Contact name",
                     phone: "Phone",
                     rateField: "Platform rate %",
                     activeCheck: "Supplier active",
-                    email: "Login email",
-                    password: "Temporary password",
                     save: "Save changes",
                     submitCreate: "Create supplier",
                 };
             }
             return {
                 title: "الموردون",
-                lead: "سجل المورد وحساب دخوله ونسبة المنصة المحتسبة في التقارير.",
+                lead: "سجل المورد ونسبة المنصة المحتسبة في التقارير.",
                 create: "مورد جديد",
                 active: "نشط",
                 inactive: "موقوف",
                 rate: "نسبة المنصة",
                 edit: "تعديل",
                 editTitle: "تعديل المورد",
-                createTitle: "إنشاء مورد وحساب دخول",
+                createTitle: "إنشاء مورد",
                 dialogLead: "نسبة المنصة تُحتسب على تكلفة الطلبات المسندة وتظهر في التقارير.",
                 contact: "اسم المسؤول",
                 phone: "الجوال",
                 rateField: "نسبة المنصة %",
                 activeCheck: "المورد نشط",
-                email: "بريد الدخول",
-                password: "كلمة المرور المؤقتة",
                 save: "حفظ التعديلات",
                 submitCreate: "إنشاء المورد",
             };
@@ -239,11 +222,7 @@ export default {
                         is_active: this.form.is_active,
                     });
                 } else {
-                    await axios.post("KaheelSuppliers/createItem", {
-                        ...payload,
-                        email: this.form.email,
-                        password: this.form.password,
-                    });
+                    await axios.post("KaheelSuppliers/createItem", payload);
                 }
                 this.dialog = false;
                 await this.load();

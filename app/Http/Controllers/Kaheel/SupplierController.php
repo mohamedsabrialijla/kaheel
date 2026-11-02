@@ -33,8 +33,6 @@ class SupplierController extends KaheelAdminController
             'contact_name' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:40',
             'commission_rate' => 'nullable|numeric|min:0|max:100',
-            'email' => 'required|email|max:255|unique:kaheel_suppliers,email',
-            'password' => 'required|string|min:6|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -47,8 +45,6 @@ class SupplierController extends KaheelAdminController
             'contact_name' => $request->input('contact_name') ?: null,
             'phone' => $request->input('phone') ?: null,
             'commission_rate' => $request->input('commission_rate', 0),
-            'email' => $request->string('email')->toString(),
-            'password' => $request->input('password'),
             'is_active' => true,
         ]);
 
