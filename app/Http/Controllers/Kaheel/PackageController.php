@@ -28,7 +28,7 @@ class PackageController extends KaheelAdminController
     public function index()
     {
         $stats = KaheelOrder::query()
-            ->selectRaw('package_code, count(*) as orders_count, coalesce(sum(price_incl + addons_total), 0) as sales')
+            ->selectRaw('package_code, count(*) as orders_count, coalesce(sum(price_incl + addons_total + alternatives_amount), 0) as sales')
             ->groupBy('package_code')
             ->get()
             ->keyBy('package_code');

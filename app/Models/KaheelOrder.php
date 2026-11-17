@@ -15,7 +15,7 @@ class KaheelOrder extends Model
         'tier_name_ar', 'tier_name_en',
         'compound_id', 'compound_name', 'compound_meta', 'compound_snapshot',
         'unit_id', 'unit_no', 'bedrooms_number', 'squar_meters', 'unit_snapshot',
-        'price_excl', 'price_incl', 'deposit_percent', 'deposit_amount', 'addons_total',
+        'price_excl', 'price_incl', 'deposit_percent', 'deposit_amount', 'addons_total', 'alternatives_amount',
         'contract_body', 'signature', 'design_components', 'design_history', 'design_signature', 'design_signed_at', 'supplier_assignments',
         'status', 'design_status', 'payment_method', 'payment_status', 'payment_note',
         'final_payment_status', 'final_payment_method', 'final_payment_note',
@@ -32,11 +32,22 @@ class KaheelOrder extends Model
         'deposit_percent' => 'float',
         'deposit_amount' => 'float',
         'addons_total' => 'float',
+        'alternatives_amount' => 'float',
         'design_components' => 'array',
         'design_history' => 'array',
         'design_signed_at' => 'datetime',
         'supplier_assignments' => 'array',
     ];
+
+    public function billedTotal(): float
+    {
+        return round((float) $this->price_incl + (float) $this->addons_total + (float) $this->alternatives_amount, 2);
+    }
+
+    public function remainingDue(): float
+    {
+        return max(0, $this->billedTotal() - (float) $this->deposit_amount);
+    }
 
     public function files(): HasMany
     {

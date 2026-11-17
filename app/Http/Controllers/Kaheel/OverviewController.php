@@ -300,7 +300,7 @@ class OverviewController extends KaheelAdminController
 
     private function amount(KaheelOrder $order): float
     {
-        return round((float) $order->price_incl + (float) $order->addons_total, 2);
+        return $order->billedTotal();
     }
 
     private function assignments(KaheelOrder $order): array

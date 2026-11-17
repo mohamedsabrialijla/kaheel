@@ -109,10 +109,19 @@
                     <div><p>{{ t.vat }}</p><strong>{{ money(order.vat) }} SAR</strong></div>
                     <div><p>{{ t.packageTotal }}</p><strong>{{ money(order.price_incl) }} SAR</strong></div>
                     <div><p>{{ t.addons }}</p><strong>{{ money(billAddons) }} SAR</strong></div>
+                    <div><p>{{ t.alternativesAmount }}</p><strong>{{ money(alternativesDraft) }} SAR</strong></div>
                     <div><p>{{ t.finalTotal }}</p><strong>{{ money(billFinal) }} SAR</strong></div>
                     <div><p>{{ t.deposit }}</p><strong>{{ money(order.deposit_amount) }} SAR · {{ order.deposit_paid ? t.paidState : t.unpaid }}</strong></div>
                     <div><p>{{ t.paid }}</p><strong>{{ money(order.paid) }} SAR</strong></div>
                     <div><p>{{ t.remaining }}</p><strong>{{ money(billRemaining) }} SAR</strong></div>
+                </div>
+                <div v-if="can('orders.edit') && order.status !== 'closed'" class="ka-ord-alts-amount">
+                    <label class="ka-field">
+                        <span>{{ t.alternativesAmount }}</span>
+                        <input v-model.number="alternativesDraft" type="number" min="0" step="0.01">
+                    </label>
+                    <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="saveAlternativesAmount">{{ t.saveAltsAmount }}</button>
+                    <p class="ka-sup-muted">{{ t.altsAmountHint }}</p>
                 </div>
                 <h3 class="ka-ord-subhead">{{ t.payments }}</h3>
                 <p v-if="!paymentEntries.length" class="ka-sup-muted">{{ t.noPayments }}</p>
@@ -297,20 +306,19 @@
                         <strong>{{ locale === 'en' ? item.name_en : item.name_ar }}</strong>
                         <span class="ka-sup-muted">{{ item.base_qty }} {{ unitOf(item) }} · {{ money(item.price_per_unit) }} SAR/{{ unitOf(item) }}</span>
                     </div>
-                    <p v-if="item.added || item.selected_key" class="ka-ord-extra">
-                        <span v-if="item.added">{{ t.addedFlag }}</span>
-                        <span v-if="item.selected_key">{{ item.added ? ' · ' : '' }}{{ t.swapped }} {{ deltaText(item.extra_cost) }}</span>
-                    </p>
-                    <p v-else-if="Number(item.extra_cost) > 0" class="ka-ord-extra">{{ t.extra }}: +{{ money(item.extra_cost) }} SAR</p>
+                    <p v-if="item.added" class="ka-ord-extra">{{ t.addedFlag }}</p>
+                    <div v-if="item.options && item.options.length" class="ka-ord-alts-ref">
+                        <p class="ka-sup-muted">{{ t.altsTitle }}</p>
+                        <p v-for="(option, optionIndex) in item.options" :key="optionIndex">{{ locale === 'en' ? (option.name_en || option.name_ar) : (option.name_ar || option.name_en) }} · {{ deltaText(option.price_delta) }} SAR</p>
+                    </div>
                 </div>
                 </template>
 
                 <div v-if="order.status === 'design_preparation'" class="ka-ord-editor">
                     <fieldset :disabled="!can('orders.edit')">
                     <article v-for="(item, index) in drafts" :key="item.id || index" class="ka-comp-card">
-                        <div v-if="item.added || item.selected_key" class="ka-comp-flags">
-                            <span v-if="item.added" class="ka-comp-flag">{{ t.addedFlag }}</span>
-                            <span v-if="item.selected_key" class="ka-comp-flag">{{ t.swapped }} {{ deltaText(item.extra_cost) }}</span>
+                        <div v-if="item.added" class="ka-comp-flags">
+                            <span class="ka-comp-flag">{{ t.addedFlag }}</span>
                         </div>
                         <div class="ka-comp-grid">
                             <label class="ka-field"><span>{{ t.category }}</span>
@@ -326,14 +334,14 @@
                             <label class="ka-field"><span>{{ t.qty }}</span><input v-model.number="item.base_qty" type="number" min="0"></label>
                             <label class="ka-field"><span>{{ t.unitPrice }}</span><input v-model.number="item.price_per_unit" type="number" min="0"></label>
                         </div>
-                        <p class="ka-comp-price">{{ t.linePrice }}: {{ money(shownPrice(item)) }} SAR<span v-if="item.selected_key" class="ka-comp-delta">{{ t.swapDelta }} {{ deltaText(item.extra_cost) }}</span></p>
+                        <p class="ka-comp-price">{{ t.linePrice }}: {{ money(shownPrice(item)) }} SAR</p>
                         <div class="ka-comp-alts">
                             <p class="ka-comp-alts-title">{{ t.altsTitle }} <span class="ka-sup-muted">{{ t.categoryOf }}: {{ categoryName(item.category) }}</span></p>
-                            <div v-for="(option, optionIndex) in item.options" :key="optionIndex" class="ka-comp-alt" :class="{ 'is-swapped': item.selected_key && item.selected_key === altKey(option) }">
+                            <p class="ka-sup-muted">{{ t.altsRefHint }}</p>
+                            <div v-for="(option, optionIndex) in item.options" :key="optionIndex" class="ka-comp-alt">
                                 <label class="ka-field"><span>{{ t.altAr }}</span><input v-model="option.name_ar"></label>
                                 <label class="ka-field"><span>Alternative</span><input v-model="option.name_en"></label>
-                                <label class="ka-field"><span>{{ t.delta }}</span><input v-model.number="option.price_delta" type="number" @input="syncAlt(item, option)"></label>
-                                <button v-if="can('orders.edit')" type="button" class="ka-btn ka-btn-outline" @click="swapAlt(item, option)">{{ item.selected_key === altKey(option) ? t.swapped : t.swap }}</button>
+                                <label class="ka-field"><span>{{ t.delta }}</span><input v-model.number="option.price_delta" type="number"></label>
                                 <button v-if="can('orders.edit')" type="button" class="ka-btn ka-btn-ghost" @click="removeOption(item, optionIndex)">{{ t.remove }}</button>
                             </div>
                             <div v-if="can('orders.edit')" class="ka-ord-actions">
@@ -580,6 +588,7 @@ export default {
             designOver: false,
             designChangeNote: "",
             handoverOver: false,
+            alternativesDraft: 0,
         };
     },
     computed: {
@@ -619,6 +628,9 @@ export default {
                 vat: "VAT",
                 packageTotal: "Package total",
                 addons: "Add-ons",
+                alternativesAmount: "Alternatives amount",
+                saveAltsAmount: "Save alternatives amount",
+                altsAmountHint: "The swap is agreed outside the system. Enter the agreed lump sum here; it is added to the final total.",
                 finalTotal: "Final total",
                 deposit: "Deposit",
                 paidState: "paid",
@@ -671,10 +683,7 @@ export default {
                 extra: "Customer change",
                 linePrice: "Price",
                 componentsSum: "Components price",
-                swap: "Swap",
-                swapped: "Swapped",
                 addedFlag: "Added",
-                swapDelta: "Price difference",
                 category: "Category",
                 categoryOf: "Category",
                 nameAr: "Arabic name",
@@ -682,7 +691,8 @@ export default {
                 unitEn: "Unit label (English)",
                 qty: "Base quantity",
                 unitPrice: "Price per extra unit",
-                altsTitle: "Alternatives shown to the customer",
+                altsTitle: "Alternatives price reference",
+                altsRefHint: "Display only — no electronic swap. Use these prices to calculate outside the system, then save the alternatives amount in Financials.",
                 noAlts: "No active alternatives for this category — add them in the Alternatives page.",
                 extraCost: "Extra cost",
                 altAr: "Alternative (Arabic)",
@@ -695,7 +705,7 @@ export default {
                 undoLoad: "Undo load",
                 addComponent: "Add component",
                 saveComponents: "Save components",
-                packageIncluded: "Package item prices are already in the package total. Saving them does not add that amount again — only extras and swapped alternatives are billed.",
+                packageIncluded: "Package item prices are already in the package total. Saving them does not add that amount again — only extra components and extra quantities are billed here. Alternatives are billed via the alternatives amount.",
                 sendDesign: "Send design to customer",
                 suppliers: "Suppliers and delivery",
                 expected: "Expected",
@@ -765,6 +775,9 @@ export default {
                 vat: "الضريبة",
                 packageTotal: "قيمة الباقة",
                 addons: "التعديلات",
+                alternativesAmount: "مبلغ البدائل",
+                saveAltsAmount: "حفظ مبلغ البدائل",
+                altsAmountHint: "التبديل يتم بالاتفاق خارج النظام. أدخل المبلغ المتفق عليه هنا ليُضاف للإجمالي النهائي.",
                 finalTotal: "الإجمالي النهائي",
                 deposit: "العربون",
                 paidState: "مدفوع",
@@ -817,10 +830,7 @@ export default {
                 extra: "تعديل العميل",
                 linePrice: "السعر",
                 componentsSum: "مجموع تسعير المكوّنات",
-                swap: "تبديل",
-                swapped: "تم التبديل",
                 addedFlag: "تمت الإضافة",
-                swapDelta: "فرق السعر",
                 category: "التصنيف",
                 categoryOf: "التصنيف",
                 nameAr: "الاسم بالعربية",
@@ -828,7 +838,8 @@ export default {
                 unitEn: "الوحدة بالإنجليزية",
                 qty: "الكمية الأساسية",
                 unitPrice: "سعر الوحدة الإضافية",
-                altsTitle: "البدائل المعروضة للعميل",
+                altsTitle: "مرجع أسعار البدائل",
+                altsRefHint: "عرض فقط — لا تبديل إلكتروني. استخدم الأسعار للحساب خارج النظام ثم احفظ مبلغ البدائل في الملخص المالي.",
                 noAlts: "لا توجد بدائل مفعّلة لهذا التصنيف في المكتبة — أضفها من صفحة «البدائل والأسعار».",
                 extraCost: "تكلفة إضافية",
                 altAr: "بديل بالعربية",
@@ -841,7 +852,7 @@ export default {
                 undoLoad: "العودة عن التحميل",
                 addComponent: "إضافة مكوّن",
                 saveComponents: "حفظ المكوّنات",
-                packageIncluded: "أسعار عناصر الباقة داخلة أصلاً في سعر الباقة. حفظها لا يضيف المبلغ مرة ثانية — تُحتسب فقط الإضافات والبدائل المختارة.",
+                packageIncluded: "أسعار عناصر الباقة داخلة أصلاً في سعر الباقة. حفظها لا يضيف المبلغ مرة ثانية — تُحتسب هنا الإضافات والكميات الإضافية فقط. البدائل تُحتسب عبر مبلغ البدائل.",
                 sendDesign: "إرسال التصميم للعميل",
                 suppliers: "الموردون والتوريد",
                 expected: "المتوقع",
@@ -902,7 +913,7 @@ export default {
             return hidden + this.editorCharge;
         },
         billFinal() {
-            return Number(this.order?.price_incl || 0) + Number(this.billAddons);
+            return Number(this.order?.price_incl || 0) + Number(this.billAddons) + Number(this.alternativesDraft || 0);
         },
         billRemaining() {
             const paid = this.order?.final_payment_status === "approved"
@@ -1347,8 +1358,11 @@ export default {
                 if (this.orderId) {
                     const response = await axios.get("KaheelOrders/show", { params: { id: this.orderId } });
                     this.order = response.data.items;
+                    this.alternativesDraft = Number(this.order.alternatives_amount || 0);
                     this.chatOpen = false;
-                    const visible = this.visibleDrafts(this.order.components);
+                    const visible = this.order.status === "design_preparation"
+                        ? this.cloneDrafts(this.order.components)
+                        : this.visibleDrafts(this.order.components);
                     this.drafts = visible;
                     this.editorOpen = visible.length > 0;
                     this.loadedFromPackage = false;
@@ -1368,6 +1382,7 @@ export default {
         },
         apply(response) {
             this.order = response.data.items;
+            this.alternativesDraft = Number(this.order?.alternatives_amount || 0);
             if (this.order?.categories?.length) this.categories = this.order.categories;
         },
         async post(url, payload) {
@@ -1512,9 +1527,8 @@ export default {
         },
         charge(item) {
             const unit = Number(item.price_per_unit || 0);
-            const delta = item.selected_key ? Number(item.extra_cost || 0) : 0;
-            if (item.added) return Number(item.base_qty || 0) * unit + delta;
-            return Math.max(0, Number(item.extra_qty || 0)) * unit + delta;
+            if (item.added) return Number(item.base_qty || 0) * unit;
+            return Math.max(0, Number(item.extra_qty || 0)) * unit;
         },
         shownPrice(item) {
             if (item.added) return this.charge(item);
@@ -1549,44 +1563,27 @@ export default {
                 map.set(item.id, { ...(map.get(item.id) || {}), ...next });
             });
             (this.order.components || []).forEach((item) => {
-                if (item.id && (item.added || item.selected_key) && !this.drafts.some((draft) => draft.id === item.id)) {
+                if (item.id && item.added && !this.drafts.some((draft) => draft.id === item.id)) {
                     map.delete(item.id);
                 }
             });
             return [...map.values()];
         },
-        altKey(option) {
-            return `${option.name_ar}|${option.name_en}`;
-        },
-        swapAlt(item, option) {
-            const key = this.altKey(option);
-            if (item.selected_key === key) {
-                item.selected_key = "";
-                item.extra_cost = 0;
-                return;
-            }
-            item.selected_key = key;
-            item.extra_cost = Number(option.price_delta || 0);
-        },
-        syncAlt(item, option) {
-            if (item.selected_key === this.altKey(option)) item.extra_cost = Number(option.price_delta || 0);
-        },
         removeOption(item, index) {
-            const option = item.options[index];
-            if (option && item.selected_key === this.altKey(option)) {
-                item.selected_key = "";
-                item.extra_cost = 0;
-            }
             item.options.splice(index, 1);
         },
+        async saveAlternativesAmount() {
+            await this.post("KaheelOrders/saveAlternativesAmount", {
+                id: this.order.id,
+                alternatives_amount: Number(this.alternativesDraft || 0),
+            });
+        },
         async saveComponents() {
-            const wasLoaded = this.loadedFromPackage;
             const saved = await this.post("KaheelOrders/saveComponents", { id: this.order.id, components: this.componentsPayload() });
             if (!saved) return;
             this.loadedFromPackage = false;
             this.draftsBeforeLoad = null;
-            const rows = this.cloneDrafts(this.order.components || []);
-            this.drafts = wasLoaded ? rows : rows.filter((item) => item.added || item.selected_key);
+            this.drafts = this.cloneDrafts(this.order.components || []);
             this.editorOpen = this.drafts.length > 0;
         },
         sendDesign() {

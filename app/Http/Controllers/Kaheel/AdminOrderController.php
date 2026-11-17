@@ -22,7 +22,7 @@ class AdminOrderController extends KaheelAdminController
     {
         return match ($method) {
             'index', 'show', 'packageItems', 'file', 'messageMedia' => 'orders.view',
-            'reviewPayment', 'confirmFinal', 'advance', 'saveComponents', 'sendDesign',
+            'reviewPayment', 'confirmFinal', 'advance', 'saveComponents', 'saveAlternativesAmount', 'sendDesign',
             'assignSuppliers', 'markDelivered', 'message', 'upload' => 'orders.edit',
             'readMessages' => 'orders.view',
             default => null,
@@ -44,7 +44,7 @@ class AdminOrderController extends KaheelAdminController
             'customer_name' => $order->customer_name ?: $order->username,
             'unit_no' => $order->unit_no,
             'compound_name' => $order->compound_name,
-            'amount' => round((float) $order->price_incl + (float) $order->addons_total, 2),
+            'amount' => $order->billedTotal(),
             'status' => $order->listedStatus(),
             'status_ar' => $order->statusCopy()['ar'],
             'status_en' => $order->statusCopy()['en'],
@@ -288,8 +288,8 @@ class AdminOrderController extends KaheelAdminController
                 'base_qty' => (float) ($row['base_qty'] ?? 0),
                 'price_per_unit' => (float) ($row['price_per_unit'] ?? 0),
                 'extra_qty' => max(0, (float) ($row['extra_qty'] ?? 0)),
-                'extra_cost' => (float) ($row['extra_cost'] ?? 0),
-                'selected_key' => (string) ($row['selected_key'] ?? ''),
+                'extra_cost' => 0,
+                'selected_key' => '',
                 'added' => !empty($row['added']),
                 'priced' => false,
                 'options' => collect($row['options'] ?? [])->map(fn ($option) => [
@@ -312,17 +312,30 @@ class AdminOrderController extends KaheelAdminController
         return round(collect($components)->sum(fn ($row) => $this->componentCharge($row)), 2);
     }
 
+    public function saveAlternativesAmount(Request $request)
+    {
+        $order = $this->order($request->integer('id'));
+        if ($blocked = $this->needsPaymentApproval($order)) {
+            return $blocked;
+        }
+        if ($order->status === 'closed') {
+            return mainResponse(false, 'لا يمكن تعديل مبلغ البدائل بعد إغلاق الطلب.', null, 422, 'items', '');
+        }
+
+        $order->alternatives_amount = max(0, round((float) $request->input('alternatives_amount', 0), 2));
+        $order->save();
+
+        return mainResponse(true, 'Success', $this->detail($order->fresh()), 200, 'items', '');
+    }
+
     private function componentCharge(array $row): float
     {
         $unit = (float) ($row['price_per_unit'] ?? 0);
-        $delta = ($row['selected_key'] ?? '') !== '' ? (float) ($row['extra_cost'] ?? 0) : 0.0;
         if (!empty($row['added'])) {
-            return ((float) ($row['base_qty'] ?? 0) * $unit) + $delta;
+            return (float) ($row['base_qty'] ?? 0) * $unit;
         }
 
-        $extraQty = max(0, (float) ($row['extra_qty'] ?? 0));
-
-        return ($extraQty * $unit) + $delta;
+        return max(0, (float) ($row['extra_qty'] ?? 0)) * $unit;
     }
 
     public function sendDesign(Request $request)
@@ -574,7 +587,7 @@ class AdminOrderController extends KaheelAdminController
         $gate = $this->stageBlock($order);
         $nextCopy = $next ? KaheelOrder::stageCopy()[array_search($next, KaheelOrder::workflow(), true)] : null;
         $paid = $order->payment_status === 'approved' ? (float) $order->deposit_amount : 0;
-        $final = round((float) $order->price_incl + (float) $order->addons_total, 2);
+        $final = $order->billedTotal();
         if ($order->final_payment_status === 'approved') {
             $paid = $final;
         }
@@ -611,6 +624,7 @@ class AdminOrderController extends KaheelAdminController
             'vat' => round((float) $order->price_incl - (float) $order->price_excl, 2),
             'price_incl' => (float) $order->price_incl,
             'addons_total' => (float) $order->addons_total,
+            'alternatives_amount' => (float) $order->alternatives_amount,
             'final_total' => $final,
             'deposit_amount' => (float) $order->deposit_amount,
             'deposit_paid' => $order->payment_status === 'approved',

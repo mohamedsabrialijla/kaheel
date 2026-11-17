@@ -196,7 +196,7 @@ class OrderController extends Controller
         }
 
         $amount = $mode === 'final'
-            ? max(0, (float) $order->price_incl + (float) $order->addons_total - (float) $order->deposit_amount)
+            ? $order->remainingDue()
             : (float) $order->deposit_amount;
 
         return view('kaheel.order-pay', [
@@ -613,7 +613,6 @@ class OrderController extends Controller
             }
             $byId[$id] = [
                 'extra_qty' => max(0, (float) ($row['extraQty'] ?? $row['extra_qty'] ?? 0)),
-                'option_key' => (string) ($row['optionKey'] ?? $row['option_key'] ?? $row['optionId'] ?? ''),
             ];
         }
 
@@ -625,20 +624,8 @@ class OrderController extends Controller
             }
 
             $row['extra_qty'] = $pick['extra_qty'];
-            $options = collect($row['options'] ?? []);
-            $selected = $options->first(function ($option) use ($pick) {
-                $key = trim((string) ($option['name_ar'] ?? '')).'|'.trim((string) ($option['name_en'] ?? ''));
-
-                return $key !== '|' && $key === $pick['option_key'];
-            });
-
-            if ($selected) {
-                $row['selected_key'] = trim((string) ($selected['name_ar'] ?? '')).'|'.trim((string) ($selected['name_en'] ?? ''));
-                $row['extra_cost'] = (float) ($selected['price_delta'] ?? 0);
-            } else {
-                $row['selected_key'] = '';
-                $row['extra_cost'] = 0;
-            }
+            $row['selected_key'] = '';
+            $row['extra_cost'] = 0;
 
             return $row;
         })->values()->all();
@@ -658,18 +645,9 @@ class OrderController extends Controller
             $nameEn = trim((string) ($row['name_en'] ?? '')) ?: $nameAr;
             $oldQty = (float) ($prev['extra_qty'] ?? 0);
             $newQty = (float) ($row['extra_qty'] ?? 0);
-            $oldKey = (string) ($prev['selected_key'] ?? '');
-            $newKey = (string) ($row['selected_key'] ?? '');
             if (abs($oldQty - $newQty) > 0.0001) {
                 $ar[] = $nameAr.' — كمية إضافية '.$newQty;
                 $en[] = $nameEn.' — extra quantity '.$newQty;
-            }
-            if ($oldKey !== $newKey) {
-                $parts = explode('|', $newKey);
-                $altAr = $newKey === '' ? 'الخيار الأساسي' : trim((string) ($parts[0] ?? ''));
-                $altEn = $newKey === '' ? 'default option' : trim((string) ($parts[1] ?? $parts[0] ?? ''));
-                $ar[] = $nameAr.' — بديل '.$altAr;
-                $en[] = $nameEn.' — alternative '.$altEn;
             }
         }
         if (!$ar) {
@@ -685,10 +663,7 @@ class OrderController extends Controller
     private function customerAddonsPreVat(array $components): float
     {
         return (float) collect($components)->sum(function ($row) {
-            $extra = max(0, (float) ($row['extra_qty'] ?? 0)) * (float) ($row['price_per_unit'] ?? 0);
-            $delta = ($row['selected_key'] ?? '') !== '' ? (float) ($row['extra_cost'] ?? 0) : 0.0;
-
-            return $extra + $delta;
+            return max(0, (float) ($row['extra_qty'] ?? 0)) * (float) ($row['price_per_unit'] ?? 0);
         });
     }
 

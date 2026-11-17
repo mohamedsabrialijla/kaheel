@@ -3,7 +3,7 @@
     $money = fn ($amount) => number_format((float) $amount, 2, '.', ',');
     $mode = $mode ?? ($order->status === 'final_payment' ? 'final' : 'deposit');
     $amount = $amount ?? ($mode === 'final'
-        ? max(0, (float) $order->price_incl + (float) $order->addons_total - (float) $order->deposit_amount)
+        ? $order->remainingDue()
         : (float) $order->deposit_amount);
     $done = $mode === 'final'
         ? in_array($order->final_payment_status, ['pending', 'approved'], true)

@@ -62,7 +62,7 @@
         }
     }
     if (in_array($order->final_payment_status, ['pending', 'approved', 'rejected'], true)) {
-        $finalDue = max(0, (float) $order->price_incl + (float) $order->addons_total - (float) $order->deposit_amount);
+        $finalDue = $order->remainingDue();
         $finalMethodAr = $order->final_payment_method === 'receipt' ? 'رفع إيصال' : 'فيزا';
         $finalMethodEn = $order->final_payment_method === 'receipt' ? 'Receipt' : 'Visa';
         $sortedFinal = $finalReceiptFiles->sortBy('id')->values();
@@ -106,12 +106,11 @@
     $components = collect($order->design_components ?? [])->values();
     $compCharge = function ($row) {
         $unit = (float) ($row['price_per_unit'] ?? 0);
-        $delta = ($row['selected_key'] ?? '') !== '' ? (float) ($row['extra_cost'] ?? 0) : 0.0;
         if (!empty($row['added'])) {
-            return ((float) ($row['base_qty'] ?? 0) * $unit) + $delta;
+            return (float) ($row['base_qty'] ?? 0) * $unit;
         }
 
-        return max(0, (float) ($row['extra_qty'] ?? 0)) * $unit + $delta;
+        return max(0, (float) ($row['extra_qty'] ?? 0)) * $unit;
     };
     $designApproved = $order->design_status === 'approved' || $order->design_signed_at;
     $designRejected = $order->design_status === 'rejected';
@@ -132,7 +131,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=52" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=53" rel="stylesheet">
 </head>
 <body>
     @include('kaheel.partials.public-header')
@@ -159,11 +158,12 @@
                 <div><dt data-ar="ضريبة القيمة المضافة" data-en="VAT">ضريبة القيمة المضافة</dt><dd>{{ $money($vat) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
                 <div><dt data-ar="الإجمالي" data-en="Total">الإجمالي</dt><dd>{{ $money($order->price_incl) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
                 <div><dt data-ar="العربون" data-en="Deposit">العربون</dt><dd class="is-primary">{{ $money($order->deposit_amount) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
+                <div><dt data-ar="مبلغ البدائل" data-en="Alternatives amount">مبلغ البدائل</dt><dd>{{ $money($order->alternatives_amount) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
                 @if ((float) $order->addons_total > 0)
                     <div><dt data-ar="التعديلات الإضافية" data-en="Add-ons">التعديلات الإضافية</dt><dd>{{ $money($order->addons_total) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
                 @endif
-                @if ($order->design_signed_at)
-                    <div><dt data-ar="الإجمالي النهائي" data-en="Final total">الإجمالي النهائي</dt><dd class="is-primary">{{ $money((float) $order->price_incl + (float) $order->addons_total) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
+                @if ($order->design_signed_at || (float) $order->addons_total > 0 || (float) $order->alternatives_amount > 0)
+                    <div><dt data-ar="الإجمالي النهائي" data-en="Final total">الإجمالي النهائي</dt><dd class="is-primary">{{ $money($order->billedTotal()) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
                 @endif
             </dl>
         </section>
@@ -226,6 +226,7 @@
                 data-review="{{ $designReviewOpen ? '1' : '0' }}"
                 data-has-components="{{ $components->isNotEmpty() ? '1' : '0' }}"
                 data-price="{{ (float) $order->price_incl }}"
+                data-alts="{{ (float) $order->alternatives_amount }}"
                 data-deposit="{{ (float) $order->deposit_amount }}"
                 data-save="{{ url(app()->getLocale().'/orders/'.$order->id.'/design/selections') }}"
                 data-confirm="{{ url(app()->getLocale().'/orders/'.$order->id.'/design') }}"
@@ -346,23 +347,17 @@
                                 @foreach ($components as $row)
                                     @php
                                         $delta = $compCharge($row);
-                                        $alt = '';
-                                        if (($row['selected_key'] ?? '') !== '') {
-                                            $parts = explode('|', (string) $row['selected_key']);
-                                            $alt = trim(($parts[0] ?? '') !== '' ? $parts[0] : ($parts[1] ?? ''));
-                                        }
                                         $extraQty = (float) ($row['extra_qty'] ?? 0);
                                     @endphp
                                     <li>
                                         <div class="design-comp-copy">
                                             <span class="design-comp-name" data-ar="{{ $row['name_ar'] ?: $row['name_en'] }}" data-en="{{ $row['name_en'] ?: $row['name_ar'] }}">{{ $row['name_ar'] ?: $row['name_en'] }}</span>
                                             <span class="design-comp-meta">{{ (float) ($row['base_qty'] ?? 0) + $extraQty }} <span data-ar="{{ $row['unit_label_ar'] ?: $row['unit_label_en'] }}" data-en="{{ $row['unit_label_en'] ?: $row['unit_label_ar'] }}">{{ $row['unit_label_ar'] ?: $row['unit_label_en'] }}</span> · {{ $money($row['price_per_unit'] ?? 0) }} / <span data-ar="{{ $row['unit_label_ar'] ?: $row['unit_label_en'] }}" data-en="{{ $row['unit_label_en'] ?: $row['unit_label_ar'] }}">{{ $row['unit_label_ar'] ?: $row['unit_label_en'] }}</span></span>
-                                            @if ($extraQty > 0 || $alt !== '' || !empty($row['added']))
+                                            @if ($extraQty > 0 || !empty($row['added']))
                                                 <span class="design-comp-change">
                                                     <span data-ar="تعديل العميل" data-en="Customer change">تعديل العميل</span>
                                                     @if (!empty($row['added'])) · <span data-ar="مضاف" data-en="Added">مضاف</span>@endif
                                                     @if ($extraQty > 0) · <span data-ar="كمية إضافية" data-en="Extra qty">كمية إضافية</span> {{ $extraQty }}@endif
-                                                    @if ($alt !== '') · <span data-ar="بديل" data-en="Alternative">بديل</span> {{ $alt }}@endif
                                                 </span>
                                             @endif
                                         </div>
@@ -393,7 +388,7 @@
                     @if ($designReviewOpen && $components->isNotEmpty())
                         <div id="design-panel-2" class="design-panel" hidden>
                             <p class="design-q" data-ar="هل ترغب بتعديل التصميم؟" data-en="Would you like to change the design?">هل ترغب بتعديل التصميم؟</p>
-                            <p class="order-lead" data-ar="يمكنك زيادة الكميات أو اختيار بدائل، وسيُحتسب الفرق تلقائياً ويُضاف للفاتورة النهائية." data-en="You can add quantities or pick alternatives; the difference is calculated and added to the final invoice.">يمكنك زيادة الكميات أو اختيار بدائل، وسيُحتسب الفرق تلقائياً ويُضاف للفاتورة النهائية.</p>
+                            <p class="order-lead" data-ar="يمكنك زيادة الكميات. أي تبديل يتم بالاتفاق مع الإدارة خارج النظام، ويظهر مبلغ البدائل في الملخص المالي." data-en="You can increase quantities. Swaps are agreed with admin outside the system; the alternatives amount appears in the financial summary.">يمكنك زيادة الكميات. أي تبديل يتم بالاتفاق مع الإدارة خارج النظام، ويظهر مبلغ البدائل في الملخص المالي.</p>
                             <div class="design-choice-grid">
                                 <button type="button" class="design-choice" id="design-no-change">
                                     <span class="design-choice-title" data-ar="لا، التصميم مناسب" data-en="No, the design is fine">لا، التصميم مناسب</span>
@@ -401,7 +396,7 @@
                                 </button>
                                 <button type="button" class="design-choice" id="design-want-change">
                                     <span class="design-choice-title" data-ar="نعم، أريد التعديل" data-en="Yes, I want changes">نعم، أريد التعديل</span>
-                                    <span class="design-choice-sub" data-ar="غيّر الكميات أو اختر بدائل" data-en="Change quantities or pick alternatives">غيّر الكميات أو اختر بدائل</span>
+                                    <span class="design-choice-sub" data-ar="غيّر الكميات إن لزم" data-en="Change quantities if needed">غيّر الكميات إن لزم</span>
                                 </button>
                             </div>
                             <div id="design-editor" class="design-editor" hidden>
@@ -459,7 +454,7 @@
         @endif
 
         @if ($order->status === 'final_payment')
-            @php $finalDue = max(0, (float) $order->price_incl + (float) $order->addons_total - (float) $order->deposit_amount); @endphp
+            @php $finalDue = $order->remainingDue(); @endphp
             <section class="order-card order-final-pay">
                 <h2>
                     <svg class="order-heading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
@@ -622,28 +617,26 @@
             const review = box.dataset.review === "1";
             const components = JSON.parse(box.dataset.components || "[]");
             const packageTotal = Number(box.dataset.price || 0);
+            const altsAmount = Number(box.dataset.alts || 0);
             const deposit = Number(box.dataset.deposit || 0);
             const state = {};
             components.forEach((row) => {
                 state[row.id] = {
                     extraQty: Number(row.extra_qty || 0),
-                    optionKey: row.selected_key || "",
                 };
             });
             let step = components.length && review ? 1 : 3;
             let maxStep = step;
-            let wantChange = components.some((row) => Number(row.extra_qty || 0) > 0 || row.selected_key);
+            let wantChange = components.some((row) => Number(row.extra_qty || 0) > 0);
             let signed = false;
             let busy = false;
 
             const en = () => document.documentElement.lang === "en";
             const money = (n) => Number(n || 0).toLocaleString(en() ? "en-US" : "en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             const pick = (row, ar, eng) => en() ? (row[eng] || row[ar] || "") : (row[ar] || row[eng] || "");
-            const altKey = (option) => `${(option.name_ar || "").trim()}|${(option.name_en || "").trim()}`;
             const lineDelta = (row) => {
-                const sel = state[row.id] || { extraQty: 0, optionKey: "" };
-                const option = (row.options || []).find((item) => altKey(item) === sel.optionKey);
-                return sel.extraQty * Number(row.price_per_unit || 0) + Number(option?.price_delta || 0);
+                const sel = state[row.id] || { extraQty: 0 };
+                return sel.extraQty * Number(row.price_per_unit || 0);
             };
             const addons = () => components.reduce((sum, row) => sum + lineDelta(row), 0);
             const sar = () => en() ? "SAR" : "ريال";
@@ -651,11 +644,12 @@
             const fillTotals = (node) => {
                 if (!node) return;
                 const z = addons();
-                const final = packageTotal + z * 1.15;
+                const final = packageTotal + z * 1.15 + altsAmount;
                 const remaining = Math.max(0, final - deposit);
                 const rows = [
                     [en() ? "Add-ons" : "التعديلات الإضافية", `${money(z)} ${sar()}`],
                     [en() ? "VAT" : "ضريبة القيمة المضافة", `${money(z * 0.15)} ${sar()}`],
+                    [en() ? "Alternatives amount" : "مبلغ البدائل", `${money(altsAmount)} ${sar()}`],
                     [en() ? "Final total" : "الإجمالي النهائي", `${money(final)} ${sar()}`, true],
                     [en() ? "Remaining" : "المتبقي", `${money(remaining)} ${sar()}`],
                 ];
@@ -677,8 +671,7 @@
                 if (!list) return;
                 list.replaceChildren();
                 components.forEach((row) => {
-                    const sel = state[row.id] || { extraQty: 0, optionKey: "" };
-                    const option = (row.options || []).find((item) => altKey(item) === sel.optionKey);
+                    const sel = state[row.id] || { extraQty: 0 };
                     const delta = lineDelta(row);
                     const li = document.createElement("li");
                     const copy = document.createElement("div");
@@ -691,13 +684,10 @@
                     meta.className = "design-comp-meta";
                     meta.textContent = `${Number(row.base_qty || 0) + sel.extraQty} ${unit} · ${money(row.price_per_unit)} / ${unit}`;
                     copy.append(name, meta);
-                    if (sel.extraQty > 0 || option) {
+                    if (sel.extraQty > 0) {
                         const change = document.createElement("span");
                         change.className = "design-comp-change";
-                        const bits = [];
-                        if (sel.extraQty > 0) bits.push(en() ? `Extra qty ${sel.extraQty}` : `كمية إضافية ${sel.extraQty}`);
-                        if (option) bits.push((en() ? "Alternative " : "بديل ") + pick(option, "name_ar", "name_en"));
-                        change.textContent = (en() ? "Customer change: " : "تعديل العميل: ") + bits.join(" · ");
+                        change.textContent = (en() ? "Customer change: Extra qty " : "تعديل العميل: كمية إضافية ") + sel.extraQty;
                         copy.append(change);
                     }
                     const price = document.createElement("span");
@@ -717,7 +707,7 @@
                 if (!wrap) return;
                 wrap.replaceChildren();
                 components.forEach((row) => {
-                    const sel = state[row.id] || { extraQty: 0, optionKey: "" };
+                    const sel = state[row.id] || { extraQty: 0 };
                     const card = document.createElement("article");
                     card.className = "design-comp-card";
                     const head = document.createElement("div");
@@ -755,30 +745,6 @@
                     });
                     qtyLabel.append(qty);
                     grid.append(qtyLabel);
-                    const options = row.options || [];
-                    if (options.length) {
-                        const altLabel = document.createElement("label");
-                        altLabel.innerHTML = `<span>${en() ? "Alternative" : "بديل"}</span>`;
-                        const select = document.createElement("select");
-                        const blank = document.createElement("option");
-                        blank.value = "";
-                        blank.textContent = en() ? "Default option" : "الخيار الأساسي";
-                        select.append(blank);
-                        options.forEach((option) => {
-                            const opt = document.createElement("option");
-                            opt.value = altKey(option);
-                            opt.textContent = `${pick(option, "name_ar", "name_en")} (+${money(option.price_delta)})`;
-                            if (sel.optionKey === opt.value) opt.selected = true;
-                            select.append(opt);
-                        });
-                        select.addEventListener("change", () => {
-                            state[row.id].optionKey = select.value || "";
-                            renderSummary();
-                            delta.textContent = `+${money(lineDelta(row))} ${sar()}`;
-                        });
-                        altLabel.append(select);
-                        grid.append(altLabel);
-                    }
                     card.append(head, ask, grid);
                     wrap.append(card);
                 });
@@ -808,7 +774,6 @@
             const selectionsPayload = () => Object.entries(state).map(([componentId, row]) => ({
                 componentId,
                 extraQty: row.extraQty,
-                optionKey: row.optionKey || "",
             }));
 
             const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || box.dataset.token || "";

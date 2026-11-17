@@ -547,6 +547,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('KaheelOrders/confirmFinal', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'confirmFinal']);
         Route::post('KaheelOrders/advance', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'advance']);
         Route::post('KaheelOrders/saveComponents', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'saveComponents']);
+        Route::post('KaheelOrders/saveAlternativesAmount', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'saveAlternativesAmount']);
         Route::post('KaheelOrders/sendDesign', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'sendDesign']);
         Route::post('KaheelOrders/assignSuppliers', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'assignSuppliers']);
         Route::post('KaheelOrders/markDelivered', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'markDelivered']);
