@@ -9,10 +9,19 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?php echo e($title); ?></title>
+    <script>
+        (function () {
+            var en = localStorage.getItem("forma-lang") === "en";
+            document.documentElement.lang = en ? "en" : "ar";
+            document.documentElement.dir = en ? "ltr" : "rtl";
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="<?php echo e(asset('kaheel/forma.css')); ?>?v=2" rel="stylesheet">
+    <script src="<?php echo e(asset('kaheel/forma-i18n.js')); ?>?v=1"></script>
+    <script src="<?php echo e(asset('kaheel/forma-lang.js')); ?>?v=1"></script>
     <style>
         /* forma.css hides .reveal until JS adds .in — keep content visible if JS is late or missing */
         .reveal { opacity: 1; transform: none; }
@@ -26,20 +35,6 @@
         <?php echo $__env->make('kaheel.partials.forma-footer', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     </div>
     <script>
-        const root = document.documentElement;
-        document.getElementById("lang-toggle")?.addEventListener("click", () => {
-            const en = root.lang !== "en";
-            root.lang = en ? "en" : "ar";
-            root.dir = en ? "ltr" : "rtl";
-            document.querySelectorAll("[data-ar]").forEach((node) => {
-                node.textContent = en ? node.dataset.en : node.dataset.ar;
-            });
-            const label = document.getElementById("lang-label");
-            if (label) label.textContent = en ? "ع" : "EN";
-            localStorage.setItem("forma-lang", en ? "en" : "ar");
-        });
-        if (localStorage.getItem("forma-lang") === "en") document.getElementById("lang-toggle")?.click();
-
         const menuBtn = document.querySelector('[aria-controls="public-mobile-menu"]');
         if (menuBtn) {
             let panel = document.getElementById("public-mobile-menu");
@@ -92,6 +87,16 @@
             revealEls.forEach((el) => io.observe(el));
         }
         revealEls.forEach((el) => el.classList.add('in'));
+
+        const apply = window.applyFormaLang;
+        if (apply) {
+            apply(localStorage.getItem("forma-lang") === "en");
+            document.getElementById("lang-toggle")?.addEventListener("click", () => {
+                const en = document.documentElement.lang !== "en";
+                apply(en);
+                localStorage.setItem("forma-lang", en ? "en" : "ar");
+            });
+        }
     </script>
     <?php echo $__env->make('kaheel.partials.native-validation', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     <?php echo $__env->yieldPushContent('scripts'); ?>

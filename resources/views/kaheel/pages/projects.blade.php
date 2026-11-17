@@ -28,7 +28,7 @@
 <section class="mx-auto max-w-6xl px-5 py-14 md:py-20">
     <div class="reveal mb-10 flex flex-wrap justify-center gap-2" data-project-filters style="transition-delay:0ms">
         <button type="button" class="{{ $on }}" data-filter="all" aria-pressed="true" data-ar="الكل" data-en="All">الكل</button>
-        <button type="button" class="{{ $off }}" data-filter="living" aria-pressed="false" data-ar="غرف معيشة" data-en="Living rooms">غرف معيشة</button>
+        <button type="button" class="{{ $off }}" data-filter="living" aria-pressed="false" data-ar="غرف معيشة" data-en="Living">غرف معيشة</button>
         <button type="button" class="{{ $off }}" data-filter="kitchen" aria-pressed="false" data-ar="مطابخ" data-en="Kitchens">مطابخ</button>
         <button type="button" class="{{ $off }}" data-filter="bedroom" aria-pressed="false" data-ar="غرف نوم" data-en="Bedrooms">غرف نوم</button>
     </div>
