@@ -72,5 +72,6 @@
         applyLang(localStorage.getItem("forma-lang") === "en" ? "en" : "ar");
     </script>
     @include('kaheel.partials.payment-methods-script')
+    @include('kaheel.partials.forma-footer')
 </body>
 </html>

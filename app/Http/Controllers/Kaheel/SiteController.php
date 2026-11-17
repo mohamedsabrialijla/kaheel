@@ -14,16 +14,37 @@ class SiteController extends Controller
 {
     public function home()
     {
-        $packages = $this->visiblePackages();
-        $catalog = collect(KaheelCategory::catalog())->keyBy('code');
+        return view('kaheel.home', $this->publicSettings() + ['title' => 'FORMA INTERIORS | حلول التصميم والتأثيث المتكامل', 'nav' => 'home']);
+    }
 
-        return view('kaheel.home', array_merge($this->publicSettings(), [
-            'packages' => $packages,
-            'highlights' => $packages->mapWithKeys(fn (KaheelPackage $package) => [
-                $package->id => $this->highlightLines($package, $catalog),
-            ]),
-            'outline' => $this->contentLines($packages, $catalog),
-        ]));
+    public function furniture()
+    {
+        return view('kaheel.furniture', $this->publicSettings() + ['title' => 'الباقات | FORMA INTERIORS', 'nav' => 'packages']);
+    }
+
+    public function process()
+    {
+        return view('kaheel.process', $this->publicSettings() + ['title' => 'كيف نعمل | FORMA INTERIORS', 'nav' => 'process']);
+    }
+
+    public function projects()
+    {
+        return view('kaheel.projects', $this->publicSettings() + ['title' => 'مشاريعنا | FORMA INTERIORS', 'nav' => 'projects']);
+    }
+
+    public function about()
+    {
+        return view('kaheel.about', $this->publicSettings() + ['title' => 'عن فورما | FORMA INTERIORS', 'nav' => 'about']);
+    }
+
+    public function audience()
+    {
+        return view('kaheel.audience', $this->publicSettings() + ['title' => 'من نخدم | FORMA INTERIORS', 'nav' => 'who']);
+    }
+
+    public function contact()
+    {
+        return view('kaheel.contact', $this->publicSettings() + ['title' => 'تواصل معنا | FORMA INTERIORS', 'nav' => 'contact']);
     }
 
     public function package(string $code)
@@ -73,6 +94,7 @@ class SiteController extends Controller
         ])->filter(fn ($phone) => filled($phone))->implode(' · ');
 
         return [
+            'home' => url(app()->getLocale()),
             'phones' => $phones,
             'deliveryAr' => "مدة التنفيذ {$days} يوم عمل من تاريخ الدفع (عدا الجمعة والسبت).",
             'deliveryEn' => "Delivery is {$days} working days from payment date (Friday and Saturday excluded).",

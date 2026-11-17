@@ -131,7 +131,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ asset('kaheel/home.css') }}?v=53" rel="stylesheet">
+    <link href="{{ asset('kaheel/home.css') }}?v=54" rel="stylesheet">
 </head>
 <body>
     @include('kaheel.partials.public-header')
@@ -158,7 +158,9 @@
                 <div><dt data-ar="ضريبة القيمة المضافة" data-en="VAT">ضريبة القيمة المضافة</dt><dd>{{ $money($vat) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
                 <div><dt data-ar="الإجمالي" data-en="Total">الإجمالي</dt><dd>{{ $money($order->price_incl) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
                 <div><dt data-ar="العربون" data-en="Deposit">العربون</dt><dd class="is-primary">{{ $money($order->deposit_amount) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
-                <div><dt data-ar="مبلغ البدائل" data-en="Alternatives amount">مبلغ البدائل</dt><dd>{{ $money($order->alternatives_amount) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
+                @if ((float) $order->alternatives_amount > 0)
+                    <div><dt data-ar="مبلغ البدائل" data-en="Alternatives amount">مبلغ البدائل</dt><dd>{{ $money($order->alternatives_amount) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
+                @endif
                 @if ((float) $order->addons_total > 0)
                     <div><dt data-ar="التعديلات الإضافية" data-en="Add-ons">التعديلات الإضافية</dt><dd>{{ $money($order->addons_total) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
                 @endif
@@ -388,7 +390,7 @@
                     @if ($designReviewOpen && $components->isNotEmpty())
                         <div id="design-panel-2" class="design-panel" hidden>
                             <p class="design-q" data-ar="هل ترغب بتعديل التصميم؟" data-en="Would you like to change the design?">هل ترغب بتعديل التصميم؟</p>
-                            <p class="order-lead" data-ar="يمكنك زيادة الكميات. أي تبديل يتم بالاتفاق مع الإدارة خارج النظام، ويظهر مبلغ البدائل في الملخص المالي." data-en="You can increase quantities. Swaps are agreed with admin outside the system; the alternatives amount appears in the financial summary.">يمكنك زيادة الكميات. أي تبديل يتم بالاتفاق مع الإدارة خارج النظام، ويظهر مبلغ البدائل في الملخص المالي.</p>
+                            <p class="order-lead" data-ar="يمكنك زيادة الكميات إن رغبت، وسيُضاف الفرق للفاتورة النهائية." data-en="You can increase quantities if you want; the difference is added to the final invoice.">يمكنك زيادة الكميات إن رغبت، وسيُضاف الفرق للفاتورة النهائية.</p>
                             <div class="design-choice-grid">
                                 <button type="button" class="design-choice" id="design-no-change">
                                     <span class="design-choice-title" data-ar="لا، التصميم مناسب" data-en="No, the design is fine">لا، التصميم مناسب</span>
@@ -649,10 +651,14 @@
                 const rows = [
                     [en() ? "Add-ons" : "التعديلات الإضافية", `${money(z)} ${sar()}`],
                     [en() ? "VAT" : "ضريبة القيمة المضافة", `${money(z * 0.15)} ${sar()}`],
-                    [en() ? "Alternatives amount" : "مبلغ البدائل", `${money(altsAmount)} ${sar()}`],
+                ];
+                if (altsAmount > 0) {
+                    rows.push([en() ? "Alternatives amount" : "مبلغ البدائل", `${money(altsAmount)} ${sar()}`]);
+                }
+                rows.push(
                     [en() ? "Final total" : "الإجمالي النهائي", `${money(final)} ${sar()}`, true],
                     [en() ? "Remaining" : "المتبقي", `${money(remaining)} ${sar()}`],
-                ];
+                );
                 node.replaceChildren();
                 rows.forEach(([label, value, strong]) => {
                     const wrap = document.createElement("div");
@@ -1177,5 +1183,6 @@
         }, 8000);
     </script>
     @include('kaheel.partials.payment-methods-script')
+    @include('kaheel.partials.forma-footer')
 </body>
 </html>

@@ -307,9 +307,15 @@
                         <span class="ka-sup-muted">{{ item.base_qty }} {{ unitOf(item) }} · {{ money(item.price_per_unit) }} SAR/{{ unitOf(item) }}</span>
                     </div>
                     <p v-if="item.added" class="ka-ord-extra">{{ t.addedFlag }}</p>
-                    <div v-if="item.options && item.options.length" class="ka-ord-alts-ref">
-                        <p class="ka-sup-muted">{{ t.altsTitle }}</p>
-                        <p v-for="(option, optionIndex) in item.options" :key="optionIndex">{{ locale === 'en' ? (option.name_en || option.name_ar) : (option.name_ar || option.name_en) }} · {{ deltaText(option.price_delta) }} SAR</p>
+                    <div class="ka-comp-alts">
+                        <p class="ka-comp-alts-title">{{ t.altsTitle }}</p>
+                        <ul v-if="altsFor(item.category).length" class="ka-alt-rows">
+                            <li v-for="alt in altsFor(item.category)" :key="alt.id" class="ka-alt-row">
+                                <span class="ka-alt-row-name">{{ locale === 'en' ? (alt.name_en || alt.name_ar) : (alt.name_ar || alt.name_en) }}</span>
+                                <span class="ka-alt-row-delta">{{ deltaText(alt.price_delta) }} SAR</span>
+                            </li>
+                        </ul>
+                        <p v-else class="ka-sup-muted">{{ t.noAlts }}</p>
                     </div>
                 </div>
                 </template>
@@ -336,23 +342,17 @@
                         </div>
                         <p class="ka-comp-price">{{ t.linePrice }}: {{ money(shownPrice(item)) }} SAR</p>
                         <div class="ka-comp-alts">
-                            <p class="ka-comp-alts-title">{{ t.altsTitle }} <span class="ka-sup-muted">{{ t.categoryOf }}: {{ categoryName(item.category) }}</span></p>
-                            <p class="ka-sup-muted">{{ t.altsRefHint }}</p>
-                            <div v-for="(option, optionIndex) in item.options" :key="optionIndex" class="ka-comp-alt">
-                                <label class="ka-field"><span>{{ t.altAr }}</span><input v-model="option.name_ar"></label>
-                                <label class="ka-field"><span>Alternative</span><input v-model="option.name_en"></label>
-                                <label class="ka-field"><span>{{ t.delta }}</span><input v-model.number="option.price_delta" type="number"></label>
-                                <button v-if="can('orders.edit')" type="button" class="ka-btn ka-btn-ghost" @click="removeOption(item, optionIndex)">{{ t.remove }}</button>
-                            </div>
-                            <div v-if="can('orders.edit')" class="ka-ord-actions">
-                                <select class="ka-ord-select" @change="insertAlt($event, item)">
-                                    <option value="">{{ t.insertAlt }}</option>
-                                    <option v-for="alt in altsFor(item.category)" :key="alt.id" :value="alt.id">{{ (locale === 'en' ? alt.name_en : alt.name_ar) + ' (' + deltaText(alt.price_delta) + ')' }}</option>
-                                </select>
-                                <button type="button" class="ka-btn ka-btn-outline" @click="item.options.push({ name_ar: '', name_en: '', price_delta: 0 })">{{ t.manualAlt }}</button>
-                                <button type="button" class="ka-btn ka-btn-ghost" @click="drafts.splice(index, 1)">{{ t.removeComponent }}</button>
-                            </div>
-                            <p v-if="!altsFor(item.category).length" class="ka-sup-muted">{{ t.noAlts }}</p>
+                            <p class="ka-comp-alts-title">{{ t.altsTitle }}</p>
+                            <ul v-if="altsFor(item.category).length" class="ka-alt-rows">
+                                <li v-for="alt in altsFor(item.category)" :key="alt.id" class="ka-alt-row">
+                                    <span class="ka-alt-row-name">{{ locale === 'en' ? (alt.name_en || alt.name_ar) : (alt.name_ar || alt.name_en) }}</span>
+                                    <span class="ka-alt-row-delta">{{ deltaText(alt.price_delta) }} SAR</span>
+                                </li>
+                            </ul>
+                            <p v-else class="ka-sup-muted">{{ t.noAlts }}</p>
+                        </div>
+                        <div v-if="can('orders.edit')" class="ka-comp-card-foot">
+                            <button type="button" class="ka-btn ka-btn-ghost" @click="drafts.splice(index, 1)">{{ t.removeComponent }}</button>
                         </div>
                     </article>
                     <div v-if="can('orders.edit')" class="ka-ord-actions">
@@ -691,8 +691,7 @@ export default {
                 unitEn: "Unit label (English)",
                 qty: "Base quantity",
                 unitPrice: "Price per extra unit",
-                altsTitle: "Alternatives price reference",
-                altsRefHint: "Display only — no electronic swap. Use these prices to calculate outside the system, then save the alternatives amount in Financials.",
+                altsTitle: "Alternatives (price reference)",
                 noAlts: "No active alternatives for this category — add them in the Alternatives page.",
                 extraCost: "Extra cost",
                 altAr: "Alternative (Arabic)",
@@ -838,8 +837,7 @@ export default {
                 unitEn: "الوحدة بالإنجليزية",
                 qty: "الكمية الأساسية",
                 unitPrice: "سعر الوحدة الإضافية",
-                altsTitle: "مرجع أسعار البدائل",
-                altsRefHint: "عرض فقط — لا تبديل إلكتروني. استخدم الأسعار للحساب خارج النظام ثم احفظ مبلغ البدائل في الملخص المالي.",
+                altsTitle: "البدائل (مرجع أسعار)",
                 noAlts: "لا توجد بدائل مفعّلة لهذا التصنيف في المكتبة — أضفها من صفحة «البدائل والأسعار».",
                 extraCost: "تكلفة إضافية",
                 altAr: "بديل بالعربية",
@@ -1458,7 +1456,7 @@ export default {
                     ...items.map((item) => ({
                         ...blankComponent(),
                         ...item,
-                        options: item.allow_alternatives ? this.altsFor(item.category).map((alt) => ({ name_ar: alt.name_ar, name_en: alt.name_en, price_delta: Number(alt.price_delta) })) : [],
+                        options: this.altsFor(item.category).map((alt) => ({ name_ar: alt.name_ar, name_en: alt.name_en, price_delta: Number(alt.price_delta) })),
                     })),
                     ...kept,
                 ];
@@ -1516,12 +1514,6 @@ export default {
         altsFor(category) {
             return (this.order?.alternatives || []).filter((alt) => alt.category === category);
         },
-        insertAlt(event, item) {
-            const alt = (this.order.alternatives || []).find((row) => String(row.id) === event.target.value);
-            event.target.value = "";
-            if (!alt || alt.category !== item.category) return;
-            item.options.push({ name_ar: alt.name_ar, name_en: alt.name_en, price_delta: Number(alt.price_delta) });
-        },
         linePrice(item) {
             return Number(item.base_qty || 0) * Number(item.price_per_unit || 0) + Number(item.extra_cost || 0);
         },
@@ -1568,9 +1560,6 @@ export default {
                 }
             });
             return [...map.values()];
-        },
-        removeOption(item, index) {
-            item.options.splice(index, 1);
         },
         async saveAlternativesAmount() {
             await this.post("KaheelOrders/saveAlternativesAmount", {

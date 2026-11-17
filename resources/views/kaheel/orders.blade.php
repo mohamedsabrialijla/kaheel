@@ -56,5 +56,6 @@
         });
         if (localStorage.getItem("forma-lang") === "en") document.getElementById("lang-toggle").click();
     </script>
+    @include('kaheel.partials.forma-footer')
 </body>
 </html>

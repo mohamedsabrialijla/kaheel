@@ -103,6 +103,12 @@ Route::get('/test-signed', function () {
     // })->where('pathMatch', '.*');
 
     Route::get('/', [App\Http\Controllers\Kaheel\SiteController::class, 'home']);
+    Route::get('/packages', [App\Http\Controllers\Kaheel\SiteController::class, 'furniture']);
+    Route::get('/process', [App\Http\Controllers\Kaheel\SiteController::class, 'process']);
+    Route::get('/projects', [App\Http\Controllers\Kaheel\SiteController::class, 'projects']);
+    Route::get('/who-we-serve', [App\Http\Controllers\Kaheel\SiteController::class, 'audience']);
+    Route::get('/about', [App\Http\Controllers\Kaheel\SiteController::class, 'about']);
+    Route::get('/contact', [App\Http\Controllers\Kaheel\SiteController::class, 'contact']);
 
     Route::get('/auth/csrf', [App\Http\Controllers\Kaheel\AuthController::class, 'csrf']);
     Route::get('/auth', [App\Http\Controllers\Kaheel\AuthController::class, 'show'])->defaults('screen', 'login');
