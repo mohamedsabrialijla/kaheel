@@ -18,9 +18,9 @@
     <main class="order-page">
         <div class="orders-head">
             <h1 class="auth-title" data-ar="طلباتي" data-en="My orders">طلباتي</h1>
-            <a class="btn btn-primary orders-new" href="{{ url(app()->getLocale().'/order') }}">
+            <a class="btn btn-primary orders-new inline-flex items-center justify-center gap-2" href="{{ url(app()->getLocale().'/order') }}">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-                <span data-ar="طلب جديد" data-en="New order">طلب جديد</span>
+                <span data-ar="إضافة طلب" data-en="Add order">إضافة طلب</span>
             </a>
         </div>
         @forelse ($orders as $order)
