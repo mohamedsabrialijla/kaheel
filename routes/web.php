@@ -158,10 +158,6 @@ Route::get('/test-signed', function () {
     Route::post('/orders/{order}/final', [App\Http\Controllers\Kaheel\OrderController::class, 'submitFinalPayment']);
     Route::get('/orders/{order}', [App\Http\Controllers\Kaheel\OrderController::class, 'show']);
 
-    Route::get('/{pathMatch}', function () {
-        return view('basic.landing');
-    })->where('pathMatch', '^(?!dashboard|web|user|api).*');
-
 
 
 

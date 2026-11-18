@@ -14,12 +14,20 @@ class SiteController extends Controller
 {
     public function home()
     {
-        return view('kaheel.home', $this->publicSettings() + ['title' => 'FORMA INTERIORS | حلول التصميم والتأثيث المتكامل', 'nav' => 'home']);
+        return view('kaheel.home', $this->publicSettings() + [
+            'title' => 'FORMA INTERIORS | حلول التصميم والتأثيث المتكامل',
+            'nav' => 'home',
+            'packages' => $this->visiblePackages(),
+        ]);
     }
 
     public function furniture()
     {
-        return view('kaheel.furniture', $this->publicSettings() + ['title' => 'الباقات | FORMA INTERIORS', 'nav' => 'packages']);
+        return view('kaheel.furniture', $this->publicSettings() + [
+            'title' => 'الباقات | FORMA INTERIORS',
+            'nav' => 'packages',
+            'packages' => $this->visiblePackages(),
+        ]);
     }
 
     public function process()
