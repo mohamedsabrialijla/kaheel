@@ -2,8 +2,9 @@
     $home = $home ?? url(app()->getLocale());
     $packages = $packages ?? collect();
     $money = fn ($amount) => number_format((float) $amount, 2, '.', ',');
+    $canSeePackages = kaheel_customer() || auth('admin')->check();
 ?>
-<?php if($packages->isNotEmpty()): ?>
+<?php if($canSeePackages && $packages->isNotEmpty()): ?>
 <section class="mx-auto max-w-6xl px-5 py-16 md:py-20" id="kaheel-packages">
     <div class="reveal text-center">
         <p class="mb-3 text-[0.65rem] font-semibold tracking-[0.32em] text-primary">PACKAGES</p>
