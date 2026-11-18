@@ -10,6 +10,7 @@ use App\Models\KaheelPackageTier;
 use App\Support\KaheelPermissions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class PackageController extends KaheelAdminController
@@ -27,20 +28,33 @@ class PackageController extends KaheelAdminController
 
     public function index()
     {
-        $stats = KaheelOrder::query()
-            ->selectRaw('package_code, count(*) as orders_count, coalesce(sum(price_incl + addons_total + alternatives_amount), 0) as sales')
-            ->groupBy('package_code')
-            ->get()
-            ->keyBy('package_code');
-
         $rows = KaheelPackage::query()
             ->with(['tiers.items', 'images'])
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get()
-            ->map(fn (KaheelPackage $package) => $this->present($package, $stats->get($package->code)));
+            ->map(fn (KaheelPackage $package) => $this->present($package, $this->packageStats()->get($package->code)));
 
         return mainResponse(true, 'Success', $rows, 200, 'items', '');
+    }
+
+    private function packageStats()
+    {
+        $sales = Schema::hasColumn('kaheel_orders', 'alternatives_amount')
+            ? 'coalesce(sum(price_incl + addons_total + alternatives_amount), 0)'
+            : 'coalesce(sum(price_incl + addons_total), 0)';
+
+        try {
+            return KaheelOrder::query()
+                ->selectRaw("package_code, count(*) as orders_count, {$sales} as sales")
+                ->groupBy('package_code')
+                ->get()
+                ->keyBy('package_code');
+        } catch (\Throwable $e) {
+            report($e);
+
+            return collect();
+        }
     }
 
     public function savePackage(Request $request)

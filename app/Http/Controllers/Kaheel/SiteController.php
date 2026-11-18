@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Kaheel;
 
 use App\Http\Controllers\Controller;
 use App\Models\KaheelCategory;
+use App\Models\KaheelInquiry;
 use App\Models\KaheelPackage;
 use App\Models\KaheelPackageImage;
 use App\Models\KaheelSetting;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
@@ -53,6 +55,30 @@ class SiteController extends Controller
     public function contact()
     {
         return view('kaheel.contact', $this->publicSettings() + ['title' => 'تواصل معنا | FORMA INTERIORS', 'nav' => 'contact']);
+    }
+
+    public function storeContact(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:120',
+            'phone' => 'required|string|max:40',
+            'customer_type' => 'required|in:owner,individual,developer',
+            'message' => 'required|string|max:4000',
+        ], [], [
+            'name' => app()->getLocale() === 'en' ? 'name' : 'الاسم',
+            'phone' => app()->getLocale() === 'en' ? 'mobile' : 'رقم الجوال',
+            'customer_type' => app()->getLocale() === 'en' ? 'customer type' : 'نوع العميل',
+            'message' => app()->getLocale() === 'en' ? 'message' : 'الرسالة',
+        ]);
+
+        KaheelInquiry::query()->create([
+            'name' => trim($data['name']),
+            'phone' => trim($data['phone']),
+            'customer_type' => $data['customer_type'],
+            'message' => trim($data['message']),
+        ]);
+
+        return back()->with('contact_ok', true);
     }
 
     public function package(string $code)

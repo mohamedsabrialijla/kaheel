@@ -17,6 +17,11 @@ class KaheelPermissions
                 'label_en' => 'Orders',
                 'actions' => ['view', 'create', 'edit', 'delete'],
             ],
+            'inquiries' => [
+                'label_ar' => 'رسائل التواصل',
+                'label_en' => 'Contact messages',
+                'actions' => ['view', 'delete'],
+            ],
             'staff' => [
                 'label_ar' => 'الموظفون',
                 'label_en' => 'Staff',

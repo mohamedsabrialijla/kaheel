@@ -109,6 +109,7 @@ Route::get('/test-signed', function () {
     Route::get('/who-we-serve', [App\Http\Controllers\Kaheel\SiteController::class, 'audience']);
     Route::get('/about', [App\Http\Controllers\Kaheel\SiteController::class, 'about']);
     Route::get('/contact', [App\Http\Controllers\Kaheel\SiteController::class, 'contact']);
+    Route::post('/contact', [App\Http\Controllers\Kaheel\SiteController::class, 'storeContact'])->middleware('throttle:8,1');
 
     Route::get('/auth/csrf', [App\Http\Controllers\Kaheel\AuthController::class, 'csrf']);
     Route::get('/auth', [App\Http\Controllers\Kaheel\AuthController::class, 'show'])->defaults('screen', 'login');
@@ -556,6 +557,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('KaheelOrders/message', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'message']);
         Route::get('KaheelOrders/messageMedia/{message}', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'messageMedia']);
         Route::post('KaheelOrders/upload', [App\Http\Controllers\Kaheel\AdminOrderController::class, 'upload']);
+
+        Route::get('KaheelInquiries/getAllItems', [App\Http\Controllers\Kaheel\InquiryController::class, 'index']);
+        Route::post('KaheelInquiries/delete', [App\Http\Controllers\Kaheel\InquiryController::class, 'delete']);
 
         Route::get('KaheelAlternatives/getAllItems', [App\Http\Controllers\Kaheel\AlternativeController::class, 'index']);
         Route::post('KaheelAlternatives/save', [App\Http\Controllers\Kaheel\AlternativeController::class, 'save']);

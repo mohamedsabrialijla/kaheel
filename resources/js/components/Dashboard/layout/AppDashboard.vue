@@ -85,6 +85,7 @@ export default {
             items: [
                 { key: "overview", to: "/dashboard", icon: svg('<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>') },
                 { key: "orders", to: "/dashboard/orders", icon: svg('<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>') },
+                { key: "inquiries", to: "/dashboard/inquiries", icon: svg('<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>') },
                 { key: "staff", to: "/dashboard/staff", icon: svg('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>') },
                 { key: "suppliers", to: "/dashboard/suppliers", icon: svg('<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>') },
                 { key: "packages", to: "/dashboard/packages", icon: svg('<path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z"/><path d="m7 16.5-4.74-2.85"/><path d="m7 16.5 5-3"/><path d="M7 16.5v5.17"/><path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z"/><path d="m17 16.5-5-3"/><path d="m17 16.5 4.74-2.85"/><path d="M17 16.5v5.17"/><path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z"/><path d="M12 8 7.26 5.15"/><path d="m12 8 4.74-2.85"/><path d="M12 13.5V8"/>') },
@@ -129,6 +130,7 @@ export default {
                 administrator: "مدير النظام",
                 overview: "نظرة عامة",
                 orders: "الطلبات",
+                inquiries: "رسائل التواصل",
                 staff: "الموظفون",
                 suppliers: "الموردون",
                 packages: "الباقات",
@@ -150,6 +152,7 @@ export default {
                 administrator: "System administrator",
                 overview: "Overview",
                 orders: "Orders",
+                inquiries: "Contact messages",
                 staff: "Staff",
                 suppliers: "Suppliers",
                 packages: "Packages",

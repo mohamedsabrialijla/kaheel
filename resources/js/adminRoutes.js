@@ -10,6 +10,7 @@ import KaheelRoles from './components/Dashboard/pages/RolesPage.vue';
 import Staff from './components/Dashboard/pages/StaffPage.vue';
 import Alternatives from './components/Dashboard/pages/Alternatives.vue';
 import AdminOrders from './components/Dashboard/pages/AdminOrders.vue';
+import Inquiries from './components/Dashboard/pages/Inquiries.vue';
 
 import Admins from './components/Dashboard/pages/UserManagement/Admins.vue';
 import Users from './components/Dashboard/pages/UserManagement/Users.vue';
@@ -61,6 +62,7 @@ export default [
         meta: { requiresAuth: true, role: 'admin', kaheel: 'overview' } 
     },
     { path: '/:locale/dashboard/orders', component: AdminOrders, meta: { requiresAuth: true, role: 'admin', kaheel: 'orders' } },
+    { path: '/:locale/dashboard/inquiries', component: Inquiries, meta: { requiresAuth: true, role: 'admin', kaheel: 'inquiries' } },
     { path: '/:locale/dashboard/orders/:id', component: AdminOrders, meta: { requiresAuth: true, role: 'admin', kaheel: 'orders' } },
     { path: '/:locale/dashboard/staff', component: Staff, meta: { requiresAuth: true, role: 'admin', kaheel: 'staff' } },
     { path: '/:locale/dashboard/suppliers', component: Suppliers, meta: { requiresAuth: true, role: 'admin', kaheel: 'suppliers' } },

@@ -12,8 +12,10 @@
             </button>
         </div>
 
+        <p v-if="loadError" class="ka-sup-muted" style="color:#b42318">{{ loadError }}</p>
         <div class="ka-pkg-grid">
             <p v-if="loading" class="ka-sup-muted">…</p>
+            <p v-else-if="!loadError && !rows.length" class="ka-sup-muted">{{ t.empty }}</p>
             <article v-for="pkg in rows" :key="pkg.id" class="ka-pkg-card">
                 <div class="ka-pkg-top">
                     <div>
@@ -238,6 +240,7 @@ export default {
         return {
             rows: [],
             loading: true,
+            loadError: "",
             saving: false,
             error: "",
             formError: "",
@@ -263,6 +266,7 @@ export default {
             return this.locale === "en" ? {
                 title: "Package management",
                 lead: "Create the main package, then its sub-packages, then the items of each sub-package.",
+                empty: "No packages in the database for this connection.",
                 newPackage: "New package",
                 active: "Active",
                 disabled: "Disabled",
@@ -316,6 +320,7 @@ export default {
             } : {
                 title: "إدارة الباقات",
                 lead: "أنشئ الباقة الرئيسية، ثم باقاتها الفرعية، ثم عناصر كل باقة فرعية بأعدادها ومنتجاتها.",
+                empty: "لا توجد باقات في قاعدة البيانات المتصلة بهذا السيرفر.",
                 newPackage: "باقة جديدة",
                 active: "مفعّلة",
                 disabled: "معطّلة",
@@ -399,6 +404,7 @@ export default {
         },
         async load() {
             this.loading = true;
+            this.loadError = "";
             try {
                 const [packages, cats] = await Promise.all([
                     axios.get("KaheelPackages/getAllItems"),
@@ -406,6 +412,9 @@ export default {
                 ]);
                 this.rows = packages.data.items || [];
                 if (cats.data.items?.length) this.categories = cats.data.items;
+            } catch (error) {
+                this.rows = [];
+                this.loadError = this.fail(error);
             } finally {
                 this.loading = false;
             }
