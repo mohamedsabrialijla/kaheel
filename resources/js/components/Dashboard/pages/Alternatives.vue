@@ -46,7 +46,10 @@
                 </label>
                 <label class="ka-field"><span>{{ t.nameAr }}</span><input v-model="form.name_ar" :placeholder="locale === 'ar' ? 'تلفزيون سامسونج 65 بوصة' : '...'"></label>
                 <label class="ka-field"><span>{{ t.nameEn }}</span><input v-model="form.name_en" placeholder='Samsung 65" TV'></label>
-                <label class="ka-field"><span>{{ t.delta }}</span><input v-model.number="form.price_delta" type="number"></label>
+                <label class="ka-field"><span>{{ t.delta }}</span>
+                    <input v-model.number="form.price_delta" type="number">
+                    <small class="ka-sup-muted">{{ t.exclVat }}</small>
+                </label>
             </div>
             <button type="button" class="ka-btn ka-btn-primary ka-alt-add-btn" :disabled="saving || !form.name_ar.trim() || !form.name_en.trim()" @click="add">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
@@ -75,7 +78,10 @@
                             <input v-model="editing.name_ar">
                             <input v-model="editing.name_en">
                         </div>
-                        <input v-model.number="editing.price_delta" type="number">
+                        <div class="ka-field">
+                            <input v-model.number="editing.price_delta" type="number">
+                            <small class="ka-sup-muted">{{ t.exclVat }}</small>
+                        </div>
                         <div class="ka-alt-row-actions">
                             <button type="button" class="ka-btn ka-btn-primary ka-btn-inline" :disabled="saving" @click="saveEdit(row)">
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
@@ -182,6 +188,7 @@ export default {
                     nameAr: "Arabic name",
                     nameEn: "English name",
                     delta: "Price difference (SAR)",
+                    exclVat: "Price excluding VAT",
                     add: "Add to library",
                     filter: "Filter category:",
                     all: "All",
@@ -217,6 +224,7 @@ export default {
                 nameAr: "اسم البديل بالعربية",
                 nameEn: "اسم البديل بالإنجليزية",
                 delta: "فرق السعر (ريال)",
+                exclVat: "السعر غير شامل الضريبة",
                 add: "إضافة إلى المكتبة",
                 filter: "عرض التصنيف:",
                 all: "الكل",

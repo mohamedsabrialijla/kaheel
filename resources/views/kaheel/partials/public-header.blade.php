@@ -1,5 +1,5 @@
 @include('kaheel.partials.native-validation')
-<link href="{{ asset('kaheel/forma.css') }}?v=2" rel="stylesheet">
+<link href="{{ asset('kaheel/forma.css') }}?v=3" rel="stylesheet">
 <style>
 .reveal{opacity:1;transform:none}
 nav.design-steps{display:flex!important;flex-direction:column!important;gap:.5rem;margin-bottom:1.5rem}

@@ -119,6 +119,7 @@
                     <label class="ka-field">
                         <span>{{ t.alternativesAmount }}</span>
                         <input v-model.number="alternativesDraft" type="number" min="0" step="0.01">
+                        <small class="ka-sup-muted">{{ t.exclVat }}</small>
                     </label>
                     <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="saveAlternativesAmount">{{ t.saveAltsAmount }}</button>
                     <p class="ka-sup-muted">{{ t.altsAmountHint }}</p>
@@ -630,6 +631,7 @@ export default {
                 addons: "Add-ons",
                 alternativesAmount: "Alternatives amount",
                 saveAltsAmount: "Save alternatives amount",
+                exclVat: "Price excluding VAT",
                 altsAmountHint: "The swap is agreed outside the system. Enter the agreed lump sum here; it is added to the final total.",
                 finalTotal: "Final total",
                 deposit: "Deposit",
@@ -776,6 +778,7 @@ export default {
                 addons: "التعديلات",
                 alternativesAmount: "مبلغ البدائل",
                 saveAltsAmount: "حفظ مبلغ البدائل",
+                exclVat: "السعر غير شامل الضريبة",
                 altsAmountHint: "التبديل يتم بالاتفاق خارج النظام. أدخل المبلغ المتفق عليه هنا ليُضاف للإجمالي النهائي.",
                 finalTotal: "الإجمالي النهائي",
                 deposit: "العربون",
