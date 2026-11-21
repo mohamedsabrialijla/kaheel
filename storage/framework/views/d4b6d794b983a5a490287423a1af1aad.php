@@ -21,11 +21,22 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=El+Messiri:wght@400;500;600&family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="<?php echo e(asset('kaheel/forma.css')); ?>?v=3" rel="stylesheet">
     <script src="<?php echo e(asset('kaheel/forma-i18n.js')); ?>?v=1"></script>
-    <script src="<?php echo e(asset('kaheel/forma-lang.js')); ?>?v=2"></script>
+    <script src="<?php echo e(asset('kaheel/forma-lang.js')); ?>?v=3"></script>
     <style>
         /* forma.css hides .reveal until JS adds .in — keep content visible if JS is late or missing */
         .reveal { opacity: 1; transform: none; }
         @keyframes hero-zoom { from { transform: scale(1); } to { transform: scale(1.08); } }
+        #public-desktop-nav { display: none !important; }
+        .public-menu-btn { display: inline-flex !important; }
+        .public-mobile-menu { display: none; flex-direction: column; gap: 0; border-top: 1px solid color-mix(in oklab, var(--sidebar-border) 80%, transparent); background: var(--sidebar); padding: .5rem 1.25rem 1rem; }
+        .public-mobile-menu.is-open { display: flex; }
+        .public-mobile-menu a { display: block; padding: .85rem 0; border-bottom: 1px solid color-mix(in oklab, var(--sidebar-border) 70%, transparent); color: var(--sidebar-foreground); font-size: .95rem; text-decoration: none; }
+        .public-mobile-menu a:last-child { border-bottom: 0; }
+        .public-mobile-menu .public-mobile-cta { margin-top: .5rem; display: flex; align-items: center; justify-content: center; height: 2.5rem; background: var(--secondary); color: var(--secondary-foreground); border-bottom: 0; }
+        @media (min-width: 1024px) {
+            #public-desktop-nav { display: flex !important; }
+            .public-menu-btn, .public-mobile-menu { display: none !important; }
+        }
     </style>
     <?php echo $__env->yieldPushContent('head'); ?>
 </head>
@@ -36,20 +47,16 @@
         <?php echo $__env->make('kaheel.partials.forma-footer', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     </div>
     <script>
-        const menuBtn = document.querySelector('[aria-controls="public-mobile-menu"]');
-        if (menuBtn) {
-            let panel = document.getElementById("public-mobile-menu");
-            if (!panel) {
-                panel = document.createElement("nav");
-                panel.id = "public-mobile-menu";
-                panel.className = "hidden border-t border-sidebar-border bg-sidebar px-4 py-3 text-sidebar-foreground lg:hidden";
-                panel.innerHTML = document.querySelector('nav[aria-label="التنقل الرئيسي"]')?.innerHTML || "";
-                menuBtn.closest("header")?.append(panel);
-            }
-            menuBtn.addEventListener("click", () => {
-                const open = panel.classList.toggle("hidden") === false;
+        const menuBtn = document.getElementById("public-menu-btn");
+        const panel = document.getElementById("public-mobile-menu");
+        if (menuBtn && panel) {
+            const setOpen = (open) => {
+                panel.classList.toggle("is-open", open);
+                panel.hidden = !open;
                 menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
-            });
+            };
+            menuBtn.addEventListener("click", () => setOpen(!panel.classList.contains("is-open")));
+            panel.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => setOpen(false)));
         }
 
         const slides = [...document.querySelectorAll(".surface-hero img.absolute")];

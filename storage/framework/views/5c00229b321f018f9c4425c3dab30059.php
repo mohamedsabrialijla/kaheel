@@ -1,5 +1,5 @@
 <?php echo $__env->make('kaheel.partials.native-validation', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-<link href="<?php echo e(asset('kaheel/forma.css')); ?>?v=2" rel="stylesheet">
+<link href="<?php echo e(asset('kaheel/forma.css')); ?>?v=3" rel="stylesheet">
 <style>
 .reveal{opacity:1;transform:none}
 nav.design-steps{display:flex!important;flex-direction:column!important;gap:.5rem;margin-bottom:1.5rem}

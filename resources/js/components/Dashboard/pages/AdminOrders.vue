@@ -109,18 +109,29 @@
                     <div><p>{{ t.vat }}</p><strong>{{ money(order.vat) }} SAR</strong></div>
                     <div><p>{{ t.packageTotal }}</p><strong>{{ money(order.price_incl) }} SAR</strong></div>
                     <div><p>{{ t.addons }}</p><strong>{{ money(billAddons) }} SAR</strong></div>
-                    <div><p>{{ t.alternativesAmount }}</p><strong>{{ money(alternativesDraft) }} SAR</strong></div>
+                    <div><p>{{ t.alternativesAmount }}</p><strong>{{ money(alternativesIncl) }} SAR</strong></div>
                     <div><p>{{ t.finalTotal }}</p><strong>{{ money(billFinal) }} SAR</strong></div>
                     <div><p>{{ t.deposit }}</p><strong>{{ money(order.deposit_amount) }} SAR · {{ order.deposit_paid ? t.paidState : t.unpaid }}</strong></div>
                     <div><p>{{ t.paid }}</p><strong>{{ money(order.paid) }} SAR</strong></div>
                     <div><p>{{ t.remaining }}</p><strong>{{ money(billRemaining) }} SAR</strong></div>
                 </div>
                 <div v-if="can('orders.edit') && order.status !== 'closed'" class="ka-ord-alts-amount">
-                    <label class="ka-field">
-                        <span>{{ t.alternativesAmount }}</span>
-                        <input v-model.number="alternativesDraft" type="number" min="0" step="0.01">
-                        <small class="ka-sup-muted">{{ t.exclVat }}</small>
-                    </label>
+                    <div class="ka-ord-alts-pair">
+                        <label class="ka-field">
+                            <span>{{ t.alternativesExcl }}</span>
+                            <input v-model.number="alternativesDraft" type="number" min="0" step="0.01">
+                            <small class="ka-sup-muted">{{ t.exclVat }}</small>
+                        </label>
+                        <span class="ka-ord-alts-vat" aria-hidden="true">
+                            <em>× 15%</em>
+                            <span>{{ t.vat }}</span>
+                        </span>
+                        <label class="ka-field">
+                            <span>{{ t.alternativesIncl }}</span>
+                            <input :value="money(alternativesIncl)" type="text" readonly tabindex="-1">
+                            <small class="ka-sup-muted">{{ t.inclVatHint }}</small>
+                        </label>
+                    </div>
                     <button type="button" class="ka-btn ka-btn-primary" :disabled="saving" @click="saveAlternativesAmount">{{ t.saveAltsAmount }}</button>
                     <p class="ka-sup-muted">{{ t.altsAmountHint }}</p>
                 </div>
@@ -630,9 +641,12 @@ export default {
                 packageTotal: "Package total",
                 addons: "Add-ons",
                 alternativesAmount: "Alternatives amount",
+                alternativesExcl: "Amount excl. VAT",
+                alternativesIncl: "Amount incl. VAT",
                 saveAltsAmount: "Save alternatives amount",
                 exclVat: "Price excluding VAT",
-                altsAmountHint: "The swap is agreed outside the system. Enter the agreed lump sum here; it is added to the final total.",
+                inclVatHint: "This amount is added to the final total",
+                altsAmountHint: "Enter the agreed swap amount before VAT. The VAT-inclusive figure is what is billed.",
                 finalTotal: "Final total",
                 deposit: "Deposit",
                 paidState: "paid",
@@ -777,9 +791,12 @@ export default {
                 packageTotal: "قيمة الباقة",
                 addons: "التعديلات",
                 alternativesAmount: "مبلغ البدائل",
+                alternativesExcl: "المبلغ قبل الضريبة",
+                alternativesIncl: "المبلغ شامل الضريبة",
                 saveAltsAmount: "حفظ مبلغ البدائل",
                 exclVat: "السعر غير شامل الضريبة",
-                altsAmountHint: "التبديل يتم بالاتفاق خارج النظام. أدخل المبلغ المتفق عليه هنا ليُضاف للإجمالي النهائي.",
+                inclVatHint: "هذا المبلغ يُضاف للإجمالي النهائي",
+                altsAmountHint: "أدخل مبلغ التبديل المتفق عليه قبل الضريبة. المبلغ شامل الضريبة هو الذي يُحتسب في الإجمالي.",
                 finalTotal: "الإجمالي النهائي",
                 deposit: "العربون",
                 paidState: "مدفوع",
@@ -913,8 +930,11 @@ export default {
             const hidden = saved.filter((item) => !draftIds.has(item.id)).reduce((sum, item) => sum + this.charge(item), 0);
             return hidden + this.editorCharge;
         },
+        alternativesIncl() {
+            return Math.round((Number(this.alternativesDraft || 0) * 1.15) * 100) / 100;
+        },
         billFinal() {
-            return Number(this.order?.price_incl || 0) + Number(this.billAddons) + Number(this.alternativesDraft || 0);
+            return Number(this.order?.price_incl || 0) + Number(this.billAddons) + Number(this.alternativesIncl || 0);
         },
         billRemaining() {
             const paid = this.order?.final_payment_status === "approved"
@@ -1163,6 +1183,11 @@ export default {
         money(value) {
             return Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         },
+        exclFromStored(amount) {
+            const stored = Number(amount || 0);
+            if (!stored) return 0;
+            return Math.round((stored / 1.15) * 100) / 100;
+        },
         parseStamp(value) {
             if (!value) return null;
             let text = String(value).trim().replace(" ", "T").replace(/\.(\d{3})\d+/, ".$1");
@@ -1359,7 +1384,7 @@ export default {
                 if (this.orderId) {
                     const response = await axios.get("KaheelOrders/show", { params: { id: this.orderId } });
                     this.order = response.data.items;
-                    this.alternativesDraft = Number(this.order.alternatives_amount || 0);
+                    this.alternativesDraft = this.exclFromStored(this.order.alternatives_amount);
                     this.chatOpen = false;
                     const visible = this.order.status === "design_preparation"
                         ? this.cloneDrafts(this.order.components)
@@ -1383,7 +1408,7 @@ export default {
         },
         apply(response) {
             this.order = response.data.items;
-            this.alternativesDraft = Number(this.order?.alternatives_amount || 0);
+            this.alternativesDraft = this.exclFromStored(this.order?.alternatives_amount);
             if (this.order?.categories?.length) this.categories = this.order.categories;
         },
         async post(url, payload) {
@@ -1567,7 +1592,7 @@ export default {
         async saveAlternativesAmount() {
             await this.post("KaheelOrders/saveAlternativesAmount", {
                 id: this.order.id,
-                alternatives_amount: Number(this.alternativesDraft || 0),
+                alternatives_amount: Number(this.alternativesIncl || 0),
             });
         },
         async saveComponents() {

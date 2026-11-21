@@ -1,188 +1,121 @@
 <?php
+    $title = 'دخول الإدارة | FORMA INTERIORS';
+    $nav = '';
     $locale = app()->getLocale();
-    $home = url($locale);
 ?>
-<!DOCTYPE html>
-<html lang="<?php echo e($locale); ?>" dir="<?php echo e($locale === 'ar' ? 'rtl' : 'ltr'); ?>">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
-    <title>دخول الإدارة | FORMA BY AZURE – KAHEEL</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="<?php echo e(asset('kaheel/home.css')); ?>?v=10" rel="stylesheet">
-</head>
-<body>
-    <header class="site-header">
-        <div class="header-inner">
-            <a class="brand" href="<?php echo e($home); ?>" aria-label="FORMA BY AZURE — KAHEEL">
-                <span class="brand-mark">
-                    <span class="brand-forma">FORMA</span>
-                    <span class="brand-azure">BY AZURE</span>
+<?php $__env->startPush('head'); ?>
+<meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
+<style>
+    .auth-page { max-width: 28rem; margin-inline: auto; display: flex; flex-direction: column; padding: 3.5rem 1.25rem 4rem; }
+    .auth-title { margin: 0; font-family: var(--font-display); font-size: 1.875rem; font-weight: 400; line-height: 1.2; }
+    .auth-lead { margin: 0.5rem 0 0; color: var(--muted-foreground); font-size: 0.875rem; }
+    .auth-card { margin-top: 1.5rem; border: 1px solid var(--border); border-radius: 1.25rem; background: var(--card); box-shadow: 0 24px 60px -34px color-mix(in oklab, var(--foreground) 28%, transparent); padding: 1.5rem; }
+    .auth-form { display: flex; flex-direction: column; gap: 1rem; margin-top: 0; }
+    .auth-alert[hidden] { display: none; }
+    .auth-alert { margin: 0 0 1rem; border: 1px solid color-mix(in oklab, var(--destructive) 35%, transparent); background: color-mix(in oklab, var(--destructive) 8%, transparent); padding: 0.75rem; font-size: 0.875rem; }
+    .auth-alert.is-error { color: var(--destructive); }
+    .auth-field { display: flex; flex-direction: column; gap: 0.375rem; }
+    .auth-field label { font-size: 0.875rem; font-weight: 500; }
+    .auth-field input { height: 2.25rem; width: 100%; border: 1px solid var(--input, var(--border)); border-radius: 6px; background: transparent; padding: 0.25rem 0.75rem; color: var(--foreground); font: inherit; font-size: 1rem; box-shadow: 0 1px 2px rgb(0 0 0 / 0.05); }
+    .auth-field input:focus { outline: 1px solid var(--primary); }
+    .auth-submit { width: 100%; height: 2.75rem; border: 0; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 0.875rem; cursor: pointer; }
+    .auth-submit:hover { opacity: 0.92; }
+    .auth-submit:disabled { cursor: wait; opacity: 0.85; }
+    .auth-submit-wait { display: inline-flex; align-items: center; gap: 0.5rem; }
+    .auth-spinner { width: 1rem; height: 1rem; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: auth-spin .7s linear infinite; }
+    @keyframes auth-spin { to { transform: rotate(360deg); } }
+</style>
+<?php $__env->stopPush(); ?>
+<?php $__env->startSection('content'); ?>
+<main class="auth-page">
+    <h1 class="auth-title">دخول الإدارة</h1>
+    <p class="auth-lead">سجّل الدخول إلى لوحة إدارة فورما</p>
+    <div class="auth-card">
+        <p class="auth-alert is-error" id="auth-alert" hidden></p>
+        <form class="auth-form" id="admin-login-form">
+            <div class="auth-field">
+                <label for="email">البريد الإلكتروني</label>
+                <input id="email" type="email" dir="ltr" autocomplete="username" required>
+            </div>
+            <div class="auth-field">
+                <label for="password">كلمة المرور</label>
+                <input id="password" type="password" dir="ltr" autocomplete="current-password" required>
+            </div>
+            <button class="auth-submit" type="submit" id="login-submit">
+                <span class="auth-submit-label">دخول</span>
+                <span class="auth-submit-wait" hidden>
+                    <span class="auth-spinner" aria-hidden="true"></span>
+                    <span>جارٍ الدخول…</span>
                 </span>
-                <span class="brand-name">KAHEEL</span>
-            </a>
-            <nav class="nav" aria-label="main">
-                <a class="btn btn-sm nav-home" href="<?php echo e($home); ?>" data-ar="الرئيسية" data-en="Home">الرئيسية</a>
-                <button class="btn btn-sm" type="button" id="lang-toggle" aria-label="language">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="m5 8 6 6"/>
-                        <path d="m4 14 6-6 2-3"/>
-                        <path d="M2 5h12"/>
-                        <path d="M7 2h1"/>
-                        <path d="m22 22-5-10-5 10"/>
-                        <path d="M14 18h6"/>
-                    </svg>
-                    <span id="lang-label">EN</span>
-                </button>
-            </nav>
-        </div>
-    </header>
-
-    <main class="auth-page">
-        <a class="admin-logo" href="<?php echo e($home); ?>" aria-label="FORMA BY AZURE — KAHEEL">
-            <span class="brand-mark">
-                <span class="brand-forma">FORMA</span>
-                <span class="brand-azure">BY AZURE</span>
-            </span>
-            <span class="brand-name">KAHEEL</span>
-        </a>
-        <h1 class="auth-title" data-ar="دخول الإدارة" data-en="Admin sign in">دخول الإدارة</h1>
-        <p class="auth-lead" data-ar="سجّل الدخول إلى لوحة إدارة كحيل" data-en="Sign in to the Kaheel admin panel">سجّل الدخول إلى لوحة إدارة كحيل</p>
-
-        <div class="auth-card">
-            <p class="auth-alert" id="auth-alert" hidden></p>
-            <form class="auth-form" id="admin-login-form">
-                <div class="auth-field">
-                    <label for="email" data-ar="البريد الإلكتروني" data-en="Email">البريد الإلكتروني</label>
-                    <input id="email" type="email" dir="ltr" autocomplete="username" required>
-                </div>
-                <div class="auth-field">
-                    <label for="password" data-ar="كلمة المرور" data-en="Password">كلمة المرور</label>
-                    <input id="password" type="password" dir="ltr" autocomplete="current-password" required>
-                </div>
-                <button class="btn btn-lg btn-primary auth-submit" type="submit" id="login-submit" data-ar="دخول" data-en="Sign in">دخول</button>
-            </form>
-        </div>
-    </main>
-
-    <style>
-        .admin-logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            margin-bottom: 1.75rem;
-            line-height: 1;
-            color: inherit;
+            </button>
+        </form>
+    </div>
+</main>
+<?php $__env->stopSection(); ?>
+<?php $__env->startPush('scripts'); ?>
+<script>
+    const locale = <?php echo json_encode($locale, 15, 512) ?>;
+    const copy = {
+        ar: { invalidEmail: "بريد إلكتروني غير صحيح", missingPassword: "كلمة المرور مطلوبة", failed: "تعذر تسجيل الدخول" },
+        en: { invalidEmail: "Invalid email", missingPassword: "Password is required", failed: "Sign in could not be completed" }
+    };
+    const alertBox = document.getElementById("auth-alert");
+    const lang = () => document.documentElement.lang === "en" ? "en" : "ar";
+    function showAlert(message) {
+        alertBox.hidden = false;
+        alertBox.textContent = message;
+    }
+    document.getElementById("admin-login-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        alertBox.hidden = true;
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showAlert(copy[lang()].invalidEmail);
+            return;
         }
-
-        .admin-logo .brand-name {
-            display: inline;
+        if (!password) {
+            showAlert(copy[lang()].missingPassword);
+            return;
         }
-    </style>
-
-    <script>
-        const locale = <?php echo json_encode($locale, 15, 512) ?>;
-        const copy = {
-            ar: {
-                title: "دخول الإدارة | FORMA BY AZURE – KAHEEL",
-                invalidEmail: "بريد إلكتروني غير صحيح",
-                missingPassword: "كلمة المرور مطلوبة",
-                failed: "تعذر تسجيل الدخول"
-            },
-            en: {
-                title: "Admin sign in | FORMA BY AZURE – KAHEEL",
-                invalidEmail: "Invalid email",
-                missingPassword: "Password is required",
-                failed: "Sign in could not be completed"
-            }
-        };
-
-        const root = document.documentElement;
-        const alertBox = document.getElementById("auth-alert");
-        let lang = locale === "en" ? "en" : "ar";
-
-        function text(key) {
-            return copy[lang][key];
-        }
-
-        function showAlert(message) {
-            alertBox.hidden = false;
-            alertBox.textContent = message;
-            alertBox.className = "auth-alert is-error";
-        }
-
-        function applyLang(next) {
-            lang = next;
-            root.lang = lang;
-            root.dir = lang === "ar" ? "rtl" : "ltr";
-            document.querySelectorAll("[data-ar]").forEach((node) => {
-                node.textContent = lang === "ar" ? node.dataset.ar : node.dataset.en;
+        const submit = document.getElementById("login-submit");
+        submit.disabled = true;
+        submit.querySelector(".auth-submit-label").hidden = true;
+        submit.querySelector(".auth-submit-wait").hidden = false;
+        try {
+            const response = await fetch("/web/admin/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                credentials: "same-origin",
+                body: JSON.stringify({ email, password })
             });
-            document.getElementById("lang-label").textContent = lang === "ar" ? "EN" : "ع";
-            document.title = text("title");
-            localStorage.setItem("forma-lang", lang);
+            const raw = await response.text();
+            let data = {};
+            try { data = JSON.parse(raw); } catch (error) {
+                showAlert(copy[lang()].failed);
+                return;
+            }
+            if (data.status === true && data.items && data.items.token) {
+                localStorage.setItem("token", data.items.token);
+                localStorage.setItem("authToken", data.items.token);
+                location.assign("/" + locale + "/dashboard");
+                return;
+            }
+            showAlert(data.message || copy[lang()].failed);
+        } catch (error) {
+            showAlert(copy[lang()].failed);
+        } finally {
+            submit.disabled = false;
+            submit.querySelector(".auth-submit-label").hidden = false;
+            submit.querySelector(".auth-submit-wait").hidden = true;
         }
+    });
+</script>
+<?php $__env->stopPush(); ?>
 
-        document.getElementById("lang-toggle").addEventListener("click", () => {
-            applyLang(lang === "ar" ? "en" : "ar");
-        });
-
-        document.getElementById("admin-login-form").addEventListener("submit", async (event) => {
-            event.preventDefault();
-            alertBox.hidden = true;
-            const email = document.getElementById("email").value.trim();
-            const password = document.getElementById("password").value;
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                showAlert(text("invalidEmail"));
-                return;
-            }
-            if (!password) {
-                showAlert(text("missingPassword"));
-                return;
-            }
-
-            const submit = document.getElementById("login-submit");
-            submit.disabled = true;
-            try {
-                const response = await fetch("/web/admin/login", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Accept": "application/json",
-                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
-                        "X-Requested-With": "XMLHttpRequest"
-                    },
-                    body: JSON.stringify({ email, password })
-                });
-                const raw = await response.text();
-                let data = {};
-                try {
-                    data = JSON.parse(raw);
-                } catch (error) {
-                    showAlert(text("failed"));
-                    return;
-                }
-                if (data.status === true && data.items && data.items.token) {
-                    localStorage.setItem("token", data.items.token);
-                    localStorage.setItem("authToken", data.items.token);
-                    location.assign("/" + locale + "/dashboard");
-                    return;
-                }
-                showAlert(data.message || text("failed"));
-            } catch (error) {
-                showAlert(text("failed"));
-            } finally {
-                submit.disabled = false;
-            }
-        });
-
-        applyLang(lang);
-    </script>
-    <?php echo $__env->make('kaheel.partials.native-validation', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-</body>
-</html>
-<?php /**PATH E:\kaheel\resources\views/kaheel/admin-login.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('kaheel.layouts.forma', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\kaheel\resources\views/kaheel/admin-login.blade.php ENDPATH**/ ?>

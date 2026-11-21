@@ -17,7 +17,7 @@
             <span class="font-display text-3xl font-medium">FORMA</span>
             <span class="mt-1 text-[8px] tracking-[0.45em]">INTERIORS</span>
         </a>
-        <nav aria-label="التنقل الرئيسي" class="hidden items-center gap-6 lg:flex">
+        <nav id="public-desktop-nav" aria-label="التنقل الرئيسي" class="hidden items-center gap-6 lg:flex">
             <a class="<?php echo e($link); ?> <?php echo e($nav === 'home' ? $on : $off); ?>" href="<?php echo e($home); ?>">الرئيسية</a>
             <a class="<?php echo e($link); ?> <?php echo e($nav === 'about' ? $on : $off); ?>" href="<?php echo e($home); ?>#about">من نحن</a>
             <a class="<?php echo e($link); ?> <?php echo e($nav === 'home' ? $off : $off); ?>" href="<?php echo e($home); ?>#services">خدماتنا</a>
@@ -58,10 +58,20 @@
                 </a>
             <?php endif; ?>
             <a href="<?php echo e($nav === 'home' || $nav === 'packages' || $nav === 'projects' ? '#contact' : $home.'#contact'); ?>" class="ms-1 hidden h-8 items-center justify-center bg-secondary px-3 text-xs text-secondary-foreground hover:bg-secondary/80 sm:inline-flex">احجز استشارة</a>
-            <button class="inline-flex h-9 w-9 items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent lg:hidden" aria-label="القائمة" aria-expanded="false" aria-controls="public-mobile-menu">
+            <button type="button" id="public-menu-btn" class="public-menu-btn inline-flex h-9 w-9 items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent lg:hidden" aria-label="القائمة" aria-expanded="false" aria-controls="public-mobile-menu">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="lucide lucide-menu" aria-hidden="true"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg>
             </button>
         </div>
     </div>
+    <nav id="public-mobile-menu" class="public-mobile-menu" hidden>
+        <a href="<?php echo e($home); ?>">الرئيسية</a>
+        <a href="<?php echo e($home); ?>#about">من نحن</a>
+        <a href="<?php echo e($home); ?>#services">خدماتنا</a>
+        <a href="<?php echo e($home); ?>#process">آلية العمل</a>
+        <a href="<?php echo e($home); ?>/projects">المشاريع</a>
+        <a href="<?php echo e($home); ?>/packages">الباقات</a>
+        <a href="<?php echo e($nav === 'home' || $nav === 'packages' || $nav === 'projects' ? '#contact' : $home.'#contact'); ?>">تواصل معنا</a>
+        <a href="<?php echo e($nav === 'home' || $nav === 'packages' || $nav === 'projects' ? '#contact' : $home.'#contact'); ?>" class="public-mobile-cta">احجز استشارة</a>
+    </nav>
 </header>
 <?php /**PATH E:\kaheel\resources\views/kaheel/partials/forma-header.blade.php ENDPATH**/ ?>
