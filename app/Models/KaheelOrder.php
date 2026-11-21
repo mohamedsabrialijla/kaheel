@@ -44,6 +44,28 @@ class KaheelOrder extends Model
         return round((float) $this->price_incl + (float) $this->addons_total + (float) $this->alternatives_amount, 2);
     }
 
+    public function alternativesExcl(): float
+    {
+        $incl = (float) $this->alternatives_amount;
+        if ($incl <= 0) {
+            return 0;
+        }
+
+        return round($incl / 1.15, 2);
+    }
+
+    public function billedExcl(): float
+    {
+        $addonsExcl = (float) $this->addons_total > 0 ? round((float) $this->addons_total / 1.15, 2) : 0;
+
+        return round((float) $this->price_excl + $addonsExcl + $this->alternativesExcl(), 2);
+    }
+
+    public function billedVat(): float
+    {
+        return round($this->billedTotal() - $this->billedExcl(), 2);
+    }
+
     public function remainingDue(): float
     {
         return max(0, $this->billedTotal() - (float) $this->deposit_amount);

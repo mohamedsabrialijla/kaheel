@@ -3,7 +3,7 @@
     $money = fn ($amount) => number_format((float) $amount, 2, '.', ',');
     $status = $order->statusCopy();
     $step = $order->progressStep();
-    $vat = (float) $order->price_incl - (float) $order->price_excl;
+    $vat = $order->billedVat();
     $receipt = $order->files->firstWhere('kind', 'receipt');
     $receiptFiles = $order->files->where('kind', 'receipt')->values();
     $finalReceiptFiles = $order->files->where('kind', 'final_receipt')->values();
@@ -154,9 +154,9 @@
                 <div><dt data-ar="المشروع" data-en="Project">المشروع</dt><dd>{{ $order->compound_name }}</dd></div>
                 <div><dt data-ar="الوحدة" data-en="Unit">الوحدة</dt><dd>{{ $order->unit_no }}</dd></div>
                 <div><dt data-ar="الباقة" data-en="Package">الباقة</dt><dd class="is-primary" data-ar="{{ $order->package_name_ar }} — {{ $order->tier_name_ar }}" data-en="{{ $order->package_name_en }} — {{ $order->tier_name_en }}">{{ $order->package_name_ar }} — {{ $order->tier_name_ar }}</dd></div>
-                <div><dt data-ar="السعر قبل الضريبة" data-en="Price before VAT">السعر قبل الضريبة</dt><dd>{{ $money($order->price_excl) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
+                <div><dt data-ar="السعر قبل الضريبة" data-en="Price before VAT">السعر قبل الضريبة</dt><dd>{{ $money($order->billedExcl()) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
                 <div><dt data-ar="ضريبة القيمة المضافة" data-en="VAT">ضريبة القيمة المضافة</dt><dd>{{ $money($vat) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
-                <div><dt data-ar="الإجمالي" data-en="Total">الإجمالي</dt><dd>{{ $money($order->price_incl) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
+                <div><dt data-ar="الإجمالي" data-en="Total">الإجمالي</dt><dd>{{ $money($order->billedTotal()) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
                 <div><dt data-ar="العربون" data-en="Deposit">العربون</dt><dd class="is-primary">{{ $money($order->deposit_amount) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>
                 @if ((float) $order->alternatives_amount > 0)
                     <div><dt data-ar="مبلغ البدائل" data-en="Alternatives amount">مبلغ البدائل</dt><dd>{{ $money($order->alternatives_amount) }} <span data-ar="ريال" data-en="SAR">ريال</span></dd></div>

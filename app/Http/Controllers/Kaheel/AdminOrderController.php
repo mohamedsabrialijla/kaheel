@@ -621,7 +621,7 @@ class AdminOrderController extends KaheelAdminController
             'design_status' => $order->design_status ?: 'none',
             'design_signed_at' => kaheel_iso($order->design_signed_at),
             'price_excl' => (float) $order->price_excl,
-            'vat' => round((float) $order->price_incl - (float) $order->price_excl, 2),
+            'vat' => $order->billedVat(),
             'price_incl' => (float) $order->price_incl,
             'addons_total' => (float) $order->addons_total,
             'alternatives_amount' => (float) $order->alternatives_amount,

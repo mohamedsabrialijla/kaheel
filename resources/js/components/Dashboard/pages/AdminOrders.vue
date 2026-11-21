@@ -105,8 +105,8 @@
             <section class="ka-ord-card">
                 <h2>{{ t.financials }}</h2>
                 <div class="ka-ord-grid">
-                    <div><p>{{ t.excl }}</p><strong>{{ money(order.price_excl) }} SAR</strong></div>
-                    <div><p>{{ t.vat }}</p><strong>{{ money(order.vat) }} SAR</strong></div>
+                    <div><p>{{ t.excl }}</p><strong>{{ money(billExcl) }} SAR</strong></div>
+                    <div><p>{{ t.vat }}</p><strong>{{ money(billVat) }} SAR</strong></div>
                     <div><p>{{ t.packageTotal }}</p><strong>{{ money(order.price_incl) }} SAR</strong></div>
                     <div><p>{{ t.addons }}</p><strong>{{ money(billAddons) }} SAR</strong></div>
                     <div><p>{{ t.alternativesAmount }}</p><strong>{{ money(alternativesIncl) }} SAR</strong></div>
@@ -932,6 +932,20 @@ export default {
         },
         alternativesIncl() {
             return Math.round((Number(this.alternativesDraft || 0) * 1.15) * 100) / 100;
+        },
+        alternativesVat() {
+            return Math.round((this.alternativesIncl - Number(this.alternativesDraft || 0)) * 100) / 100;
+        },
+        addonsExcl() {
+            return Math.round((Number(this.billAddons || 0) / 1.15) * 100) / 100;
+        },
+        billExcl() {
+            return Math.round((Number(this.order?.price_excl || 0) + this.addonsExcl + Number(this.alternativesDraft || 0)) * 100) / 100;
+        },
+        billVat() {
+            const packageVat = Number(this.order?.price_incl || 0) - Number(this.order?.price_excl || 0);
+            const addonsVat = Number(this.billAddons || 0) - this.addonsExcl;
+            return Math.round((packageVat + addonsVat + this.alternativesVat) * 100) / 100;
         },
         billFinal() {
             return Number(this.order?.price_incl || 0) + Number(this.billAddons) + Number(this.alternativesIncl || 0);
