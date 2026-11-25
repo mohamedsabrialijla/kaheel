@@ -31,8 +31,22 @@
             <p class="mt-2 text-sm opacity-80">10:00 صباحاً – 8:00 مساءً</p>
         </div>
     </div>
-    <div class="border-t border-sidebar-border px-5 py-5">
-        <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 text-xs opacity-65">
+    <div class="border-t border-sidebar-border px-5 py-10">
+        <div class="mx-auto flex max-w-7xl flex-col items-center gap-4 text-center">
+            <p class="text-sm tracking-wide text-sidebar-foreground/70">إحدى شركات أزور</p>
+            <a href="https://azure.sa" target="_blank" rel="noreferrer" class="inline-flex items-center text-sidebar-accent-foreground" aria-label="AZURE">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 88" class="h-10 w-auto" fill="none" aria-hidden="true">
+                    <g fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 72 V28 c0-12 10-22 24-22 s24 10 24 22 v44"/>
+                        <path d="M86 22 h78 M86 66 h78 M92 22 L158 66"/>
+                        <path d="M188 22 v32 c0 16 12 28 32 28 s32-12 32-28 V22"/>
+                        <path d="M276 72 V22 h18 c18 0 32 12 32 28 s-14 28-32 28 h-18 M308 50 h18"/>
+                        <path d="M400 22 h-48 v50 h48 M352 44 h40"/>
+                    </g>
+                </svg>
+            </a>
+        </div>
+        <div class="mx-auto mt-8 flex max-w-7xl flex-wrap items-center justify-between gap-3 text-xs opacity-65">
             <span>© 2026 فورما للتصميم الداخلي. جميع الحقوق محفوظة.</span>
             <span>تصميم · تأثيث · توريد · تركيب</span>
         </div>
