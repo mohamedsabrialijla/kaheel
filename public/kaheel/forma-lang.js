@@ -67,6 +67,7 @@
         "إغلاق": "Close",
         "إحدى شركات أزور": "An Azure company",
         "الأحد – الخميس: 10:00 صباحاً – 8:00 مساءً": "Sunday – Thursday: 10:00 AM – 8:00 PM",
+        "10:00 AM – 8:00 PM": "10:00 AM – 8:00 PM",
         "دخول الإدارة": "Admin sign in",
         "سجّل الدخول إلى لوحة إدارة فورما": "Sign in to the FORMA admin panel",
         "البريد الإلكتروني": "Email",

@@ -4,7 +4,7 @@
     <div class="absolute inset-0 -z-10 bg-sidebar/60"></div>
     <div class="mx-auto w-full max-w-7xl px-5 pb-20 pt-32 md:pb-28">
         <div class="max-w-xl">
-            <p class="mb-4 flex items-center gap-3 text-xs tracking-[0.2em] text-accent"><span class="h-px w-8 bg-accent"></span>تصميم داخلي وتأثيث متكامل</p>
+            <p class="mb-4 text-xs text-accent">تصميم داخلي وتأثيث متكامل</p>
             <h1 class="font-display text-5xl leading-tight md:text-7xl">مساحات تُصمَّم لتُعاش</h1>
             <p class="mt-5 text-sm leading-7 opacity-90 md:text-base">نتولى تأثيث وحدتك السكنية من الفكرة الأولى حتى تسليم المفتاح؛ تصميم مدروس، وتوريد منتقى، وتركيب دقيق، لتنتقل إلى منزل جاهز للسكن من اليوم الأول.</p>
             <div class="mt-8 flex flex-wrap gap-3">

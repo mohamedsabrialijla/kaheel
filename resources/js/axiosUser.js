@@ -1,6 +1,6 @@
 import axios from "axios";
 import router from "./routes";
-import store from "./storeUser";
+import store from "./storeUser.js";
 
 let locale = localStorage.getItem("locale") || "en";
 delete axios.defaults.headers.common["X-Requested-With"];

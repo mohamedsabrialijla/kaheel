@@ -21,7 +21,7 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=El+Messiri:wght@400;500;600&family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="{{ asset('kaheel/forma.css') }}?v=3" rel="stylesheet">
     <script src="{{ asset('kaheel/forma-i18n.js') }}?v=1"></script>
-    <script src="{{ asset('kaheel/forma-lang.js') }}?v=4"></script>
+    <script src="{{ asset('kaheel/forma-lang.js') }}?v=5"></script>
     <style>
         /* forma.css hides .reveal until JS adds .in — keep content visible if JS is late or missing */
         .reveal { opacity: 1; transform: none; }
